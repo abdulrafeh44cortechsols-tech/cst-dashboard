@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { useToast } from "@/hooks/useToast"
+import { toast } from "sonner"
 import { ImageIcon, Video, Trash2, Calendar, FileText } from "lucide-react"
 
 interface StoredMediaFile {
@@ -19,7 +19,7 @@ interface StoredMediaFile {
 
 export function MediaGallery() {
   const [storedFiles, setStoredFiles] = useState<StoredMediaFile[]>([])
-  const { toast } = useToast()
+ 
 
   const loadStoredFiles = () => {
     const files = JSON.parse(localStorage.getItem("uploadedMedia") || "[]")
@@ -61,20 +61,14 @@ export function MediaGallery() {
     setStoredFiles(updatedFiles)
     localStorage.setItem("uploadedMedia", JSON.stringify(updatedFiles))
 
-    toast({
-      title: "File deleted",
-      description: "Media file has been removed from storage",
-    })
+    toast("Media file deleted successfully")
   }
 
   const clearAllFiles = () => {
     setStoredFiles([])
     localStorage.removeItem("uploadedMedia")
 
-    toast({
-      title: "All files cleared",
-      description: "All stored media files have been removed",
-    })
+    toast("All media files cleared successfully")
   }
 
   if (storedFiles.length === 0) {

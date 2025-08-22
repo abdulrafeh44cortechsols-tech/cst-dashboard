@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/useToast";
+import { toast } from "sonner";
 import { Upload, X, ImageIcon, Video, FileText } from "lucide-react";
 
 interface MediaFile {
@@ -33,7 +33,7 @@ export function MediaUploadForm() {
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
+
 
   const createPreview = useCallback((file: File): Promise<string> => {
     return new Promise((resolve) => {
@@ -71,11 +71,7 @@ export function MediaUploadForm() {
       );
 
       if (validFiles.length !== files.length) {
-        toast({
-          title: "Invalid files detected",
-          description: "Only image and video files are supported",
-          variant: "destructive",
-        });
+        toast("Only image and video files are allowed.");
       }
 
       const newMediaFiles: MediaFile[] = [];
@@ -141,11 +137,7 @@ export function MediaUploadForm() {
       e.preventDefault();
 
       if (mediaFiles.length === 0) {
-        toast({
-          title: "No files selected",
-          description: "Please upload at least one media file",
-          variant: "destructive",
-        });
+        toast("Please upload at least one media file.");
         return;
       }
 
@@ -154,11 +146,7 @@ export function MediaUploadForm() {
         (file) => !file.altText.trim()
       );
       if (filesWithoutAltText.length > 0) {
-        toast({
-          title: "Missing alt text",
-          description: "Please provide alt text for all uploaded media files",
-          variant: "destructive",
-        });
+        toast("Please provide alt text for all media files.");
         return;
       }
 
@@ -179,10 +167,7 @@ export function MediaUploadForm() {
       const updatedFiles = [...existingFiles, ...storedFiles];
       localStorage.setItem("uploadedMedia", JSON.stringify(updatedFiles));
 
-      toast({
-        title: "Upload successful!",
-        description: `${mediaFiles.length} file(s) uploaded and stored locally`,
-      });
+      toast("Media files uploaded successfully!");
 
       // Reset form
       setMediaFiles([]);

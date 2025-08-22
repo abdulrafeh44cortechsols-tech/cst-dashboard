@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
-import { useToast } from "@/hooks/useToast";
-import { EditorTable } from "@/components/editors/EditorTable";
-import { AddEditorDialog } from "@/components/editors/AddModal";
-import { EditEditorDialog } from "@/components/editors/EditModal";
-import { TeamOverview } from "@/components/editors/TeamOverview";
+import { toast } from "sonner";
+import { EditorTable } from "@/components/editors/editorTable";
+import { AddEditorDialog } from "@/components/editors/addModal";
+import { EditEditorDialog } from "@/components/editors/editModal";
+import { TeamOverview } from "@/components/editors/teamOverview";
 import type { Editor, CreateEditorData } from "@/types/editor";
 import { useEditors } from "@/hooks/useEditors";
 
@@ -15,22 +15,11 @@ export default function EditorManagement() {
   const [editingEditor, setEditingEditor] = useState<Editor | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const { getEditorsList, addEditor, editEditor, removeEditor } = useEditors();
-  const { toast } = useToast();
 
   const handleAddEditor = (editorData: CreateEditorData) => {
     addEditor.mutate(editorData, {
-      onSuccess: () =>
-        toast({
-          title: "Editor Added",
-          description: "Editor added successfully.",
-          variant: "success",
-        }),
-      onError: () =>
-        toast({
-          title: "Error",
-          description: "Failed to add editor. Please try again.",
-          variant: "destructive",
-        }),
+      onSuccess: () => toast("Editor added successfully!"),
+      onError: () => toast("Failed to add editor. Please try again."),
     });
   };
 
@@ -39,18 +28,8 @@ export default function EditorManagement() {
     editEditor.mutate(
       { id: editingEditor.id, data: editorData },
       {
-        onSuccess: () =>
-          toast({
-            title: "Editor Updated",
-            description: "Editor updated successfully.",
-            variant: "success",
-          }),
-        onError: () =>
-          toast({
-            title: "Error",
-            description: "Failed to update editor. Please try again.",
-            variant: "destructive",
-          }),
+        onSuccess: () => toast("Editor updated successfully!"),
+        onError: () => toast("Failed to update editor!"),
       }
     );
   };
@@ -58,17 +37,9 @@ export default function EditorManagement() {
   const handleDeleteEditor = (id: string) => {
     removeEditor.mutate(id, {
       onSuccess: () =>
-        toast({
-          title: "Editor Deleted",
-          description: "Editor deleted successfully.",
-          variant: "success",
-        }),
+        toast("Editor deleted successfully!"),
       onError: () =>
-        toast({
-          title: "Error",
-          description: "Failed to delete editor. Please try again.",
-          variant: "destructive",
-        }),
+       toast("Failed to delete editor. Please try again."),
     });
   };
 
@@ -93,15 +64,15 @@ export default function EditorManagement() {
     setIsEditDialogOpen(false);
   };
 
-
-
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="mx-auto max-w-full space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <h1 className="text-3xl font-bold tracking-tight">Editor Management</h1>
+            <h1 className="text-3xl font-bold tracking-tight">
+              Editor Management
+            </h1>
             <p className="text-muted-foreground">
               Manage your editorial team members and their roles
             </p>
@@ -110,7 +81,11 @@ export default function EditorManagement() {
         </div>
 
         <TeamOverview editors={editors} />
-        <EditorTable editors={editors} onEdit={openEditDialog} onDelete={handleDeleteEditor} />
+        <EditorTable
+          editors={editors}
+          onEdit={openEditDialog}
+          onDelete={handleDeleteEditor}
+        />
 
         <EditEditorDialog
           editor={editingEditor}

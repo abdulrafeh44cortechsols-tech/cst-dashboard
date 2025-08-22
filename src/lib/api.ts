@@ -1,12 +1,21 @@
 import axios from "axios";
 
-const token = localStorage.getItem("accessToken");
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
   headers: {
-    Authorization: `Bearer ${token}`,
     "ngrok-skip-browser-warning": "69420",
   },
+});
+
+// Add token dynamically before each request
+api.interceptors.request.use((config) => {
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("accessToken");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
 });
 
 api.interceptors.response.use(

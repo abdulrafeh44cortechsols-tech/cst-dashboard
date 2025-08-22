@@ -14,7 +14,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/hooks/useToast";
+import { toast } from "sonner";
 
 export default function AddBlogPage() {
   const router = useRouter();
@@ -38,10 +38,7 @@ export default function AddBlogPage() {
     e.preventDefault();
 
     if (images.length === 0) {
-      toast({
-        title: "Please upload at least one image",
-        variant: "destructive",
-      });
+      toast("Please upload at least one image.");
       return;
     }
 
@@ -59,14 +56,10 @@ export default function AddBlogPage() {
 
       await addService.mutateAsync(formData);
 
-      toast({ title: "Service created successfully!" });
+      toast("Service created successfully!");
       router.push("/dashboard/services");
     } catch (error: any) {
-      toast({
-        title: "Failed to create service",
-        description: error?.message || "Something went wrong",
-        variant: "destructive",
-      });
+      toast("Failed to create service. Please try again.");
     }
   };
 

@@ -24,7 +24,7 @@ export function DeleteBlogModal({ blog, isOpen, onClose }: DeleteBlogModalProps)
   const handleDelete = () => {
     if (!blog) return;
 
-    removeBlog.mutate(blog.id, {
+    removeBlog.mutate(blog.id.toString(), {
       onSuccess: () => onClose(),
     });
   };

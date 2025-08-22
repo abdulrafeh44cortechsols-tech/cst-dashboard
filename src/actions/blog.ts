@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { type BlogPost } from "@/types/blog";
 
-// Simulate database fetching for demo (will be replaced with real API/DB)
+// ✅ Simulate database fetching for demo
 const generateDummyBlogPosts = (count: number): BlogPost[] => {
   const posts: BlogPost[] = [];
 
@@ -12,8 +12,9 @@ const generateDummyBlogPosts = (count: number): BlogPost[] => {
       id: i,
       title: `Blog Post Title ${i}`,
       slug: `blog-post-${i}`,
-      image: null,
-      published: i % 2 === 0, // alternate true/false
+      images: [`/demo/image-${i}.png`], // now an array
+      image_files: null, // will be filled if uploading
+      published: i % 2 === 0,
       created_at: new Date(Date.now() - i * 86400000).toISOString(),
       updated_at: new Date(Date.now() - i * 86400000).toISOString(),
       tags: [
@@ -22,6 +23,11 @@ const generateDummyBlogPosts = (count: number): BlogPost[] => {
       ],
       summary: `This is a short summary for blog post number ${i}.`,
       author_email: "admin@gmail.com",
+      tag_ids: [1, 2],
+      meta_title: `SEO Meta Title for Blog ${i}`,
+      meta_description: `SEO Meta Description for Blog ${i}`,
+      og_image_file: null,
+      content: `# Blog Content ${i}\n\nThis is the full markdown/content for blog post ${i}.`,
     });
   }
   return posts;
@@ -32,27 +38,32 @@ const dummyBlogPosts: BlogPost[] = generateDummyBlogPosts(20);
 export async function createBlogPost(prevState: any, formData: FormData) {
   const title = formData.get("title") as string;
   const summary = formData.get("summary") as string;
-  const published = formData.get("published") === "true"; // coming from form as string
+  const published = formData.get("published") === "true";
   const slug = formData.get("slug") as string;
 
   if (!title || !slug) {
     return { success: false, message: "Title and slug are required." };
   }
 
-  // Simulate API call delay
   await new Promise((resolve) => setTimeout(resolve, 200));
 
   const newPost: BlogPost = {
     id: dummyBlogPosts.length + 1,
     title,
     slug,
-    image: null,
+    images: [],
+    image_files: null,
     published,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     tags: [],
-    summary: summary || null,
+    summary: summary || "",
     author_email: "admin@gmail.com",
+    tag_ids: [],
+    meta_title: `${title} | My Blog`,
+    meta_description: summary || "",
+    og_image_file: null,
+    content: "",
   };
 
   dummyBlogPosts.unshift(newPost);
@@ -85,7 +96,7 @@ export async function updateBlogPost(prevState: any, formData: FormData) {
       ...dummyBlogPosts[existingPostIndex],
       title,
       slug,
-      summary: summary || null,
+      summary: summary || "",
       published,
       updated_at: new Date().toISOString(),
     };

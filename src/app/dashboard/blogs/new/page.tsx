@@ -14,7 +14,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/hooks/useToast";
+import { toast } from "sonner";
 
 export default function AddBlogPage() {
   const router = useRouter();
@@ -38,12 +38,13 @@ export default function AddBlogPage() {
     e.preventDefault();
 
     if (!title || !content || !status) {
-      toast({ title: "All fields are required", variant: "destructive" });
+      toast("All fields are required");
       return;
     }
 
     if (images.length === 0) {
-      toast({ title: "Please upload at least one image", variant: "destructive" });
+            toast("Please upload at least one image.");
+
       return;
     }
 
@@ -59,15 +60,11 @@ export default function AddBlogPage() {
 
       await addBlog.mutateAsync(formData);
 
-      toast({ title: "Blog post created successfully!" });
+      toast("Blog post created successfully!");
       router.push("/dashboard/blogs");
     } catch (error: any) {
       console.error("error creating blog post:", error);
-      toast({
-        title: "Failed to create blog post",
-        description: error?.message || "Something went wrong",
-        variant: "destructive",
-      });
+      toast("Failed to create blog post. Please try again.");
     }
   };
 
