@@ -1,0 +1,44 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { servicesDataService } from "@/services/services";
+import type { Service } from "@/types/service";
+import { services } from "@/data/mockServicesList";
+
+export const useServices = () => {
+  const queryClient = useQueryClient();
+
+  const getServicesList = useQuery<Service[]>({
+    queryKey: ["services"],
+    queryFn: servicesDataService.getServices,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: 1,
+  });
+
+  const addService = useMutation({
+    mutationFn: servicesDataService.createService,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["services"] });
+    },
+  });
+
+  const editService = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: FormData }) =>
+      servicesDataService.updateService(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["services"] });
+    },
+  });
+
+  const removeService = useMutation({
+    mutationFn: servicesDataService.deleteService,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["services"] });
+    },
+  });
+
+  return {
+    getServicesList,
+    addService,
+    editService,
+    removeService,
+  };
+};
