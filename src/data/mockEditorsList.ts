@@ -1,28 +1,24 @@
-import {  type Editor } from "@/types/editor"
+import {  type Editor } from "@/types/types"
 
-export const mockEditors: Editor[] = [
+export const mockEditors: Partial<Editor>[] = [
   {
     id: "1",
-    name: "Sarah Johnson",
+    username: "Sarah Johnson",
     email: "sarah.johnson@example.com",
-    role: "Editor",
   },
   {
     id: "2",
-    name: "Michael Chen",
+    username: "Michael Chen",
     email: "michael.chen@example.com",
-    role: "Editor",
   },
   {
     id: "3",
-    name: "Emily Rodriguez",
+    username: "Emily Rodriguez",
     email: "emily.rodriguez@example.com",
-    role: "Editor",
   },
   {
     id: "4",
-    name: "David Kim",
+    username: "David Kim",
     email: "david.kim@example.com",
-    role: "Editor",
   },
 ]

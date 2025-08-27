@@ -12,8 +12,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { Service } from "@/types/service";
+import type { Service } from "@/types/types";
 import { useServices } from "@/hooks/useServices";
 
 interface EditServiceModalProps {
@@ -26,12 +27,16 @@ export function EditServiceModal({ service, isOpen, onClose }: EditServiceModalP
   const { editService } = useServices();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [metaTitle, setMetaTitle] = useState("");
+  const [metaDescription, setMetaDescription] = useState("");
   const [status, setStatus] = useState<Service["is_active"]>(false);
 
   useEffect(() => {
     if (service) {
       setTitle(service.title);
       setDescription(service.description);
+      setMetaTitle(service.meta_title);
+      setMetaDescription(service.meta_description);
       setStatus(service.is_active);
     }
   }, [service]);
@@ -42,6 +47,8 @@ export function EditServiceModal({ service, isOpen, onClose }: EditServiceModalP
     const formData = new FormData();
     formData.append("title", title);
     formData.append("description", description);
+    formData.append("meta_title", metaTitle);
+    formData.append("meta_description", metaDescription);
     formData.append("is_active", status ? "true" : "false");
     try {
        editService.mutate(
@@ -84,6 +91,29 @@ export function EditServiceModal({ service, isOpen, onClose }: EditServiceModalP
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Enter service description"
+              required
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="meta-title">Meta Title</Label>
+            <Input
+              id="meta-title"
+              value={metaTitle}
+              onChange={(e) => setMetaTitle(e.target.value)}
+              placeholder="Enter meta title for SEO"
+              required
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="meta-description">Meta Description</Label>
+            <Textarea
+              id="meta-description"
+              value={metaDescription}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setMetaDescription(e.target.value)}
+              placeholder="Enter meta description for SEO"
+              rows={3}
               required
             />
           </div>

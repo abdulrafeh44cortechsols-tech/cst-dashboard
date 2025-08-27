@@ -71,7 +71,7 @@ export function MediaUploadForm() {
       );
 
       if (validFiles.length !== files.length) {
-        toast("Only image and video files are allowed.");
+        toast.warning("Only image and video files are allowed.");
       }
 
       const newMediaFiles: MediaFile[] = [];
@@ -137,7 +137,7 @@ export function MediaUploadForm() {
       e.preventDefault();
 
       if (mediaFiles.length === 0) {
-        toast("Please upload at least one media file.");
+        toast.warning("Please upload at least one media file.");
         return;
       }
 
@@ -146,7 +146,7 @@ export function MediaUploadForm() {
         (file) => !file.altText.trim()
       );
       if (filesWithoutAltText.length > 0) {
-        toast("Please provide alt text for all media files.");
+        toast.error("Please provide alt text for all media files.");
         return;
       }
 
@@ -167,7 +167,7 @@ export function MediaUploadForm() {
       const updatedFiles = [...existingFiles, ...storedFiles];
       localStorage.setItem("uploadedMedia", JSON.stringify(updatedFiles));
 
-      toast("Media files uploaded successfully!");
+      toast.success("Media files uploaded successfully!");
 
       // Reset form
       setMediaFiles([]);

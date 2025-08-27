@@ -2,31 +2,20 @@
 import { MediaGallery } from "@/components/media/MediaGallery";
 import { MediaUploadForm } from "@/components/media/MediaUploadForm";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogFooter
 } from "@/components/ui/dialog";
-import {
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@radix-ui/react-select";
 import { PlusCircle } from "lucide-react";
-import Link from "next/link";
 import { useState } from "react";
-import { Select } from "react-day-picker";
+import { useMedia } from "@/hooks/useMedia";
 
 export default function MediaPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isUpdatePending, setIsUpdatePending] = useState(false);
+  const { getMediaList } = useMedia();
 
   return (
     <div className="flex flex-col gap-4">

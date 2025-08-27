@@ -1,10 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { blogService } from "@/services/blogs";
-import { BlogPost } from "@/types/blog";
+import { BlogPost } from "@/types/types";
 import { getPaginatedBlogPosts } from "@/actions/blog";
+import { useBlogStore } from "@/stores";
 
 export const useBlogs = (page: number = 1, limit: number = 6) => {
   const queryClient = useQueryClient();
+  const { setBlogs } = useBlogStore();
 
   const getBlogsList = useQuery({
     queryKey: ["blogs", page, limit],
@@ -15,16 +18,28 @@ export const useBlogs = (page: number = 1, limit: number = 6) => {
         return {
           posts: response.data.slice((page - 1) * limit, page * limit), // manual pagination if backend doesn't do it
           totalPages: Math.ceil(response.data.length / limit),
+          allBlogs: response.data, // Store all blogs for the store
         };
       } catch (error) {
         console.error("API failed, using dummy blog posts...", error);
         // Fallback to dummy data
-        return await getPaginatedBlogPosts({ page, limit });
+        const fallbackData = await getPaginatedBlogPosts({ page, limit });
+        return {
+          ...fallbackData,
+          allBlogs: fallbackData.posts, // Use fallback posts as all blogs
+        };
       }
     },
     staleTime: 1000 * 60 * 5, // cache for 5 minutes
     retry: 0, // don't retry multiple times (we have fallback)
   });
+
+  // Store blogs in Zustand store when data is fetched
+  useEffect(() => {
+    if (getBlogsList.data?.allBlogs) {
+      setBlogs(getBlogsList.data.allBlogs);
+    }
+  }, [getBlogsList.data, setBlogs]);
 
   const addBlog = useMutation({
     mutationFn: blogService.createBlog,

@@ -1,10 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { servicesDataService } from "@/services/services";
-import type { Service } from "@/types/service";
-import { services } from "@/data/mockServicesList";
+import type { Service } from "@/types/types";
+import { useServiceStore } from "@/stores";
 
 export const useServices = () => {
   const queryClient = useQueryClient();
+  const { setServices } = useServiceStore();
 
   const getServicesList = useQuery<Service[]>({
     queryKey: ["services"],
@@ -12,6 +14,13 @@ export const useServices = () => {
     staleTime: 1000 * 60 * 5, // 5 minutes
     retry: 1,
   });
+
+  // Store services in Zustand store when data is fetched
+  useEffect(() => {
+    if (getServicesList.data) {
+      setServices(getServicesList.data);
+    }
+  }, [getServicesList.data, setServices]);
 
   const addService = useMutation({
     mutationFn: servicesDataService.createService,

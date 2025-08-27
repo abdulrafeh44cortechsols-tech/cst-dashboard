@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { type BlogPost } from "@/types/blog";
+import { type BlogPost } from "@/types/types";
 
 // ✅ Simulate database fetching for demo
 const generateDummyBlogPosts = (count: number): BlogPost[] => {

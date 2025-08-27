@@ -1,4 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CortechSols Website Dashboard
+
+A Next.js dashboard for managing CortechSols website content.
+
+## Features
+
+### Template Management
+- **Dynamic Template Types**: Fetches available template types from `/api/v1/pages/template_types/`
+- **Template Versions**: Supports multiple versions per template (e.g., v1, v2)
+- **Template Preview**: View templates with custom URLs
+- **Template Selection**: Pre-select templates when creating new pages
+
+### Page Management
+- **Template Integration**: Create pages with specific template types and versions
+- **Dynamic Forms**: Template selection based on API data
+- **Version Support**: Automatic template_type formatting (e.g., `homepage_v1`)
+
+## Environment Variables
+
+Create a `.env.local` file in the root directory:
+
+```env
+NEXT_PUBLIC_SITE_URL=https://yourdomain.com
+```
+
+This URL is used for template preview links.
+
+## API Integration
+
+### Template Types API
+- **Endpoint**: `/api/v1/pages/template_types/`
+- **Response**: Returns available template types with versions
+- **Usage**: Used in page creation forms and template gallery
+
+### Template Preview URLs
+- **Format**: `${NEXT_PUBLIC_SITE_URL}/templates/${template_type}`
+- **Example**: `https://yourdomain.com/templates/homepage_v1`
+
+## Usage
+
+### Creating Pages with Templates
+1. Navigate to `/dashboard/pages/new`
+2. Select template name and version from dropdowns
+3. Template type is automatically formatted as `template_name_version`
+4. Submit to create page with selected template
+
+### Viewing Templates
+1. Navigate to `/dashboard/template`
+2. Browse available templates with versions
+3. Click "View" to open template preview in new tab
+4. Click "Use" to create a new page with that template
 
 ## Getting Started
 

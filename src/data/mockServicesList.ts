@@ -1,4 +1,4 @@
-import { Service } from "@/types/service";
+import { Service } from "@/types/types";
 import { Code, Cloud, Database, Layout } from "lucide-react";
 
 
@@ -7,11 +7,13 @@ export const services: Partial<Service>[] = [
     id: "1",
     title: "Web Development",
     description: "Building modern, responsive, and scalable web applications.",
+  
   },
   {
     id: "2",
     title: "UI/UX Design",
     description: "Crafting intuitive and engaging user interfaces and experiences.",
+   
   },
   {
     id: "3",

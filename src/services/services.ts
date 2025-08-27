@@ -1,6 +1,6 @@
 import api from "@/lib/api";
 
-import type { Service } from "@/types/service";
+import type { Service } from "@/types/types";
 
 export const servicesDataService = {
   getServices: async (): Promise<Service[]> => {

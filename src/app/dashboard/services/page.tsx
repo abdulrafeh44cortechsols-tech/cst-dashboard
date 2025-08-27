@@ -16,7 +16,7 @@ import { useServices } from "@/hooks/useServices";
 import { EditServiceModal } from "@/components/services/EditServiceModal";
 import { DeleteServiceModal } from "@/components/services/DeleteServiceModal";
 import { useState } from "react";
-import { Service } from "@/types/service";
+import { Service } from "@/types/types";
 import Image from "next/image";
 
 export default function ServicesPage() {
@@ -64,7 +64,7 @@ export default function ServicesPage() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </div>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-lg font-medium flex items-center gap-2">
+                <CardTitle className="text-lg font-medium flex flex-col-reverse items-start gap-2">
                   {service.title}
                   <Badge variant={service.is_active ? "default" : "outline"}>
                     {service.is_active ? "Active" : "Inactive"}

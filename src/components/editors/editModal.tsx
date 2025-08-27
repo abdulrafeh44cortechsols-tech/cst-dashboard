@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Loader2 } from "lucide-react"
-import type { Editor,CreateEditorData } from "@/types/editor"
+import type { Editor,CreateEditorData } from "@/types/types"
 
 interface EditEditorDialogProps {
   editor: Editor | null
@@ -25,16 +25,16 @@ interface EditEditorDialogProps {
 
 export function EditEditorDialog({ editor, isOpen, onClose, onSave }: EditEditorDialogProps) {
   const [submitting, setSubmitting] = useState(false)
-  const [formData, setFormData] = useState({ name: "", email: "", role: "Editor" as Editor["role"] })
+  const [formData, setFormData] = useState({ username: "", email: "",password:"" })
 
   useEffect(() => {
     if (editor) {
-      setFormData({ name: editor.name, email: editor.email, role: editor.role })
+      setFormData({ username: editor.username, email: editor.email ,password:formData.password})
     }
   }, [editor])
 
   const handleSubmit = async () => {
-    if (!formData.name || !formData.email) return
+    if (!formData.username || !formData.email) return
 
     try {
       setSubmitting(true)
@@ -60,8 +60,8 @@ export function EditEditorDialog({ editor, isOpen, onClose, onSave }: EditEditor
             <Input
               id="edit-name"
               placeholder="Enter editor's name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              value={formData.username}
+              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               disabled={submitting}
             />
           </div>
@@ -77,28 +77,22 @@ export function EditEditorDialog({ editor, isOpen, onClose, onSave }: EditEditor
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="edit-role">Role</Label>
-            <Select
-              value={formData.role}
-              onValueChange={(value: Editor["role"]) => setFormData({ ...formData, role: value })}
+            <Label htmlFor="edit-email">New Password</Label>
+            <Input
+              id="edit-password"
+              type="password"
+              placeholder="Enter editor's password"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               disabled={submitting}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Editor">Editor</SelectItem>
-                <SelectItem disabled value="Senior Editor">Senior Editor</SelectItem>
-                <SelectItem disabled value="Managing Editor">Managing Editor</SelectItem>
-              </SelectContent>
-            </Select>
+            />
           </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={submitting}>
             Cancel
           </Button>
-          <Button variant={"blue"} onClick={handleSubmit} disabled={submitting || !formData.name || !formData.email}>
+          <Button variant={"blue"} onClick={handleSubmit} disabled={submitting || !formData.username || !formData.email}>
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Save Changes
           </Button>

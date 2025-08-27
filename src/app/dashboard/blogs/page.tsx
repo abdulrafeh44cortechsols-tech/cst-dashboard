@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/pagination";
 import Image from "next/image";
 import { useState } from "react";
-import { BlogPost } from "@/types/blog";
+import { BlogPost } from "@/types/types";
 import { DeleteBlogModal } from "@/components/blog/DeleteBlogModal";
 import { EditBlogModal } from "@/components/blog/EditBlogModal";
 
@@ -34,7 +34,7 @@ export default function BlogsPage() {
   const router = useRouter();
 
   const currentPage = Number(searchParams.get("page")) || 1;
-  const postsPerPage = 6;
+  const postsPerPage = 8;
   const { getBlogsList } = useBlogs(currentPage, postsPerPage);
   const { data, isLoading } = getBlogsList;
   const blogPosts = data?.posts || [];
@@ -119,10 +119,10 @@ export default function BlogsPage() {
         </div>
       ) : (
         <>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 justify-items-center items-center">
             {blogPosts.length > 0 ? (
               blogPosts.map((post: BlogPost) => (
-                <Card key={post.id}>
+                <Card key={post.id} className="w-full max-w-sm">
                   <div className="relative overflow-hidden group">
                     <Image
                       src={post.images?.[0] ||"/placeholer.svg"} // fallback if no image
@@ -134,7 +134,7 @@ export default function BlogsPage() {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   </div>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-3">
+                    <CardTitle className="flex flex-col-reverse items-start gap-3">
                       {post.title}
                       <Badge variant={post.published ? "default" : "secondary"}>
                         {post.published ? "Published" : "Draft"}

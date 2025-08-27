@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useBlogs } from "@/hooks/useBlogs";
+import { useTags } from "@/hooks/useTags";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectTrigger,
@@ -15,16 +17,24 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { Tag } from "@/types/types";
 
 export default function AddBlogPage() {
   const router = useRouter();
   const { addBlog } = useBlogs(1, 10);
+  const { getTags } = useTags();
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [metaTitle, setMetaTitle] = useState("");
+  const [metaDescription, setMetaDescription] = useState("");
   const [status, setStatus] = useState<"Draft" | "Published">("Draft");
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
+
+  // Get tags data safely
+  const tagsData = getTags.data?.data || [];
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -34,11 +44,23 @@ export default function AddBlogPage() {
     }
   };
 
+  const handleTagChange = (tagId: number, checked: boolean) => {
+    if (checked) {
+      setSelectedTagIds(prev => [...prev, tagId]);
+    } else {
+      setSelectedTagIds(prev => prev.filter(id => id !== tagId));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!title || !content || !status) {
+    if (!title || !content || !metaTitle || !metaDescription || !status) {
       toast("All fields are required");
+      return;
+    }
+    if(content.length<50){
+      toast.error("Blog content must be more than 50 characters long.")
       return;
     }
 
@@ -52,7 +74,14 @@ export default function AddBlogPage() {
       const formData = new FormData();
       formData.append("title", title);
       formData.append("content", content);
+      formData.append("meta_title", metaTitle);
+      formData.append("meta_description", metaDescription);
       formData.append("published", status === "Published" ? "true" : "false");
+
+      // Add tag_ids as JSON string
+      if (selectedTagIds.length > 0) {
+        formData.append("tag_ids", JSON.stringify(selectedTagIds));
+      }
 
       images.forEach((file) => {
         formData.append("image_files", file); // send as list
@@ -60,11 +89,11 @@ export default function AddBlogPage() {
 
       await addBlog.mutateAsync(formData);
 
-      toast("Blog post created successfully!");
+      toast.success("Blog post created successfully!");
       router.push("/dashboard/blogs");
     } catch (error: any) {
-      console.error("error creating blog post:", error);
-      toast("Failed to create blog post. Please try again.");
+      console.error("error creating blog post:", error.response.data);
+      toast.error("Failed to create blog post, "+error.response.data.details.content[0]);
     }
   };
 
@@ -95,6 +124,59 @@ export default function AddBlogPage() {
             rows={10}
             required
           />
+        </div>
+
+        {/* Meta Title */}
+        <div className="grid gap-2">
+          <Label htmlFor="metaTitle">Meta Title</Label>
+          <Input
+            id="metaTitle"
+            value={metaTitle}
+            onChange={(e) => setMetaTitle(e.target.value)}
+            placeholder="Enter meta title for SEO"
+            required
+          />
+        </div>
+
+        {/* Meta Description */}
+        <div className="grid gap-2">
+          <Label htmlFor="metaDescription">Meta Description</Label>
+          <Textarea
+            id="metaDescription"
+            value={metaDescription}
+            onChange={(e) => setMetaDescription(e.target.value)}
+            placeholder="Enter meta description for SEO"
+            rows={3}
+            required
+          />
+        </div>
+
+        {/* Tags */}
+        <div className="grid gap-2">
+          <Label>Tags</Label>
+          {getTags.isLoading ? (
+            <div className="text-sm text-muted-foreground">Loading tags...</div>
+          ) : getTags.isError ? (
+            <div className="text-sm text-red-500">Failed to load tags</div>
+          ) : Array.isArray(tagsData) && tagsData.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {tagsData.map((tag: Tag) => (
+                <div
+                  key={tag.id}
+                  className={`px-3 py-1 rounded-full text-sm cursor-pointer transition-colors ${
+                    selectedTagIds.includes(tag.id)
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                  onClick={() => handleTagChange(tag.id, !selectedTagIds.includes(tag.id))}
+                >
+                  {tag.name}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground">No tags available</div>
+          )}
         </div>
 
         {/* Status */}

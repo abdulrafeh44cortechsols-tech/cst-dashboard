@@ -7,26 +7,15 @@ import {
   ImageIcon,
   Users,
   Settings,
-  Package2,
   PlusCircle,
-  MessageSquare,
   BookOpen,
   Briefcase,
+  LayoutTemplate,
 } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -52,12 +41,6 @@ const navigationItems = [
     // badge: 7,
   },
   {
-    title: "Posts",
-    href: "/dashboard/posts",
-    icon: FileText,
-    // badge: 12,
-  },
-  {
     title: "Pages",
     href: "/dashboard/pages",
     icon: FileText,
@@ -80,9 +63,15 @@ const navigationItems = [
     icon: Users,
   },
   {
+    title: "Templates",
+    href: "/dashboard/template",
+    icon: LayoutTemplate,
+  },
+  {
     title: "Settings",
     href: "/dashboard/settings",
     icon: Settings,
+    disabled: true, // Disable the Settings item
   },
 ];
 
@@ -121,7 +110,9 @@ export function LeftSidebar() {
               {navigationItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <Link href={item.href}>
+                    <Link href={item.href} prefetch={item.title==="Blogs"}
+                    className={item.disabled ? "pointer-events-none opacity-50" : ""}
+                    >
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
                       {/* {item.badge && (

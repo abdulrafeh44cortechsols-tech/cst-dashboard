@@ -9,8 +9,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import type { Service } from "@/types/service";
+import type { Service } from "@/types/types";
 import { useServices } from "@/hooks/useServices";
+import { toast } from "sonner";
 
 interface DeleteServiceModalProps {
   service: Service | null;
@@ -18,14 +19,22 @@ interface DeleteServiceModalProps {
   onClose: () => void;
 }
 
-export function DeleteServiceModal({ service, isOpen, onClose }: DeleteServiceModalProps) {
+export function DeleteServiceModal({
+  service,
+  isOpen,
+  onClose,
+}: DeleteServiceModalProps) {
   const { removeService } = useServices();
 
   const handleDelete = () => {
     if (!service) return;
 
     removeService.mutate(service.id.toString(), {
-      onSuccess: () => onClose(),
+      onSuccess: () => {
+        toast.success("Service deleted successfully.");
+        onClose();
+      },
+      onError:()=>toast.error("Some error occurred while deleting service")
     });
   };
 
@@ -35,7 +44,8 @@ export function DeleteServiceModal({ service, isOpen, onClose }: DeleteServiceMo
         <DialogHeader>
           <DialogTitle>Delete Service</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete <strong>{service?.title}</strong>? This action cannot be undone.
+            Are you sure you want to delete <strong>{service?.title}</strong>?
+            This action cannot be undone.
           </DialogDescription>
         </DialogHeader>
 
@@ -43,7 +53,11 @@ export function DeleteServiceModal({ service, isOpen, onClose }: DeleteServiceMo
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button variant="destructive" onClick={handleDelete} disabled={removeService.isPending}>
+          <Button
+            variant="destructive"
+            onClick={handleDelete}
+            disabled={removeService.isPending}
+          >
             {removeService.isPending ? "Deleting..." : "Delete"}
           </Button>
         </DialogFooter>

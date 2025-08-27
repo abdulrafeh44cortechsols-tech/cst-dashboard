@@ -1,6 +1,6 @@
 import api from "@/lib/api"
 
-import { type BlogPost } from "@/types/blog"
+import { type BlogPost } from "@/types/types"
 
 export const blogService = {
   getBlogs: async (): Promise<BlogPost[]> => {

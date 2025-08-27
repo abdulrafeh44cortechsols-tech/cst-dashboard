@@ -7,19 +7,21 @@ import { EditorTable } from "@/components/editors/editorTable";
 import { AddEditorDialog } from "@/components/editors/addModal";
 import { EditEditorDialog } from "@/components/editors/editModal";
 import { TeamOverview } from "@/components/editors/teamOverview";
-import type { Editor, CreateEditorData } from "@/types/editor";
+import type { Editor, CreateEditorData } from "@/types/types";
 import { useEditors } from "@/hooks/useEditors";
+import { useEditorStore } from "@/stores";
 
 export default function EditorManagement() {
   //state to select current editor being edited
   const [editingEditor, setEditingEditor] = useState<Editor | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const { getEditorsList, addEditor, editEditor, removeEditor } = useEditors();
+  const { editors } = useEditorStore();
 
   const handleAddEditor = (editorData: CreateEditorData) => {
     addEditor.mutate(editorData, {
-      onSuccess: () => toast("Editor added successfully!"),
-      onError: () => toast("Failed to add editor. Please try again."),
+      onSuccess: () => toast.success("Editor added successfully!"),
+      onError: () => toast.error("Failed to add editor. Please try again."),
     });
   };
 
@@ -28,8 +30,8 @@ export default function EditorManagement() {
     editEditor.mutate(
       { id: editingEditor.id, data: editorData },
       {
-        onSuccess: () => toast("Editor updated successfully!"),
-        onError: () => toast("Failed to update editor!"),
+        onSuccess: () => toast.success("Editor updated successfully!"),
+        onError: () => toast.error("Failed to update editor!"),
       }
     );
   };
@@ -37,9 +39,9 @@ export default function EditorManagement() {
   const handleDeleteEditor = (id: string) => {
     removeEditor.mutate(id, {
       onSuccess: () =>
-        toast("Editor deleted successfully!"),
+        toast.success("Editor deleted successfully!"),
       onError: () =>
-       toast("Failed to delete editor. Please try again."),
+       toast.error("Failed to delete editor. Please try again."),
     });
   };
 
@@ -52,7 +54,7 @@ export default function EditorManagement() {
     );
   }
 
-  const editors = getEditorsList.data || [];
+  // Use editors from Zustand store instead of query data
 
   const openEditDialog = (editor: Editor) => {
     setEditingEditor(editor);

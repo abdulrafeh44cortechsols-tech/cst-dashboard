@@ -14,7 +14,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+import {toast} from "sonner"
 
 export default function AddBlogPage() {
   const router = useRouter();
@@ -22,6 +22,8 @@ export default function AddBlogPage() {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [metaTitle, setMetaTitle] = useState("");
+  const [metaDescription, setMetaDescription] = useState("");
   const [slug, setSlug] = useState("");
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -37,29 +39,36 @@ export default function AddBlogPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (images.length === 0) {
-      toast("Please upload at least one image.");
+    if (!title || !description || !metaTitle || !metaDescription) {
+      toast.error("Please fill all fields.");
+      return;
+    }
+    if (description.length < 50) {
+      toast.error("Description length must be more then 50 characters.");
       return;
     }
 
+    if (images.length === 0) {
+      toast.error("Please upload at least one image.");
+      return;
+    }
+    
     try {
       const formData = new FormData();
       formData.append("title", title);
       formData.append("description", description);
+      formData.append("meta_title", metaTitle);
+      formData.append("meta_description", metaDescription);
       images.forEach((file) => {
         formData.append("image_files", file); // send as list
       });
 
-      // formData.append("meta_title", "");
-      // formData.append("meta_description", "");
-      // formData.append("og_image_file", "");
-
       await addService.mutateAsync(formData);
 
-      toast("Service created successfully!");
+      toast.success("Service added successfully!");
       router.push("/dashboard/services");
     } catch (error: any) {
-      toast("Failed to create service. Please try again.");
+      toast.error("Failed to create service. Please try again.");
     }
   };
 
@@ -89,6 +98,31 @@ export default function AddBlogPage() {
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Write your service description..."
             rows={10}
+            required
+          />
+        </div>
+
+        {/* Meta Title */}
+        <div className="grid gap-2">
+          <Label htmlFor="metaTitle">Meta Title</Label>
+          <Input
+            id="metaTitle"
+            value={metaTitle}
+            onChange={(e) => setMetaTitle(e.target.value)}
+            placeholder="Enter meta title for SEO"
+            required
+          />
+        </div>
+
+        {/* Meta Description */}
+        <div className="grid gap-2">
+          <Label htmlFor="metaDescription">Meta Description</Label>
+          <Textarea
+            id="metaDescription"
+            value={metaDescription}
+            onChange={(e) => setMetaDescription(e.target.value)}
+            placeholder="Enter meta description for SEO"
+            rows={3}
             required
           />
         </div>

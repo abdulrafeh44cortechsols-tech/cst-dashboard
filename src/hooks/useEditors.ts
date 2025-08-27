@@ -1,18 +1,26 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { editorService } from "@/services/editors";
-import { mockEditors } from "@/data/mockEditorsList";
-import type { Editor } from "@/types/editor";
+import type { Editor } from "@/types/types";
+import { useEditorStore } from "@/stores";
 
 export const useEditors = () => {
   const queryClient = useQueryClient();
+  const { setEditors } = useEditorStore();
 
   const getEditorsList = useQuery<Editor[]>({
     queryKey: ["editors"],
     queryFn: editorService.getEditors,
-    initialData: mockEditors,
     staleTime: 1000 * 60 * 5, // 5 minutes
     retry: 1,
   });
+
+  // Store editors in Zustand store when data is fetched
+  useEffect(() => {
+    if (getEditorsList.data) {
+      setEditors(getEditorsList.data);
+    }
+  }, [getEditorsList.data, setEditors]);
 
   const addEditor = useMutation({
     mutationFn: editorService.createEditor,
@@ -27,7 +35,7 @@ export const useEditors = () => {
       data,
     }: {
       id: string;
-      data: { name: string; email: string; role: Editor["role"] };
+      data: { username: string; email: string; password:string };
     }) => editorService.updateEditor(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["editors"] });

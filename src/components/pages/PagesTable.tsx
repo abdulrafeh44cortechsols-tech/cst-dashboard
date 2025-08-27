@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -28,70 +27,93 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Pencil, Trash2, Users } from "lucide-react";
-import type { Editor } from "@/types/types";
+import { Pencil, Trash2, FileText, Home, Globe } from "lucide-react";
+import type { Page } from "@/types/types";
 
-interface EditorTableProps {
-  editors: Editor[];
-  onEdit: (editor: Editor) => void;
-  onDelete: (editorId: string) => void;
+interface PagesTableProps {
+  pages: Page[];
+  onEdit: (page: Page) => void;
+  onDelete: (id: string) => void;
 }
 
-export function EditorTable({ editors, onEdit, onDelete }: EditorTableProps) {
+export function PagesTable({ pages, onEdit, onDelete }: PagesTableProps) {
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Current Editors</CardTitle>
-        <CardDescription>
-          A list of all editors in your team including their name, email and
-          role.
-        </CardDescription>
+        <CardTitle>Current Pages</CardTitle>
       </CardHeader>
       <CardContent>
-        {editors.length === 0 ? (
+        {pages.length === 0 ? (
           <div className="text-center py-8">
-            <Users className="mx-auto h-12 w-12 text-muted-foreground" />
-            <h3 className="mt-2 text-sm font-semibold">No editors</h3>
+            <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
+            <h3 className="mt-2 text-sm font-semibold">No pages</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Get started by adding your first editor.
+              Get started by adding your first page.
             </p>
           </div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Username</TableHead>
-                <TableHead>Email</TableHead>
+                <TableHead>Title</TableHead>
+                <TableHead>Slug</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Created By</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Template</TableHead>
+                <TableHead>Created</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {editors.map((editor) => (
-                <TableRow key={editor.id}>
-                  <TableCell className="font-medium">{editor.username}</TableCell>
+              {pages.map((page) => (
+                <TableRow key={page.id}>
+                  <TableCell className="font-medium">{page.title}</TableCell>
                   <TableCell className="text-muted-foreground">
-                    {editor.email}
+                    /{page.slug}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={editor.is_active ? "default" : "secondary"}>
-                      {editor.is_active ? "Active" : "Inactive"}
+                    <Badge variant={page.is_published ? "default" : "secondary"}>
+                      {page.is_published ? "Published" : "Draft"}
                     </Badge>
                   </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {page.is_homepage && (
+                        <Badge variant="outline" className="text-xs">
+                          <Home className="w-3 h-3 mr-1" />
+                          Homepage
+                        </Badge>
+                      )}
+                      <Badge variant="outline" className="text-xs">
+                        <Globe className="w-3 h-3 mr-1" />
+                        Page
+                      </Badge>
+                    </div>
+                  </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {editor.created_by_username}
+                    {page.template}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {formatDate(page.created_at)}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => onEdit(editor)}
+                        onClick={() => onEdit(page)}
                         className="h-8 w-8 p-0"
                       >
                         <Pencil className="h-4 w-4" />
-                        <span className="sr-only">Edit editor</span>
+                        <span className="sr-only">Edit page</span>
                       </Button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
@@ -101,7 +123,7 @@ export function EditorTable({ editors, onEdit, onDelete }: EditorTableProps) {
                             className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                           >
                             <Trash2 className="h-4 w-4" />
-                            <span className="sr-only">Delete editor</span>
+                            <span className="sr-only">Delete page</span>
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
@@ -110,15 +132,15 @@ export function EditorTable({ editors, onEdit, onDelete }: EditorTableProps) {
                             <AlertDialogDescription>
                               This action cannot be undone. This will
                               permanently remove{" "}
-                              <span className="font-medium">{editor.username}</span>{" "}
-                              from your team.
+                              <span className="font-medium">{page.title}</span>{" "}
+                              from your pages.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <Button
-                              onClick={() => onDelete(editor.id)}
-                              variant={"destructive"}
+                              onClick={() => onDelete(page.id.toString())}
+                              variant="destructive"
                             >
                               Delete
                             </Button>
@@ -135,4 +157,4 @@ export function EditorTable({ editors, onEdit, onDelete }: EditorTableProps) {
       </CardContent>
     </Card>
   );
-}
+} 

@@ -10,7 +10,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useBlogs} from "@/hooks/useBlogs";
-import { BlogPost } from "@/types/blog";
+import { BlogPost } from "@/types/types";
+import { toast } from "sonner";
 
 interface DeleteBlogModalProps {
   blog: BlogPost | null;
@@ -25,7 +26,11 @@ export function DeleteBlogModal({ blog, isOpen, onClose }: DeleteBlogModalProps)
     if (!blog) return;
 
     removeBlog.mutate(blog.id.toString(), {
-      onSuccess: () => onClose(),
+      onSuccess: () => {
+        toast.success("Blog deleted successfully.");
+        onClose();
+      },
+      onError:()=>toast.error("Some error occurred while deleting blog")
     });
   };
 

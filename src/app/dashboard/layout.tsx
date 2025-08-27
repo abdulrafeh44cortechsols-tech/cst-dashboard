@@ -42,31 +42,16 @@ export default function DashboardLayout({
         <LeftSidebar />
         <SidebarInset>
           <Suspense fallback={<div>Loading...</div>}>
-            <header className="flex h-14 lg:h-[60px] items-center gap-4 border-b bg-muted/40 px-6">
-              <Link href="/dashboard" className="lg:hidden">
-                <Package2 className="h-6 w-6" />
-                <span className="sr-only">Home</span>
-              </Link>
+            <header className="flex h-14 lg:h-[60px] items-center justify-between gap-4 border-b bg-muted/40 px-6">
+              
               {/* SidebarTrigger is now always visible */}
               <SidebarTrigger />
-              <div className="w-full flex-1">
-                <form>
-                  <div className="relative">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="search"
-                      placeholder="Search..."
-                      className="w-full bg-background shadow-none appearance-none pl-8 md:w-2/3 lg:w-1/3"
-                    />
-                  </div>
-                </form>
-              </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="rounded-full text-white border w-8 h-8 bg-blue-500"
+                    className="rounded-full  border w-8 h-8 "
                   >
                     A<span className="sr-only">Toggle user menu</span>
                   </Button>
