@@ -8,6 +8,7 @@ import { toast } from "sonner"
 import { ImageIcon, Video, Trash2, Calendar, FileText, BookOpen, Briefcase } from "lucide-react"
 import { useMedia } from "@/hooks/useMedia"
 import { useMediaStore } from "@/stores"
+import { getImageUrl } from "@/lib/utils"
 
 export function MediaGallery() {
   const { getMediaList } = useMedia()
@@ -100,7 +101,7 @@ export function MediaGallery() {
                       <Card key={`${blogId}-${index}`} className="overflow-hidden">
                         <div className="aspect-video relative bg-slate-100">
                           <img
-                            src={imageUrl}
+                            src={getImageUrl(imageUrl)}
                             alt={`Blog ${blogId} image ${index + 1}`}
                             className="w-full h-full object-cover"
                             onError={(e) => {
@@ -148,7 +149,7 @@ export function MediaGallery() {
                       <Card key={`${serviceId}-${index}`} className="overflow-hidden">
                         <div className="aspect-video relative bg-slate-100">
                           <img
-                            src={imageUrl}
+                            src={getImageUrl(imageUrl)}
                             alt={`Service ${serviceId} image ${index + 1}`}
                             className="w-full h-full object-cover"
                             onError={(e) => {

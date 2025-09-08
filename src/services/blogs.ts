@@ -1,6 +1,6 @@
 import api from "@/lib/api"
 
-import { type BlogPost } from "@/types/types"
+import { type BlogPost, CreateBlogData } from "@/types/types"
 
 export const blogService = {
   getBlogs: async (): Promise<BlogPost[]> => {
@@ -8,13 +8,13 @@ export const blogService = {
     return response.data
   },
 
-  createBlog: async (data:FormData): Promise<BlogPost> => {
+  createBlog: async (data: FormData | CreateBlogData): Promise<BlogPost> => {
     const response = await api.post("/api/v1/blogs/", data)
     console.log("create blog:",response.data)
     return response.data
   },
 
-  updateBlog: async (id: string, data: FormData): Promise<BlogPost> => {
+  updateBlog: async (id: string, data: FormData | CreateBlogData): Promise<BlogPost> => {
     const response = await api.patch(`/api/v1/blogs/${id}/`, data)
     return response.data
   },

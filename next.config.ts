@@ -8,8 +8,26 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'images.unsplash.com',
       },
+      {
+        protocol: 'https',
+        hostname: '*.devtunnels.ms',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '8000',
+      },
+      {
+        protocol: 'https',
+        hostname: 'localhost',
+        port: '8000',
+      },
     ],
-    domains: ["127.0.0.1", "localhost"],
+    domains: [
+      "127.0.0.1", 
+      "localhost",
+      "*.devtunnels.ms"
+    ],
   },
 };
 

@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { servicesDataService } from "@/services/services";
-import type { Service } from "@/types/types";
+import type { Service, CreateServiceData } from "@/types/types";
 import { useServiceStore } from "@/stores";
 
 export const useServices = () => {
@@ -23,14 +23,14 @@ export const useServices = () => {
   }, [getServicesList.data, setServices]);
 
   const addService = useMutation({
-    mutationFn: servicesDataService.createService,
+    mutationFn: (data: FormData | CreateServiceData) => servicesDataService.createService(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["services"] });
     },
   });
 
   const editService = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: FormData }) =>
+    mutationFn: ({ id, data }: { id: string; data: FormData | CreateServiceData }) =>
       servicesDataService.updateService(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["services"] });

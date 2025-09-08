@@ -5,7 +5,7 @@ import type { Editor, CreateEditorData } from "@/types/types"
 export const editorService = {
   getEditors: async (): Promise<Editor[]> => {
     const response = await api.get("/api/v1/editors/")
-    return response.data.data // Extract data from the response
+    return response.data.data
   },
 
   createEditor: async (data: CreateEditorData): Promise<Editor> => {

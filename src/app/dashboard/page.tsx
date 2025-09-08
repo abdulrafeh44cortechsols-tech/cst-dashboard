@@ -26,6 +26,7 @@ import { useEditors } from "@/hooks/useEditors";
 import { usePages } from "@/hooks/usePages";
 import { useMedia } from "@/hooks/useMedia";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function DashboardOverviewPage() {
   const router = useRouter();
@@ -34,13 +35,27 @@ export default function DashboardOverviewPage() {
   const { editors } = useEditorStore();
   const { pages } = usePageStore();
   const { media } = useMediaStore();
+  const { user, loading } = useAuth();
   
   // Fetch all data when dashboard loads
   useBlogs(1, 1000);
   useServices();
-  useEditors();
+  const editorsHook = useEditors(user?.userType === "admin");
   usePages();
   useMedia();
+
+  // Show loading while auth is being determined
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-6">
+        <div className="grid gap-4 md:gap-8 md:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="h-24 bg-gray-100 animate-pulse rounded-lg" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   // Get recent items (last 5)
   const recentBlogs = blogs.slice(0, 5);
@@ -55,6 +70,10 @@ export default function DashboardOverviewPage() {
   // Get media stats
   const totalMediaFiles = media?.data ? 
     Object.values(media.data).reduce((total, files) => total + (Array.isArray(files) ? files.length : 0), 0) : 0;
+
+  // Use editors from hook if store is empty (fallback)
+  const editorsData = editors.length > 0 ? editors : (editorsHook.getEditorsList.data || []);
+  const activeEditors = editorsData.filter(editor => editor.is_active).length;
 
   const getStatusColor = (status: boolean) => {
     return status ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800';
@@ -72,10 +91,12 @@ export default function DashboardOverviewPage() {
     });
   };
 
+  console.log("editorsss:",editors);
+
   return (
     <div className="flex flex-col gap-6">
       {/* Top Stats Cards - Keep as is */}
-      <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
+      <div className={`grid gap-4 md:gap-8 ${user?.userType === "admin" ? "md:grid-cols-2 lg:grid-cols-4" : "md:grid-cols-2 lg:grid-cols-4"}`}>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Pages</CardTitle>
@@ -114,18 +135,20 @@ export default function DashboardOverviewPage() {
             </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Editors</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{editors.length}</div>
-            <p className="text-xs text-muted-foreground">
-              {editors.filter(editor => editor.is_active).length} active
-            </p>
-          </CardContent>
-        </Card>
+        {user?.userType === "admin" && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Editors</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{editorsData.length}</div>
+              <p className="text-xs text-muted-foreground">
+                {activeEditors} active
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Main Dashboard Content */}

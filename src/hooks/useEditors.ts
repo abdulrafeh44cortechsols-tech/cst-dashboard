@@ -4,7 +4,7 @@ import { editorService } from "@/services/editors";
 import type { Editor } from "@/types/types";
 import { useEditorStore } from "@/stores";
 
-export const useEditors = () => {
+export const useEditors = (enabled:boolean = true) => {
   const queryClient = useQueryClient();
   const { setEditors } = useEditorStore();
 
@@ -13,6 +13,7 @@ export const useEditors = () => {
     queryFn: editorService.getEditors,
     staleTime: 1000 * 60 * 5, // 5 minutes
     retry: 1,
+    enabled
   });
 
   // Store editors in Zustand store when data is fetched

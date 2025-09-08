@@ -28,6 +28,7 @@ import { useState } from "react";
 import { BlogPost } from "@/types/types";
 import { DeleteBlogModal } from "@/components/blog/DeleteBlogModal";
 import { EditBlogModal } from "@/components/blog/EditBlogModal";
+import { getImageUrl } from "@/lib/utils";
 
 export default function BlogsPage() {
   const searchParams = useSearchParams();
@@ -38,6 +39,7 @@ export default function BlogsPage() {
   const { getBlogsList } = useBlogs(currentPage, postsPerPage);
   const { data, isLoading } = getBlogsList;
   const blogPosts = data?.posts || [];
+  console.log("blogPosts", blogPosts);
   const totalPages = data?.totalPages || 1;
 
   const [editingBlog, setEditingBlog] = useState<BlogPost | null>(null);
@@ -99,6 +101,15 @@ export default function BlogsPage() {
     return items;
   };
 
+  function parseImageUrl(fullUrl: string | undefined) {
+    if (!fullUrl || typeof fullUrl !== "string") return "/placeholer.svg";
+
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
+    const parsedUrl = fullUrl.replace(/^http:\/\/localhost:7000/, baseUrl);
+    console.log("parsedUrl:", parsedUrl);
+    return parsedUrl;
+  }
+
   return (
     <div className="flex flex-col gap-4">
       {/* Header */}
@@ -107,7 +118,7 @@ export default function BlogsPage() {
         <Button asChild size="sm" variant="blue">
           <Link href="/dashboard/blogs/new">
             <PlusCircle className="mr-2 h-4 w-4" />
-            Add New Blog Post
+            Add New Blog
           </Link>
         </Button>
       </div>
@@ -125,7 +136,7 @@ export default function BlogsPage() {
                 <Card key={post.id} className="w-full max-w-sm">
                   <div className="relative overflow-hidden group">
                     <Image
-                      src={post.images?.[0] ||"/placeholer.svg"} // fallback if no image
+                      src={parseImageUrl(post.images?.[0]) || "/placeholer.svg"} // fallback if no image
                       alt={post.title}
                       width={400}
                       height={240}
@@ -134,8 +145,12 @@ export default function BlogsPage() {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   </div>
                   <CardHeader>
-                    <CardTitle className="flex flex-col-reverse items-start gap-3">
-                      {post.title}
+                    <CardTitle className="flex flex-col-reverse items-start gap-3 w-full">
+                      <span className="line-clamp-2 w-full break-words">
+                        {post.title.length > 25
+                          ? `${post.title.slice(0, 25)}...`
+                          : post.title}
+                      </span>
                       <Badge variant={post.published ? "default" : "secondary"}>
                         {post.published ? "Published" : "Draft"}
                       </Badge>
@@ -144,6 +159,7 @@ export default function BlogsPage() {
                       {post.summary ?? "No description available."}
                     </CardDescription>
                   </CardHeader>
+
                   <CardContent>
                     <p className="text-sm text-muted-foreground">
                       Published on:{" "}

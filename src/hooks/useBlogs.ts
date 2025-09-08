@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { blogService } from "@/services/blogs";
-import { BlogPost } from "@/types/types";
+import { BlogPost, CreateBlogData } from "@/types/types";
 import { getPaginatedBlogPosts } from "@/actions/blog";
 import { useBlogStore } from "@/stores";
 
@@ -42,14 +42,14 @@ export const useBlogs = (page: number = 1, limit: number = 6) => {
   }, [getBlogsList.data, setBlogs]);
 
   const addBlog = useMutation({
-    mutationFn: blogService.createBlog,
+    mutationFn: (data: FormData | CreateBlogData) => blogService.createBlog(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["blogs"] });
     },
   });
 
   const editBlog = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: FormData }) =>
+    mutationFn: ({ id, data }: { id: string; data: FormData | CreateBlogData }) =>
       blogService.updateBlog(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["blogs"] });

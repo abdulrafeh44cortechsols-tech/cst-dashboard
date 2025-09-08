@@ -38,6 +38,7 @@ interface EditorTableProps {
 }
 
 export function EditorTable({ editors, onEdit, onDelete }: EditorTableProps) {
+  console.log("editors list:",editors);
   return (
     <Card>
       <CardHeader>
