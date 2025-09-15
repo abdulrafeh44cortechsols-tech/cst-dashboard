@@ -35,6 +35,7 @@ export interface BlogPost {
     description: string;
     summary: string;
     image: File | null;
+    image_alt_text?: string; // Add alt text for hero image
   }
 
   export interface QuoteSection {
@@ -55,6 +56,7 @@ export interface BlogPost {
     summary: string;
     summary_2: string;
     image: File | null;
+    image_alt_text?: string; // Add alt text for info image
   }
 
   export interface BlogSection {
@@ -68,6 +70,7 @@ export interface BlogPost {
 
   export interface CreateBlogData {
     title: string;
+    slug: string;
     content: string;
     published: boolean;
     tag_ids: number[];
@@ -90,6 +93,7 @@ export interface BlogPost {
     meta_title: string;
     meta_description: string;
     images: string[] | null;
+    image_alt_text?: string[]; // Add alt text for main service images
     is_active: boolean;
     created_at: string;
     updated_at: string;
@@ -114,18 +118,21 @@ export interface BlogPost {
     title: string;
     description: string;
     sub_sections: SubSection[];
+    image_alt_text?: string[]; // Add alt text for service section images
   }
 
   export interface SubSection {
     title: string;
     description: string;
     points?: string[];
+    image_alt_text?: string; // Add alt text for sub-section images/icons
   }
 
   export interface TeamSection {
     title: string;
     description: string;
     sub_sections: TeamMember[];
+    image_alt_text?: string[]; // Add alt text for team section images
   }
 
   export interface TeamMember {
@@ -134,12 +141,14 @@ export interface BlogPost {
     experience: string;
     summary: string;
     points?: string[];
+    image_alt_text?: string; // Add alt text for team member images
   }
 
   export interface ClientFeedbackSection {
     title: string;
     description: string;
     sub_sections: ClientFeedback[];
+    image_alt_text?: string[]; // Add alt text for client feedback section images
   }
 
   export interface ClientFeedback {
@@ -148,15 +157,18 @@ export interface BlogPost {
     comment: string;
     stars: number;
     points?: string[];
+    image_alt_text?: string; // Add alt text for client feedback images
   }
 
   export interface CreateServiceData {
     title: string;
+    slug: string;
     description: string;
     is_active: boolean;
     meta_title: string;
     meta_description: string;
     sections_data: ServiceSectionsData;
+    image_alt_text?: string[]; // Add alt text for main service images
   }
 
   
@@ -223,8 +235,6 @@ export interface BlogPost {
     name: string;
     slug: string;
     blog_count: number;
-    created_at?: string;
-    updated_at?: string;
   }
 
 export interface TemplateType {
@@ -237,4 +247,59 @@ export interface TemplateTypesResponse {
   data: {
     templates: TemplateType[];
   };
+}
+
+export interface Project {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  image: string;
+  image_alt_text?: string; // Add alt text for main project image
+  published: boolean;
+  created_at: string;
+  updated_at: string;
+  tags: {
+    id: number;
+    name: string;
+  }[];
+  author_email: string;
+  canonical_url: string;
+  sections_data?: Record<string, any>; 
+}
+
+export interface CreateProjectData {
+  name: string;
+  description: string;
+  published: boolean;
+  tag_ids: number[];
+  image_files?: File[];
+  image_alt_text?: string; // Add alt text for main project image
+}
+
+export interface Industry {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  image: string;
+  image_alt_text?: string; // Add alt text for main industry image
+  published: boolean;
+  created_at: string;
+  updated_at: string;
+  tags: {
+    id: number;
+    name: string;
+  }[];
+  author_email: string;
+  canonical_url: string;
+}
+
+export interface CreateIndustryData {
+  name: string;
+  description: string;
+  published: boolean;
+  tag_ids: number[];
+  image_files?: File[];
+  image_alt_text?: string; // Add alt text for main industry image
 }

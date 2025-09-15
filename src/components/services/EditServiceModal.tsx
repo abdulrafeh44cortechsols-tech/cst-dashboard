@@ -55,14 +55,37 @@ export function EditServiceModal({ service, isOpen, onClose }: EditServiceModalP
     image_files: []
   });
 
+  // Image alt text states
+  const [imageAltTexts, setImageAltTexts] = useState<string[]>([]);
+  const [sectionAltTexts, setSectionAltTexts] = useState<Record<string, string[]>>({
+    hero_section_image_file: [],
+    about_section_image_files: [],
+    why_choose_us_section_image_files: [],
+    what_we_offer_section_image_files: [],
+    perfect_business_section_image_files: [],
+    design_section_image_files: [],
+    team_section_image_files: [],
+    tools_used_section_image_files: [],
+    client_feedback_section_image_files: [],
+  });
+
   // Sub-section icon files state
   const [subSectionIcons, setSubSectionIcons] = useState<Record<string, Record<number, File[]>>>({});
+
+  // Sub-section icon alt texts state
+  const [subSectionIconAltTexts, setSubSectionIconAltTexts] = useState<Record<string, Record<number, string[]>>>({});
 
   // Team member images state
   const [teamMemberImages, setTeamMemberImages] = useState<Record<number, File[]>>({});
 
+  // Team member image alt texts state
+  const [teamMemberImageAltTexts, setTeamMemberImageAltTexts] = useState<Record<number, string[]>>({});
+
   // Client feedback images state
   const [clientFeedbackImages, setClientFeedbackImages] = useState<Record<number, File[]>>({});
+
+  // Client feedback image alt texts state
+  const [clientFeedbackImageAltTexts, setClientFeedbackImageAltTexts] = useState<Record<number, string[]>>({});
 
   useEffect(() => {
     if (service) {
@@ -75,6 +98,11 @@ export function EditServiceModal({ service, isOpen, onClose }: EditServiceModalP
       // Load sections data if it exists
       if (service.sections_data) {
         setSectionsData(service.sections_data);
+      }
+
+      // Load existing alt texts if available
+      if ((service as any).image_alt_text && (service as any).image_alt_text.length > 0) {
+        setImageAltTexts((service as any).image_alt_text);
       }
     }
   }, [service]);
@@ -236,39 +264,76 @@ export function EditServiceModal({ service, isOpen, onClose }: EditServiceModalP
 
   const handleFileChange = (sectionKey: string, files: FileList | null) => {
     if (files) {
+      const filesArray = Array.from(files);
       setSectionFiles(prev => ({
         ...prev,
-        [sectionKey]: Array.from(files)
+        [sectionKey]: filesArray
       }));
+
+      // Initialize alt text arrays for the files
+      if (sectionKey === 'image_files') {
+        // For main service images
+        setImageAltTexts(new Array(filesArray.length).fill(""));
+      } else {
+        // For section images
+        setSectionAltTexts((prev) => ({
+          ...prev,
+          [sectionKey]: new Array(filesArray.length).fill(""),
+        }));
+      }
     }
   };
 
   const handleSubSectionIconChange = (sectionKey: string, subSectionIndex: number, files: FileList | null) => {
     if (files) {
+      const filesArray = Array.from(files);
       setSubSectionIcons(prev => ({
         ...prev,
         [sectionKey]: {
           ...prev[sectionKey],
-          [subSectionIndex]: Array.from(files)
+          [subSectionIndex]: filesArray
         }
+      }));
+
+      // Initialize alt text array for the icons
+      setSubSectionIconAltTexts((prev) => ({
+        ...prev,
+        [sectionKey]: {
+          ...prev[sectionKey],
+          [subSectionIndex]: new Array(filesArray.length).fill(""),
+        },
       }));
     }
   };
 
   const handleTeamMemberImageChange = (memberIndex: number, files: FileList | null) => {
     if (files) {
+      const filesArray = Array.from(files);
       setTeamMemberImages(prev => ({
         ...prev,
-        [memberIndex]: Array.from(files)
+        [memberIndex]: filesArray
+      }));
+
+      // Initialize alt text array for team member images
+      setTeamMemberImageAltTexts(prev => ({
+        ...prev,
+        [memberIndex]: new Array(filesArray.length).fill("")
       }));
     }
   };
 
   const handleClientFeedbackImageChange = (clientIndex: number, files: FileList | null) => {
     if (files) {
+      const filesArray = Array.from(files);
       setClientFeedbackImages(prev => ({
         ...prev,
-        [clientIndex]: Array.from(files)
+        [clientIndex]: filesArray
+      }));
+
+      // Initialize alt text array for client feedback images
+      setClientFeedbackImageAltTexts(prev => ({
+        ...prev,
+        [clientIndex]: new Array(filesArray.length).fill("")
       }));
     }
   };
@@ -279,6 +344,124 @@ export function EditServiceModal({ service, isOpen, onClose }: EditServiceModalP
     if (!title || !description || !metaTitle || !metaDescription) {
       toast.error("Please fill all required fields.");
       return;
+    }
+
+    // Character limit validations
+    if (title.length > 100) {
+      toast.error("Service title must be 100 characters or less.");
+      return;
+    }
+
+    if (metaTitle.length > 60) {
+      toast.error("Meta title must be 60 characters or less.");
+      return;
+    }
+
+    if (metaDescription.length > 160) {
+      toast.error("Meta description must be 160 characters or less.");
+      return;
+    }
+
+    if (description.length < 100) {
+      toast.error("Service description must be at least 100 characters long.");
+      return;
+    }
+
+    if (description.length > 2000) {
+      toast.error("Service description must be 2000 characters or less.");
+      return;
+    }
+
+    // Validate service section descriptions - ALL SECTIONS ARE NOW REQUIRED
+    const requiredSections = [
+      'hero_section', 'about_section', 'why_choose_us_section',
+      'perfect_business_section', 'design_section', 'team_section', 'tools_used_section',
+      'client_feedback_section'
+    ];
+
+    for (const sectionKey of requiredSections) {
+      const section = sectionsData[sectionKey as keyof typeof sectionsData];
+      
+      // Check if section title is required and filled
+      if (!section.title || section.title.trim() === "") {
+        toast.error(`${sectionKey.replace(/_/g, ' ')} title is required.`);
+        return;
+      }
+
+      // Check if section description is required and filled
+      if (section.description.length < 100) {
+        toast.error(`${sectionKey.replace(/_/g, ' ')} description must be at least 100 characters long.`);
+        return;
+      }
+
+      // Validate sub-sections based on section type
+      if (section.sub_sections && Array.isArray(section.sub_sections)) {
+        if (section.sub_sections.length === 0) {
+          toast.error(`${sectionKey.replace(/_/g, ' ')} must have at least one sub-section.`);
+          return;
+        }
+
+        for (let i = 0; i < section.sub_sections.length; i++) {
+          const subSection = section.sub_sections[i];
+          
+          if (sectionKey === 'team_section') {
+            // Team section specific validation
+            const teamMember = subSection as any;
+            if (!teamMember.name || teamMember.name.trim() === "") {
+              toast.error(`Team member ${i + 1}: Name is required.`);
+              return;
+            }
+            if (!teamMember.designation || teamMember.designation.trim() === "") {
+              toast.error(`Team member ${i + 1}: Designation is required.`);
+              return;
+            }
+            if (!teamMember.experience || teamMember.experience.trim() === "") {
+              toast.error(`Team member ${i + 1}: Experience is required.`);
+              return;
+            }
+            if (!teamMember.summary || teamMember.summary.trim() === "") {
+              toast.error(`Team member ${i + 1}: Summary is required.`);
+              return;
+            }
+          } else if (sectionKey === 'client_feedback_section') {
+            // Client feedback section specific validation
+            const feedback = subSection as any;
+            if (!feedback.name || feedback.name.trim() === "") {
+              toast.error(`Client feedback ${i + 1}: Client name is required.`);
+              return;
+            }
+            if (!feedback.designation || feedback.designation.trim() === "") {
+              toast.error(`Client feedback ${i + 1}: Client designation is required.`);
+              return;
+            }
+            if (!feedback.comment || feedback.comment.trim() === "") {
+              toast.error(`Client feedback ${i + 1}: Comment is required.`);
+              return;
+            }
+            if (!feedback.stars || feedback.stars < 1 || feedback.stars > 5) {
+              toast.error(`Client feedback ${i + 1}: Star rating (1-5) is required.`);
+              return;
+            }
+          } else {
+            // General sub-section validation
+            const generalSubSection = subSection as any;
+            if (!generalSubSection.title || generalSubSection.title.trim() === "") {
+              toast.error(`${sectionKey.replace(/_/g, ' ')} sub-section ${i + 1}: Title is required.`);
+              return;
+            }
+            if (!generalSubSection.description || generalSubSection.description.trim() === "") {
+              toast.error(`${sectionKey.replace(/_/g, ' ')} sub-section ${i + 1}: Description is required.`);
+              return;
+            } else if (generalSubSection.description.length < 100) {
+              toast.error(`${sectionKey.replace(/_/g, ' ')} sub-section ${i + 1} description must be at least 100 characters long.`);
+              return;
+            }
+          }
+        }
+      } else {
+        toast.error(`${sectionKey.replace(/_/g, ' ')} must have at least one sub-section.`);
+        return;
+      }
     }
 
     try {
@@ -395,6 +578,41 @@ export function EditServiceModal({ service, isOpen, onClose }: EditServiceModalP
         });
       }
 
+      // Add image alt texts
+      if (imageAltTexts.length > 0) {
+        formData.append("image_alt_text", JSON.stringify(imageAltTexts));
+      }
+
+      // Add section alt texts
+      Object.entries(sectionAltTexts).forEach(([key, altTexts]) => {
+        if (altTexts && altTexts.length > 0) {
+          formData.append(`${key}_alt_text`, JSON.stringify(altTexts));
+        }
+      });
+
+      // Add subsection icon alt texts
+      Object.entries(subSectionIconAltTexts).forEach(([sectionKey, subSectionAltTexts]) => {
+        const altTextsArray = Object.values(subSectionAltTexts).flat().filter(text => text);
+        if (altTextsArray.length > 0) {
+          const sectionFileKey = sectionKey === "hero_section" 
+            ? "hero_section_image_file" 
+            : `${sectionKey}_image_files`;
+          formData.append(`${sectionFileKey}_subsection_alt_text`, JSON.stringify(altTextsArray));
+        }
+      });
+
+      // Add team member image alt texts
+      const teamMemberAltTexts = Object.values(teamMemberImageAltTexts).flat().filter(text => text);
+      if (teamMemberAltTexts.length > 0) {
+        formData.append("team_section_image_files_alt_text", JSON.stringify(teamMemberAltTexts));
+      }
+
+      // Add client feedback image alt texts
+      const clientFeedbackAltTexts = Object.values(clientFeedbackImageAltTexts).flat().filter(text => text);
+      if (clientFeedbackAltTexts.length > 0) {
+        formData.append("client_feedback_section_image_files_alt_text", JSON.stringify(clientFeedbackAltTexts));
+      }
+
       await editService.mutateAsync({ id: service.id.toString(), data: formData });
       toast.success("Service updated successfully!");
       onClose();
@@ -413,9 +631,18 @@ export function EditServiceModal({ service, isOpen, onClose }: EditServiceModalP
               <Label>Name</Label>
               <Input
                 value={subSection.name}
-                onChange={(e) => updateSubSection(sectionKey, index, 'name', e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value.length <= 100) {
+                    updateSubSection(sectionKey, index, 'name', value);
+                  }
+                }}
                 placeholder="Team member name"
+                maxLength={100}
               />
+              <p className="text-sm text-muted-foreground mt-1">
+                {100 - (subSection.name?.length || 0)} characters remaining
+              </p>
             </div>
             <div className="space-y-2">
               <Label>Designation</Label>
@@ -437,7 +664,8 @@ export function EditServiceModal({ service, isOpen, onClose }: EditServiceModalP
             </div>
             <div className="space-y-2">
               <Label>Summary</Label>
-              <Input
+              <Textarea
+                rows={3}
                 value={subSection.summary}
                 onChange={(e) => updateSubSection(sectionKey, index, 'summary', e.target.value)}
                 placeholder="Brief description"
@@ -623,7 +851,8 @@ export function EditServiceModal({ service, isOpen, onClose }: EditServiceModalP
           </div>
           <div className="space-y-2">
             <Label>Description</Label>
-            <Input
+            <Textarea
+            rows={3}
               value={subSection.description}
               onChange={(e) => updateSubSection(sectionKey, index, 'description', e.target.value)}
               placeholder="Sub-section description"
@@ -678,23 +907,60 @@ export function EditServiceModal({ service, isOpen, onClose }: EditServiceModalP
               <Label>Section Title</Label>
               <Input
                 value={section.title}
-                onChange={(e) => updateSection(sectionKey, 'title', e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value.length <= 100) {
+                    updateSection(sectionKey, 'title', value);
+                  }
+                }}
                 placeholder={`Enter ${sectionKey.replace(/_/g, ' ')} title`}
+                maxLength={100}
               />
+              <p className="text-sm text-muted-foreground mt-1">
+                {100 - (section.title?.length || 0)} characters remaining
+              </p>
             </div>
             <div className="space-y-2">
               <Label>Section Description</Label>
               <Textarea
                 value={section.description}
-                onChange={(e) => updateSection(sectionKey, 'description', e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value.length <= 1000) {
+                    updateSection(sectionKey, 'description', value);
+                  }
+                }}
                 placeholder={`Enter ${sectionKey.replace(/_/g, ' ')} description`}
                 rows={2}
+                maxLength={1000}
               />
+              <p className="text-sm text-muted-foreground mt-1">
+                {1000 - (section.description?.length || 0)} characters remaining
+              </p>
             </div>
             
             {/* File Upload - Only for hero section */}
             {sectionKey === 'hero_section' && (
               <div className="space-y-2">
+                <Label>Section Image Alt Text</Label>
+                <Input
+                  value={sectionAltTexts[fileUploadKey]?.[0] || ""}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value.length <= 255) {
+                      setSectionAltTexts((prev) => ({
+                        ...prev,
+                        [fileUploadKey]: [value],
+                      }));
+                    }
+                  }}
+                  placeholder="Enter alt text for hero section image"
+                  maxLength={255}
+                />
+                <p className="text-sm text-muted-foreground mt-1">
+                  {255 - (sectionAltTexts[fileUploadKey]?.[0]?.length || 0)} characters remaining
+                </p>
+                
                 <Label>Section Image</Label>
                 <Input
                   type="file"
@@ -705,6 +971,17 @@ export function EditServiceModal({ service, isOpen, onClose }: EditServiceModalP
                 <p className="text-sm text-gray-500 mt-1">
                   Upload a single image for the hero section
                 </p>
+                
+                {/* Hero Section Image Preview */}
+                {sectionFiles[fileUploadKey]?.length > 0 && (
+                  <div className="mt-2">
+                    <img
+                      src={URL.createObjectURL(sectionFiles[fileUploadKey][0])}
+                      alt="Hero Section Preview"
+                      className="h-40 w-auto rounded border object-cover"
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -758,10 +1035,19 @@ export function EditServiceModal({ service, isOpen, onClose }: EditServiceModalP
                 <Input
                   id="service-title"
                   value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value.length <= 100) {
+                      setTitle(value);
+                    }
+                  }}
                   placeholder="Enter service title"
+                  maxLength={100}
                   required
                 />
+                <p className="text-sm text-muted-foreground mt-1">
+                  {100 - title.length} characters remaining
+                </p>
               </div>
 
               <div className="grid gap-2">
@@ -769,11 +1055,20 @@ export function EditServiceModal({ service, isOpen, onClose }: EditServiceModalP
                 <Textarea
                   id="service-description"
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value.length <= 2000) {
+                      setDescription(value);
+                    }
+                  }}
                   placeholder="Enter service description"
                   rows={4}
+                  maxLength={2000}
                   required
                 />
+                <p className="text-sm text-muted-foreground mt-1">
+                  {description.length}/2000 characters (minimum 100 required)
+                </p>
               </div>
 
               <div className="grid gap-2">
@@ -781,10 +1076,19 @@ export function EditServiceModal({ service, isOpen, onClose }: EditServiceModalP
                 <Input
                   id="meta-title"
                   value={metaTitle}
-                  onChange={(e) => setMetaTitle(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value.length <= 60) {
+                      setMetaTitle(value);
+                    }
+                  }}
                   placeholder="Enter meta title for SEO"
+                  maxLength={60}
                   required
                 />
+                <p className="text-sm text-muted-foreground mt-1">
+                  {60 - metaTitle.length} characters remaining
+                </p>
               </div>
 
               <div className="grid gap-2">
@@ -792,11 +1096,20 @@ export function EditServiceModal({ service, isOpen, onClose }: EditServiceModalP
                 <Textarea
                   id="meta-description"
                   value={metaDescription}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setMetaDescription(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                    const value = e.target.value;
+                    if (value.length <= 160) {
+                      setMetaDescription(value);
+                    }
+                  }}
                   placeholder="Enter meta description for SEO"
                   rows={3}
+                  maxLength={160}
                   required
                 />
+                <p className="text-sm text-muted-foreground mt-1">
+                  {160 - metaDescription.length} characters remaining
+                </p>
               </div>
 
               <div className="flex items-center space-x-2">
@@ -821,7 +1134,7 @@ export function EditServiceModal({ service, isOpen, onClose }: EditServiceModalP
           <TabsContent value="images" className="space-y-4">
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>General Service Images</Label>
+                <Label>Service Icon</Label>
                 <Input
                   type="file"
                   multiple
@@ -832,6 +1145,41 @@ export function EditServiceModal({ service, isOpen, onClose }: EditServiceModalP
                 <p className="text-sm text-gray-500 mt-1">
                   Upload general images for this service
                 </p>
+                
+                {/* Image Previews and Alt Text */}
+                {sectionFiles.image_files.length > 0 && (
+                  <div className="mt-4 space-y-4">
+                    {sectionFiles.image_files.map((file, idx) => (
+                      <div key={idx} className="space-y-2 p-4 border rounded-lg">
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt={`Service Image ${idx + 1}`}
+                          className="h-40 w-auto rounded border object-cover"
+                        />
+                        <div>
+                          <Label htmlFor={`serviceImageAlt${idx}`}>Alt Text for Image {idx + 1}</Label>
+                          <Input
+                            id={`serviceImageAlt${idx}`}
+                            value={imageAltTexts[idx] || ""}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value.length <= 255) {
+                                const newAltTexts = [...imageAltTexts];
+                                newAltTexts[idx] = value;
+                                setImageAltTexts(newAltTexts);
+                              }
+                            }}
+                            placeholder={`Enter alt text for service image ${idx + 1}`}
+                            maxLength={255}
+                          />
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {255 - (imageAltTexts[idx]?.length || 0)} characters remaining
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </TabsContent>

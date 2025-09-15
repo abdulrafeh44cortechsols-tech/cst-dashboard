@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { blogService } from "@/services/blogs";
 import { BlogPost, CreateBlogData } from "@/types/types";
-import { getPaginatedBlogPosts } from "@/actions/blog";
 import { useBlogStore } from "@/stores";
 
 export const useBlogs = (page: number = 1, limit: number = 6) => {
@@ -23,11 +22,11 @@ export const useBlogs = (page: number = 1, limit: number = 6) => {
       } catch (error) {
         console.error("API failed, using dummy blog posts...", error);
         // Fallback to dummy data
-        const fallbackData = await getPaginatedBlogPosts({ page, limit });
-        return {
-          ...fallbackData,
-          allBlogs: fallbackData.posts, // Use fallback posts as all blogs
-        };
+        // const fallbackData = await getPaginatedBlogPosts({ page, limit });
+        // return {
+        //   ...fallbackData,
+        //   allBlogs: fallbackData.posts, // Use fallback posts as all blogs
+        // };
       }
     },
     staleTime: 1000 * 60 * 5, // cache for 5 minutes

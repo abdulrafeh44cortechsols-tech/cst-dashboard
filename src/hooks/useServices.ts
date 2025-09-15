@@ -27,6 +27,9 @@ export const useServices = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["services"] });
     },
+    onError: (error) => {
+      console.error(error);
+    },
   });
 
   const editService = useMutation({

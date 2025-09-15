@@ -15,6 +15,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Loader2 } from "lucide-react"
+import { toast } from "sonner"
+import ReCAPTCHA from "react-google-recaptcha"
 import type { Editor ,CreateEditorData} from "@/types/types"
 
 interface AddEditorDialogProps {
@@ -26,19 +28,44 @@ export function AddEditorDialog({ onAdd }: AddEditorDialogProps) {
   const [submitting, setSubmitting] = useState(false)
   const [formData, setFormData] = useState({ username: "", email: "",password:""})
 
+  // reCAPTCHA verification state
+  const [captchaVerified, setCaptchaVerified] = useState(false)
+  const [captchaValue, setCaptchaValue] = useState<string | null>(null)
+
+  function onCaptchaChange(value: string | null) {
+    console.log("Captcha value:", value);
+    setCaptchaValue(value);
+    setCaptchaVerified(!!value); // Set to true if value exists, false otherwise
+  }
+
   const handleSubmit = async () => {
     if (!formData.username || !formData.email) return
+
+    // Check if reCAPTCHA is verified
+    if (!captchaVerified || !captchaValue) {
+      toast.error("Please complete the reCAPTCHA verification.");
+      return;
+    }
 
     try {
       setSubmitting(true)
       await onAdd(formData)
       setFormData({ username: "", email: "",password:"" })
+      setCaptchaVerified(false)
+      setCaptchaValue(null)
       setIsOpen(false)
     } catch (error) {
       console.error("Failed to add editor:", error)
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const handleClose = () => {
+    setFormData({ username: "", email: "",password:"" })
+    setCaptchaVerified(false)
+    setCaptchaValue(null)
+    setIsOpen(false)
   }
 
   return (
@@ -87,13 +114,20 @@ export function AddEditorDialog({ onAdd }: AddEditorDialogProps) {
               disabled={submitting}
             />
           </div>
+
+          <div className="flex justify-start">
+            <ReCAPTCHA
+              sitekey={process.env.NEXT_PUBLIC_CAPTCHA_SITE_URL || ""}
+              onChange={onCaptchaChange}
+            />
+          </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setIsOpen(false)} disabled={submitting}>
+          <Button variant="outline" onClick={handleClose} disabled={submitting}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={submitting || !formData.username || !formData.email}>
-            {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          <Button variant={"blue"} onClick={handleSubmit} disabled={submitting || !formData.username || !formData.email || !captchaVerified}>
+            {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
             Add Editor
           </Button>
         </DialogFooter>

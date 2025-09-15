@@ -117,7 +117,7 @@ export default function BlogsPage() {
         <h1 className="font-semibold text-lg md:text-2xl">All Blogs</h1>
         <Button asChild size="sm" variant="blue">
           <Link href="/dashboard/blogs/new">
-            <PlusCircle className="mr-2 h-4 w-4" />
+            <PlusCircle className=" h-4 w-4" />
             Add New Blog
           </Link>
         </Button>
@@ -133,13 +133,12 @@ export default function BlogsPage() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 justify-items-center items-center">
             {blogPosts.length > 0 ? (
               blogPosts.map((post: BlogPost) => (
-                <Card key={post.id} className="w-full max-w-sm">
-                  <div className="relative overflow-hidden group">
+                <Card key={post.id} className="w-full max-w-sm pt-0 overflow-hidden">
+                  <div className="relative overflow-hidden group aspect-[400/360]">
                     <Image
                       src={parseImageUrl(post.images?.[0]) || "/placeholer.svg"} // fallback if no image
                       alt={post.title}
-                      width={400}
-                      height={240}
+                   fill
                       className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -245,6 +244,7 @@ export default function BlogsPage() {
           onClose={() => setIsModalOpen(false)}
         />
       )}
+
       {deletingBlog && (
         <DeleteBlogModal
           blog={deletingBlog}

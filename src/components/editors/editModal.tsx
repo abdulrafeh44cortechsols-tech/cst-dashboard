@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -9,50 +9,71 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Loader2 } from "lucide-react"
-import type { Editor,CreateEditorData } from "@/types/types"
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Loader2 } from "lucide-react";
+import type { Editor, CreateEditorData } from "@/types/types";
 
 interface EditEditorDialogProps {
-  editor: Editor | null
-  isOpen: boolean
-  onClose: () => void
-  onSave: (editor: CreateEditorData) => void
+  editor: Editor | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (editor: CreateEditorData) => void;
 }
 
-export function EditEditorDialog({ editor, isOpen, onClose, onSave }: EditEditorDialogProps) {
-  const [submitting, setSubmitting] = useState(false)
-  const [formData, setFormData] = useState({ username: "", email: "",password:"" })
+export function EditEditorDialog({
+  editor,
+  isOpen,
+  onClose,
+  onSave,
+}: EditEditorDialogProps) {
+  const [submitting, setSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    password: "",
+  });
 
   useEffect(() => {
     if (editor) {
-      setFormData({ username: editor.username, email: editor.email ,password:formData.password})
+      setFormData({
+        username: editor.username,
+        email: editor.email,
+        password: formData.password,
+      });
     }
-  }, [editor])
+  }, [editor]);
 
   const handleSubmit = async () => {
-    if (!formData.username || !formData.email) return
+    if (!formData.username || !formData.email) return;
 
     try {
-      setSubmitting(true)
-      await onSave(formData)
-      onClose()
+      setSubmitting(true);
+      await onSave(formData);
+      onClose();
     } catch (error) {
-      console.error("Failed to update editor:", error)
+      console.error("Failed to update editor:", error);
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
-  }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Edit Editor</DialogTitle>
-          <DialogDescription>Update the editor's information below.</DialogDescription>
+          <DialogDescription>
+            Update the editor's information below.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
@@ -61,7 +82,9 @@ export function EditEditorDialog({ editor, isOpen, onClose, onSave }: EditEditor
               id="edit-name"
               placeholder="Enter editor's name"
               value={formData.username}
-              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, username: e.target.value })
+              }
               disabled={submitting}
             />
           </div>
@@ -72,7 +95,9 @@ export function EditEditorDialog({ editor, isOpen, onClose, onSave }: EditEditor
               type="email"
               placeholder="Enter editor's email"
               value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
               disabled={submitting}
             />
           </div>
@@ -83,7 +108,9 @@ export function EditEditorDialog({ editor, isOpen, onClose, onSave }: EditEditor
               type="password"
               placeholder="Enter editor's password"
               value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, password: e.target.value })
+              }
               disabled={submitting}
             />
           </div>
@@ -92,12 +119,16 @@ export function EditEditorDialog({ editor, isOpen, onClose, onSave }: EditEditor
           <Button variant="outline" onClick={onClose} disabled={submitting}>
             Cancel
           </Button>
-          <Button variant={"blue"} onClick={handleSubmit} disabled={submitting || !formData.username || !formData.email}>
-            {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          <Button
+            variant={"blue"}
+            onClick={handleSubmit}
+            disabled={submitting || !formData.username || !formData.email}
+          >
+            {submitting && <Loader2 className=" h-4 w-4 animate-spin" />}
             Save Changes
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

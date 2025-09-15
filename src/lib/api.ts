@@ -43,8 +43,8 @@ api.interceptors.response.use(
     // Handle network errors
     if (error.code === "ECONNREFUSED" || error.message === "Network Error") {
       console.error("Backend not reachable. Make sure server is running.");
+      toast.error("Backend not reachable at the moment. Please try again later.");
     }
-    
     return Promise.reject(error);
   }
 );

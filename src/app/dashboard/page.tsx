@@ -19,12 +19,14 @@ import {
   Settings,
   ArrowRight
 } from "lucide-react";
-import { useBlogStore, useServiceStore, useEditorStore, usePageStore, useMediaStore } from "@/stores";
+import { useBlogStore, useServiceStore, useEditorStore, usePageStore, useMediaStore, useProjectStore, useIndustryStore } from "@/stores";
 import { useBlogs } from "@/hooks/useBlogs";
 import { useServices } from "@/hooks/useServices";
 import { useEditors } from "@/hooks/useEditors";
 import { usePages } from "@/hooks/usePages";
 import { useMedia } from "@/hooks/useMedia";
+import { useProjects } from "@/hooks/useProjects";
+import { useIndustries } from "@/hooks/useIndustries";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -35,7 +37,9 @@ export default function DashboardOverviewPage() {
   const { editors } = useEditorStore();
   const { pages } = usePageStore();
   const { media } = useMediaStore();
-  const { user, loading } = useAuth();
+  const { projects } = useProjectStore();
+  const { industries } = useIndustryStore();
+  const { user } = useAuth();
   
   // Fetch all data when dashboard loads
   useBlogs(1, 1000);
@@ -43,29 +47,21 @@ export default function DashboardOverviewPage() {
   const editorsHook = useEditors(user?.userType === "admin");
   usePages();
   useMedia();
-
-  // Show loading while auth is being determined
-  if (loading) {
-    return (
-      <div className="flex flex-col gap-6">
-        <div className="grid gap-4 md:gap-8 md:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <div key={index} className="h-24 bg-gray-100 animate-pulse rounded-lg" />
-          ))}
-        </div>
-      </div>
-    );
-  }
+  useProjects();
+  useIndustries();
 
   // Get recent items (last 5)
   const recentBlogs = blogs.slice(0, 5);
   const recentServices = services.slice(0, 5);
   const recentPages = pages.slice(0, 5);
+  const recentProjects = projects.slice(0, 5);
 
   // Calculate stats
   const publishedBlogs = blogs.filter(blog => blog.published).length;
   const publishedServices = services.filter(service => service.is_active).length;
   const publishedPages = pages.filter(page => page.is_published).length;
+  const publishedProjects = projects.filter(project => project.published).length;
+  const publishedIndustries = industries.filter(industry => industry.published).length;
 
   // Get media stats
   const totalMediaFiles = media?.data ? 
@@ -91,24 +87,10 @@ export default function DashboardOverviewPage() {
     });
   };
 
-  console.log("editorsss:",editors);
-
   return (
     <div className="flex flex-col gap-6">
-      {/* Top Stats Cards - Keep as is */}
-      <div className={`grid gap-4 md:gap-8 ${user?.userType === "admin" ? "md:grid-cols-2 lg:grid-cols-4" : "md:grid-cols-2 lg:grid-cols-4"}`}>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Pages</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{pages ? pages.length : '--'}</div>
-            <p className="text-xs text-muted-foreground">
-              {publishedPages} published
-            </p>
-          </CardContent>
-        </Card>
+      {/* Top Stats Cards */}
+      <div className={`grid gap-4 md:gap-8 ${user?.userType === "admin" ? "md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5" : "md:grid-cols-2 lg:grid-cols-4"}`}>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Blogs</CardTitle>
@@ -132,6 +114,34 @@ export default function DashboardOverviewPage() {
             <div className="text-2xl font-bold">{services.length}</div>
             <p className="text-xs text-muted-foreground">
               {publishedServices} active
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Total Projects
+            </CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{projects.length}</div>
+            <p className="text-xs text-muted-foreground">
+              {publishedProjects} published
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Total Industries
+            </CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{industries.length}</div>
+            <p className="text-xs text-muted-foreground">
+              {publishedIndustries} published
             </p>
           </CardContent>
         </Card>
@@ -204,7 +214,7 @@ export default function DashboardOverviewPage() {
                       className="mt-2"
                       onClick={() => router.push('/dashboard/blogs/new')}
                     >
-                      <Plus className="mr-2 h-4 w-4" />
+                      <Plus className=" h-4 w-4" />
                       Create Blog
                     </Button>
                   </div>
@@ -262,8 +272,66 @@ export default function DashboardOverviewPage() {
                       className="mt-2"
                       onClick={() => router.push('/dashboard/services/new')}
                     >
-                      <Plus className="mr-2 h-4 w-4" />
+                      <Plus className=" h-4 w-4" />
                       Create Service
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Recent Projects */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-lg">Recent Projects</CardTitle>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => router.push('/dashboard/projects')}
+              >
+                View All
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {recentProjects.length > 0 ? (
+                  recentProjects.map((project) => (
+                    <div key={project.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-sm truncate">{project.name}</h4>
+                        <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
+                          <span className={`px-2 py-1 rounded-full ${getStatusColor(project.published)}`}>
+                            {getStatusText(project.published)}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {formatDate(project.created_at)}
+                          </span>
+                        </div>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => router.push(`/dashboard/projects`)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Activity className="h-8 w-8 mx-auto mb-2" />
+                    <p>No projects yet</p>
+                    <Button 
+                      variant="blue" 
+                      size="sm" 
+                      className="mt-2"
+                      onClick={() => router.push('/dashboard/projects/new')}
+                    >
+                      <Plus className=" h-4 w-4" />
+                      Create Project
                     </Button>
                   </div>
                 )}
@@ -280,20 +348,13 @@ export default function DashboardOverviewPage() {
               <CardTitle className="text-lg">Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button 
-                className="w-full justify-start" 
-                variant="blue"
-                onClick={() => router.push('/dashboard/pages/new')}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                New Page
-              </Button>
+              {/* Available to both admin and editor */}
               <Button 
                 className="w-full justify-start" 
                 variant="blue"
                 onClick={() => router.push('/dashboard/blogs/new')}
               >
-                <Plus className="mr-2 h-4 w-4" />
+                <Plus className=" h-4 w-4" />
                 New Blog
               </Button>
               <Button 
@@ -301,16 +362,24 @@ export default function DashboardOverviewPage() {
                 variant="blue"
                 onClick={() => router.push('/dashboard/services/new')}
               >
-                <Plus className="mr-2 h-4 w-4" />
+                <Plus className=" h-4 w-4" />
                 New Service
               </Button>
               <Button 
                 className="w-full justify-start" 
                 variant="blue"
-                onClick={() => router.push('/dashboard/media')}
+                onClick={() => router.push('/dashboard/projects/new')}
               >
-                <ImageIcon className="mr-2 h-4 w-4" />
-                Upload Media
+                <Plus className=" h-4 w-4" />
+                New Project
+              </Button>
+              <Button 
+                className="w-full justify-start" 
+                variant="blue"
+                onClick={() => router.push('/dashboard/industries/new')}
+              >
+                <Plus className=" h-4 w-4" />
+                New Industry
               </Button>
             </CardContent>
           </Card>
@@ -339,7 +408,7 @@ export default function DashboardOverviewPage() {
                 <span className="text-sm text-muted-foreground">Published Content</span>
                 <div className="flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{publishedBlogs + publishedServices + publishedPages}</span>
+                  <span className="font-medium">{publishedBlogs + publishedServices + publishedPages + publishedProjects + publishedIndustries}</span>
                 </div>
               </div>
             </CardContent>

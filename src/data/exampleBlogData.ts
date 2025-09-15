@@ -2,6 +2,7 @@ import type { CreateBlogData, HeroSection, QuoteSection, InfoSection } from "@/t
 
 export const exampleBlogData: CreateBlogData = {
   "title": "Building a Modern Application with Next.js",
+  "slug": "building-a-modern-application-with-nextjs",
   "content": "Modern web applications require robust architecture, performance optimization, and excellent user experience. In this comprehensive guide, we'll explore how to build scalable applications using Next.js and modern development practices.",
   "published": false,
   "tag_ids": [1, 3],
@@ -78,7 +79,8 @@ export const getDefaultBlogSectionsData = () => ({
     title: "",
     description: "",
     summary: "",
-    image: null
+    image: null,
+    image_alt_text: ""
   },
   quote_section: {
     summary: "",
@@ -96,7 +98,8 @@ export const getDefaultBlogSectionsData = () => ({
     description: "",
     summary: "",
     summary_2: "",
-    image: null
+    image: null,
+    image_alt_text: ""
   }
 });
 
@@ -105,7 +108,8 @@ export const getDefaultHeroSection = (): HeroSection => ({
   title: "",
   description: "",
   summary: "",
-  image: null
+  image: null,
+  image_alt_text: ""
 });
 
 // Helper function to get default quote section
@@ -127,5 +131,6 @@ export const getDefaultInfoSection = (): InfoSection => ({
   description: "",
   summary: "",
   summary_2: "",
-  image: null
+  image: null,
+  image_alt_text: ""
 }); 

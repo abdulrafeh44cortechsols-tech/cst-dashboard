@@ -26,6 +26,7 @@ const nextConfig: NextConfig = {
     domains: [
       "127.0.0.1", 
       "localhost",
+      "marlin-welcome-goat.ngrok-free.app",
       "*.devtunnels.ms"
     ],
   },

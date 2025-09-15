@@ -86,7 +86,7 @@ export default function PagesPage() {
           </div>
           <Button variant="blue" asChild size="sm">
           <Link href="/dashboard/pages/new">
-            <PlusCircle className="mr-2 h-4 w-4" />
+            <PlusCircle className=" h-4 w-4" />
             Add New Page
           </Link>
         </Button>

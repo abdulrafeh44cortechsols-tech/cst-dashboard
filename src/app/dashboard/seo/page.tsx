@@ -1,8 +1,11 @@
 import React from 'react'
+import { AdminOnlyRoute } from "@/components/RouteGuard";
 
 const page = () => {
   return (
-    <div>Seo management</div>
+    <AdminOnlyRoute>
+      <div>Seo management</div>
+    </AdminOnlyRoute>
   )
 }
 

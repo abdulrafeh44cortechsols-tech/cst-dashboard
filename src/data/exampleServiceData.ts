@@ -5,6 +5,7 @@ export const exampleServiceData: CreateServiceData = {
   "description": "Professional UI/UX design for web and mobile applications.",
   "is_active": true,
   "meta_title": "UI/UX Design Service",
+  "slug": "ui-ux-design-service",
   "meta_description": "User-centered design, research, and prototyping for modern applications.",
   "sections_data": {
     "hero_section": {
