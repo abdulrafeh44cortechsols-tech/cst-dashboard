@@ -43,6 +43,9 @@ export default function AddBlogPage() {
   const [metaTitle, setMetaTitle] = useState("");
   const [metaDescription, setMetaDescription] = useState("");
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
+  
+  // Tab management
+  const [activeTab, setActiveTab] = useState("basic");
 
   // Error handling state
   const [errors, setErrors] = useState<{
@@ -474,67 +477,108 @@ export default function AddBlogPage() {
   const validateForm = (): boolean => {
     clearAllErrors();
     let isValid = true;
+    let firstInvalidField = '';
 
     // Validate basic fields
     const titleError = validateTitle(title);
     if (titleError) {
       setError('title', titleError);
+      if (!firstInvalidField) firstInvalidField = 'title';
       isValid = false;
     }
 
     const slugError = validateSlug(slug);
     if (slugError) {
       setError('slug', slugError);
+      if (!firstInvalidField) firstInvalidField = 'slug';
       isValid = false;
     }
 
     const contentError = validateContent(content);
     if (contentError) {
       setError('content', contentError);
+      if (!firstInvalidField) firstInvalidField = 'content';
       isValid = false;
     }
 
     const metaTitleError = validateMetaTitle(metaTitle);
     if (metaTitleError) {
       setError('metaTitle', metaTitleError);
+      if (!firstInvalidField) firstInvalidField = 'metaTitle';
       isValid = false;
     }
 
     const metaDescError = validateMetaDescription(metaDescription);
     if (metaDescError) {
       setError('metaDescription', metaDescError);
+      if (!firstInvalidField) firstInvalidField = 'metaDescription';
       isValid = false;
     }
 
     // Validate images
     if (imageFiles.length === 0) {
       setError('images', 'Please upload at least one image');
+      if (!firstInvalidField) firstInvalidField = 'images';
       isValid = false;
     }
 
     // Validate sections
     const heroErrors = validateHeroSection();
-    Object.keys(heroErrors).forEach(key => {
-      setError(`heroSection.${key}`, heroErrors[key]);
-      isValid = false;
-    });
+    if (Object.keys(heroErrors).length > 0) {
+      Object.keys(heroErrors).forEach(key => {
+        setError(`heroSection.${key}`, heroErrors[key]);
+        if (!firstInvalidField) firstInvalidField = `heroSection.${key}`;
+        isValid = false;
+      });
+    }
 
     const quoteErrors = validateQuoteSection();
-    Object.keys(quoteErrors).forEach(key => {
-      setError(`quoteSection.${key}`, quoteErrors[key]);
-      isValid = false;
-    });
+    if (Object.keys(quoteErrors).length > 0) {
+      Object.keys(quoteErrors).forEach(key => {
+        setError(`quoteSection.${key}`, quoteErrors[key]);
+        if (!firstInvalidField) firstInvalidField = `quoteSection.${key}`;
+        isValid = false;
+      });
+    }
 
     const infoErrors = validateInfoSection();
-    Object.keys(infoErrors).forEach(key => {
-      setError(`infoSection.${key}`, infoErrors[key]);
-      isValid = false;
-    });
+    if (Object.keys(infoErrors).length > 0) {
+      Object.keys(infoErrors).forEach(key => {
+        setError(`infoSection.${key}`, infoErrors[key]);
+        if (!firstInvalidField) firstInvalidField = `infoSection.${key}`;
+        isValid = false;
+      });
+    }
 
     // Validate reCAPTCHA
     if (!captchaVerified || !captchaValue) {
       setError('captcha', 'Please complete the reCAPTCHA verification');
+      if (!firstInvalidField) firstInvalidField = 'captcha';
       isValid = false;
+    }
+
+    // Focus first invalid field
+    if (!isValid && firstInvalidField) {
+      setTimeout(() => {
+        // Switch to appropriate tab
+        if (firstInvalidField.startsWith('heroSection') || 
+            firstInvalidField.startsWith('quoteSection') || 
+            firstInvalidField.startsWith('infoSection')) {
+          setActiveTab('sections');
+        } else {
+          setActiveTab('basic');
+        }
+
+        // Focus the field
+        const fieldElement = document.getElementById(firstInvalidField) || 
+                           document.querySelector(`[name="${firstInvalidField}"]`) ||
+                           document.querySelector(`input[data-field="${firstInvalidField}"]`);
+        
+        if (fieldElement) {
+          fieldElement.focus();
+          fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
     }
 
     return isValid;
@@ -699,15 +743,16 @@ export default function AddBlogPage() {
       image_alt_text: ""
     };
     return (
-      <Card className="mb-4">
+      <Card className="mb-6">
         <CardHeader>
-          <CardTitle className="text-sm">Hero Section</CardTitle>
+          <CardTitle className="text-base">Hero Section</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4">
+        <CardContent className="space-y-6">
+          <div className="grid gap-6">
             <div>
-              <Label>Hero Title - h1</Label>
+              <Label className="mb-2 block">Hero Title - h1</Label>
               <Input
+                data-field="heroSection.title"
                 value={hero.title || ""}
                 onChange={(e) => {
                   const value = e.target.value;
@@ -721,17 +766,16 @@ export default function AddBlogPage() {
                 }}
                 placeholder="Enter hero section title"
                 maxLength={40}
-                className={errors.heroSection?.title ? 'border-red-500 focus:border-red-500' : ''}
+                className={`${validateHeroSection().title ? 'border-red-500 focus:border-red-500' : ''}`}
               />
-              <div className="flex justify-between items-start mt-1">
-                <ErrorMessage message={errors.heroSection?.title} />
+              <div className="flex justify-between items-start mt-2">
                 <p className="text-sm text-muted-foreground">
                   {40 - (hero.title?.length || 0)} characters remaining
                 </p>
               </div>
             </div>
             <div>
-              <Label>Hero Description - p</Label>
+              <Label className="mb-2 block">Hero Description - p</Label>
               <Textarea
                 value={hero.description || ""}
                 onChange={(e) => {
@@ -747,17 +791,16 @@ export default function AddBlogPage() {
                 placeholder="Enter hero section description"
                 rows={3}
                 maxLength={1000}
-                className={errors.heroSection?.description ? 'border-red-500 focus:border-red-500' : ''}
+                className={`${validateHeroSection().description ? 'border-red-500 focus:border-red-500' : ''}`}
               />
-              <div className="flex justify-between items-start mt-1">
-                <ErrorMessage message={errors.heroSection?.description} />
+              <div className="flex justify-between items-start mt-2">
                 <p className="text-sm text-muted-foreground">
                   {1000 - (hero.description?.length || 0)} characters remaining
                 </p>
               </div>
             </div>
             <div>
-              <Label>Hero Summary * - p</Label>
+              <Label className="mb-2 block">Hero Summary * - p</Label>
               <Textarea
                 value={hero.summary || ""}
                 onChange={(e) => {
@@ -773,17 +816,16 @@ export default function AddBlogPage() {
                 placeholder="Enter hero section summary (required)"
                 maxLength={400}
                 rows={3}
-                className={errors.heroSection?.summary ? 'border-red-500 focus:border-red-500' : ''}
+                className={`${validateHeroSection().summary ? 'border-red-500 focus:border-red-500' : ''}`}
               />
-              <div className="flex justify-between items-start mt-1">
-                <ErrorMessage message={errors.heroSection?.summary} />
+              <div className="flex justify-between items-start mt-2">
                 <p className="text-sm text-muted-foreground">
                   {400 - (hero.summary?.length || 0)} characters remaining
                 </p>
               </div>
             </div>
             <div>
-              <Label>Hero Image Alt Text</Label>
+              <Label className="mb-2 block">Hero Image Alt Text</Label>
               <Input
                 value={(hero as any).image_alt_text || ""}
                 onChange={(e) => {
@@ -796,14 +838,14 @@ export default function AddBlogPage() {
                 placeholder="Enter alt text for hero image"
                 maxLength={255}
               />
-              <div className="flex justify-between items-start mt-1">
+              <div className="flex justify-between items-start mt-2">
                 <p className="text-sm text-muted-foreground">
                   {255 - ((hero as any).image_alt_text?.length || 0)} characters remaining
                 </p>
               </div>
             </div>
             <div>
-              <Label>Hero Image</Label>
+              <Label className="mb-2 block">Hero Image</Label>
               <Input
                 type="file"
                 accept="image/*"
@@ -815,7 +857,7 @@ export default function AddBlogPage() {
               />
               {hero.image &&
                 (hero.image as any)?.constructor?.name === "File" && (
-                  <div className="mt-2">
+                  <div className="mt-3">
                     <img
                       src={URL.createObjectURL(hero.image)}
                       alt="Hero Image Preview"
@@ -833,14 +875,15 @@ export default function AddBlogPage() {
   const renderQuoteSection = () => {
     const quoteSection = sectionsData.quote_section || { quotes: [] };
     return (
-      <Card className="mb-4">
+      <Card className="mb-6">
         <CardHeader>
-          <CardTitle className="text-sm">Quote Section</CardTitle>
+          <CardTitle className="text-base">Quote Section</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
           <div>
-            <Label>Quote Section Summary * - p</Label>
+            <Label className="mb-4 block">Quote Section Summary * - p</Label>
             <Textarea
+              data-field="quoteSection.summary"
               value={quoteSection.summary || ""}
               onChange={(e) => {
                 const value = e.target.value;
@@ -855,10 +898,9 @@ export default function AddBlogPage() {
               placeholder="Enter quote section summary (required)"
               maxLength={400}
               rows={3}
-              className={errors.quoteSection?.summary ? 'border-red-500 focus:border-red-500' : ''}
+              className={`${validateQuoteSection().summary ? 'border-red-500 focus:border-red-500' : ''}`}
             />
-            <div className="flex justify-between items-start mt-1">
-              <ErrorMessage message={errors.quoteSection?.summary} />
+            <div className="flex justify-between items-start mt-2">
               <p className="text-sm text-muted-foreground">
                 {400 - (quoteSection.summary?.length || 0)} characters remaining
               </p>
@@ -868,41 +910,47 @@ export default function AddBlogPage() {
           <Separator />
 
           <div>
-            <div className="flex justify-between items-center mb-4">
-              <Label>Quotes *</Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addQuote}
-              >
-                Add Quote Details
-              </Button>
-            </div>
-            <ErrorMessage message={errors.quoteSection?.quotes} />
-            <div className="space-y-4">
-              {quoteSection.quotes?.map((quote, index) => (
-                <div key={index} className="grid gap-4 p-4 border rounded-lg">
-                  <div className="grid grid-cols-2 gap-4">
+              <div className="flex justify-between items-center mb-4">
+                <Label>Quotes *</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addQuote}
+                >
+                  Add Quote Details
+                </Button>
+              </div>
+              <div className="space-y-4">
+                {quoteSection.quotes?.map((quote, index) => (
+                  <div key={index} className="grid gap-4 p-4 border rounded-lg">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+              <Label className="mb-2 block">Quote Title - h2</Label>
+                        <Input
+                          value={quote.title}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (value.length <= 40) {
+                              updateQuote(index, "title", value);
+                            }
+                          }}
+                          placeholder="Quote title"
+                          maxLength={40}
+                        />
+
+                        <div className="flex justify-between">
+
+                        <ErrorMessage message={errors.quoteSection?.quotes} />
+
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {40 - (quote.title?.length || 0)} characters remaining
+                        </p>
+
+                        </div>
+                      </div>
                     <div>
-                      <Label>Quote Title - h2</Label>
-                      <Input
-                        value={quote.title}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          if (value.length <= 40) {
-                            updateQuote(index, "title", value);
-                          }
-                        }}
-                        placeholder="Quote title"
-                        maxLength={40}
-                      />
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {40 - (quote.title?.length || 0)} characters remaining
-                      </p>
-                    </div>
-                    <div>
-                      <Label>Quote Description - p</Label>
+                      <Label className="mb-2 block">Quote Description - p</Label>
                       <Textarea
                         value={quote.description}
                         onChange={(e) => {
@@ -920,7 +968,7 @@ export default function AddBlogPage() {
                     </div>
                   </div>
                   <div>
-                    <Label>Quote Text - blockquote p</Label>
+                    <Label className="mb-2 block">Quote Text - blockquote p</Label>
                     <Textarea
                       value={quote.quote}
                       onChange={(e) => {
@@ -938,7 +986,7 @@ export default function AddBlogPage() {
                     </p>
                   </div>
                   <div>
-                    <Label>Quote Author - footer p</Label>
+                    <Label className="mb-2 block">Quote Author - footer p</Label>
                     <Input
                       value={quote.quoteusername}
                       onChange={(e) => {
@@ -974,15 +1022,16 @@ export default function AddBlogPage() {
   const renderInfoSection = () => {
     const info = sectionsData.info_section || {};
     return (
-      <Card className="mb-4">
+      <Card className="mb-6">
         <CardHeader>
-          <CardTitle className="text-sm">Info Section</CardTitle>
+          <CardTitle className="text-base">Info Section</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4">
+        <CardContent className="space-y-6">
+          <div className="grid gap-6">
             <div>
-              <Label>Info headline* - p</Label>
+              <Label className="mb-2 block">Info headline* - p</Label>
               <Input
+                data-field="infoSection.title"
                 value={info.title || ""}
                 onChange={(e) => {
                   const value = e.target.value;
@@ -996,17 +1045,16 @@ export default function AddBlogPage() {
                 }}
                 placeholder="Enter info section title (required)"
                 maxLength={40}
-                className={errors.infoSection?.title ? 'border-red-500 focus:border-red-500' : ''}
+                className={`${validateInfoSection().title ? 'border-red-500 focus:border-red-500' : ''}`}
               />
-              <div className="flex justify-between items-start mt-1">
-                <ErrorMessage message={errors.infoSection?.title} />
+              <div className="flex justify-between items-start mt-2">
                 <p className="text-sm text-muted-foreground">
                   {40 - (info.title?.length || 0)} characters remaining
                 </p>
               </div>
             </div>
             <div>
-              <Label>Info Description * - p</Label>
+              <Label className="mb-2 block">Info Description * - p</Label>
               <Textarea
                 value={info.description || ""}
                 onChange={(e) => {
@@ -1022,17 +1070,16 @@ export default function AddBlogPage() {
                 placeholder="Enter info section description (required)"
                 rows={3}
                 maxLength={1000}
-                className={errors.infoSection?.description ? 'border-red-500 focus:border-red-500' : ''}
+                className={`${validateInfoSection().description ? 'border-red-500 focus:border-red-500' : ''}`}
               />
-              <div className="flex justify-between items-start mt-1">
-                <ErrorMessage message={errors.infoSection?.description} />
+              <div className="flex justify-between items-start mt-2">
                 <p className="text-sm text-muted-foreground">
                   {1000 - (info.description?.length || 0)} characters remaining
                 </p>
               </div>
             </div>
             <div>
-              <Label>Info Summary * - p</Label>
+              <Label className="mb-2 block">Info Summary * - p</Label>
               <Textarea
                 value={info.summary || ""}
                 onChange={(e) => {
@@ -1048,17 +1095,16 @@ export default function AddBlogPage() {
                 placeholder="Enter info section summary (required)"
                 maxLength={400}
                 rows={3}
-                className={errors.infoSection?.summary ? 'border-red-500 focus:border-red-500' : ''}
+                className={`${validateInfoSection().summary ? 'border-red-500 focus:border-red-500' : ''}`}
               />
-              <div className="flex justify-between items-start mt-1">
-                <ErrorMessage message={errors.infoSection?.summary} />
+              <div className="flex justify-between items-start mt-2">
                 <p className="text-sm text-muted-foreground">
                   {400 - (info.summary?.length || 0)} characters remaining
                 </p>
               </div>
             </div>
             <div>
-              <Label>Info Summary 2 * - p</Label>
+              <Label className="mb-2 block">Info Summary 2 * - p</Label>
               <Textarea
                 value={info.summary_2 || ""}
                 onChange={(e) => {
@@ -1074,17 +1120,16 @@ export default function AddBlogPage() {
                 placeholder="Enter additional info summary (required)"
                 maxLength={400}
                 rows={3}
-                className={errors.infoSection?.summary2 ? 'border-red-500 focus:border-red-500' : ''}
+                className={`${validateInfoSection().summary2 ? 'border-red-500 focus:border-red-500' : ''}`}
               />
-              <div className="flex justify-between items-start mt-1">
-                <ErrorMessage message={errors.infoSection?.summary2} />
+              <div className="flex justify-between items-start mt-2">
                 <p className="text-sm text-muted-foreground">
                   {400 - (info.summary_2?.length || 0)} characters remaining
                 </p>
               </div>
             </div>
             <div>
-              <Label>Info Banner Image Alt Text</Label>
+              <Label className="mb-2 block">Info Banner Image Alt Text</Label>
               <Input
                 value={(info as any).image_alt_text || ""}
                 onChange={(e) => {
@@ -1097,14 +1142,14 @@ export default function AddBlogPage() {
                 placeholder="Enter alt text for info banner image"
                 maxLength={255}
               />
-              <div className="flex justify-between items-start mt-1">
+              <div className="flex justify-between items-start mt-2">
                 <p className="text-sm text-muted-foreground">
                   {255 - ((info as any).image_alt_text?.length || 0)} characters remaining
                 </p>
               </div>
             </div>
             <div>
-              <Label>Info Banner Image</Label>
+              <Label className="mb-2 block">Info Banner Image</Label>
               <Input
                 type="file"
                 accept="image/*"
@@ -1116,7 +1161,7 @@ export default function AddBlogPage() {
               />
               {info.image &&
                 (info.image as any)?.constructor?.name === "File" && (
-                  <div className="mt-2">
+                  <div className="mt-3">
                     <img
                       src={URL.createObjectURL(info.image)}
                       alt="Info Image Preview"
@@ -1264,21 +1309,21 @@ export default function AddBlogPage() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <Tabs defaultValue="basic" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="basic">Basic Info</TabsTrigger>
-            <TabsTrigger value="sections">Sections</TabsTrigger>
+            <TabsTrigger value="basic" className="cursor-pointer">Basic Info</TabsTrigger>
+            <TabsTrigger value="sections" className="cursor-pointer">Sections</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="basic" className="space-y-4">
+          <TabsContent value="basic" className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>Basic Information</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-4">
+              <CardContent className="space-y-6">
+                <div className="grid gap-6">
                   <div>
-                    <Label htmlFor="title">Blog Title * - h3</Label>
+                    <Label htmlFor="title" className="mb-2 block">Blog Title * - h3</Label>
                     <Input
                       id="title"
                       value={title}
@@ -1302,10 +1347,9 @@ export default function AddBlogPage() {
                       placeholder="Enter blog post title"
                       required
                       maxLength={40}
-                      className={errors.title ? 'border-red-500 focus:border-red-500' : ''}
+                      className={`${validateTitle(title) ? 'border-red-500 focus:border-red-500' : ''}`}
                     />
-                    <div className="flex justify-between items-start mt-1">
-                      <ErrorMessage message={errors.title} />
+                    <div className="flex justify-between items-start mt-2">
                       <p className="text-sm text-muted-foreground">
                         {40 - title.length} characters remaining
                       </p>
@@ -1313,7 +1357,7 @@ export default function AddBlogPage() {
                   </div>
 
                   <div>
-                    <Label htmlFor="slug">URL Slug *</Label>
+                    <Label htmlFor="slug" className="mb-2 block">URL Slug *</Label>
                     <Input
                       id="slug"
                       value={slug}
@@ -1337,20 +1381,19 @@ export default function AddBlogPage() {
                       }}
                       placeholder="url-friendly-slug"
                       required
-                      className={errors.slug ? 'border-red-500 focus:border-red-500' : ''}
+                      className={`${validateSlug(slug) ? 'border-red-500 focus:border-red-500' : ''}`}
                     />
-                    <ErrorMessage message={errors.slug} />
-                    <p className="text-sm text-muted-foreground mt-1">
+                    <p className="text-sm text-muted-foreground mt-2">
                       This will be used in the URL. Only letters, numbers, and
                       hyphens allowed.
                     </p>
-                    <p className="text-sm text-muted-foreground mt-1">
+                    <p className="text-sm text-muted-foreground mt-2">
                       {40 - slug.length} characters remaining
                     </p>
                   </div>
 
                   <div>
-                    <Label htmlFor="content">Content * - p</Label>
+                    <Label htmlFor="content" className="mb-2 block">Content * - p</Label>
                     <Textarea
                       id="content"
                       value={content}
@@ -1371,19 +1414,18 @@ export default function AddBlogPage() {
                       placeholder="Write your blog post content..."
                       rows={8}
                       required
-                      className={errors.content ? 'border-red-500 focus:border-red-500' : ''}
+                      className={`${validateContent(content) ? 'border-red-500 focus:border-red-500' : ''}`}
                     />
-                    <div className="flex justify-between items-start mt-1">
-                      <ErrorMessage message={errors.content} />
+                    <div className="flex justify-between items-start mt-2">
                       <p className="text-sm text-muted-foreground">
                         {content.length} characters (minimum 100 required)
                       </p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-6">
                     <div>
-                      <Label htmlFor="metaTitle">Meta Title *</Label>
+                      <Label htmlFor="metaTitle" className="mb-2 block">Meta Title *</Label>
                       <Input
                         id="metaTitle"
                         value={metaTitle}
@@ -1407,17 +1449,16 @@ export default function AddBlogPage() {
                         placeholder="Enter meta title for SEO"
                         required
                         maxLength={40}
-                        className={errors.metaTitle ? 'border-red-500 focus:border-red-500' : ''}
+                        className={`${validateMetaTitle(metaTitle) ? 'border-red-500 focus:border-red-500' : ''}`}
                       />
-                      <div className="flex justify-between items-start mt-1">
-                        <ErrorMessage message={errors.metaTitle} />
+                      <div className="flex justify-between items-start mt-2">
                         <p className="text-sm text-muted-foreground">
                           {40 - metaTitle.length} characters remaining
                         </p>
                       </div>
                     </div>
                     <div>
-                      <Label htmlFor="metaDescription">
+                      <Label htmlFor="metaDescription" className="mb-2 block">
                         Meta Description *
                       </Label>
                       <Textarea
@@ -1444,10 +1485,9 @@ export default function AddBlogPage() {
                         rows={3}
                         required
                         maxLength={300}
-                        className={errors.metaDescription ? 'border-red-500 focus:border-red-500' : ''}
+                        className={`${validateMetaDescription(metaDescription) ? 'border-red-500 focus:border-red-500' : ''}`}
                       />
-                      <div className="flex justify-between items-start mt-1">
-                        <ErrorMessage message={errors.metaDescription} />
+                      <div className="flex justify-between items-start mt-2">
                         <p className="text-sm text-muted-foreground">
                           {300 - metaDescription.length} characters remaining
                         </p>
@@ -1455,9 +1495,9 @@ export default function AddBlogPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-6">
                     <div className="col-span-1">
-                      <Label htmlFor="image">Upload Blog Images *</Label>
+                      <Label htmlFor="image" className="mb-2 block">Upload Blog Images *</Label>
                       <Input
                         id="image"
                         type="file"
@@ -1474,7 +1514,7 @@ export default function AddBlogPage() {
                       />
                       <ErrorMessage message={errors.images} />
                       {previews.length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-2">
+                        <div className="mt-3 flex flex-wrap gap-2">
                           {previews.map((src, idx) => (
                             <img
                               key={idx}
@@ -1489,7 +1529,7 @@ export default function AddBlogPage() {
 
 
                     <div className="col-span-1">
-                      <Label htmlFor="ogImage">OG Image (Optional)</Label>
+                      <Label htmlFor="ogImage" className="mb-2 block">OG Image (Optional)</Label>
                       <Input
                         id="ogImage"
                         type="file"
@@ -1497,7 +1537,7 @@ export default function AddBlogPage() {
                         onChange={handleOgImageChange}
                       />
                       {ogImagePreview && (
-                        <div className="mt-2">
+                        <div className="mt-3">
                           <img
                             src={ogImagePreview}
                             alt="OG Image Preview"
@@ -1564,8 +1604,8 @@ export default function AddBlogPage() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="sections" className="space-y-4">
-            <div className="space-y-4">
+          <TabsContent value="sections" className="space-y-6">
+            <div className="space-y-6">
               <h2 className="text-2xl font-semibold">Blog Sections</h2>
               {renderHeroSection()}
               {renderQuoteSection()}

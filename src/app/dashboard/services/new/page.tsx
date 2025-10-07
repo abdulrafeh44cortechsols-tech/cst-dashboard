@@ -105,6 +105,9 @@ export default function AddServicePage() {
   const [showDraftRecovery, setShowDraftRecovery] = useState(false);
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
 
+  // Validation error states for real-time feedback
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
   const DRAFT_KEY = "service_draft_data";
   const DRAFT_SAVE_INTERVAL = 30000; // 30 seconds
 
@@ -116,6 +119,78 @@ export default function AddServicePage() {
       .replace(/\s+/g, '-') // Replace spaces with hyphens
       .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
       .trim();
+  };
+
+  // Real-time validation functions
+  const validateField = (fieldName: string, value: string) => {
+    const newErrors = { ...errors };
+
+    switch (fieldName) {
+      case 'title':
+        if (!value.trim()) {
+          newErrors.title = 'Service title is required';
+        } else if (value.length > 100) {
+          newErrors.title = 'Service title must be 100 characters or less';
+        } else {
+          delete newErrors.title;
+        }
+        break;
+
+      case 'slug':
+        if (!value.trim()) {
+          newErrors.slug = 'Slug is required';
+        } else if (!/^[a-z0-9-]+$/.test(value)) {
+          newErrors.slug = 'Slug can only contain lowercase letters, numbers, and hyphens';
+        } else {
+          delete newErrors.slug;
+        }
+        break;
+
+      case 'description':
+        if (!value.trim()) {
+          newErrors.description = 'Service description is required';
+        } else if (value.length < 100) {
+          newErrors.description = `Service description must be at least 100 characters (${value.length}/100)`;
+        } else if (value.length > 2000) {
+          newErrors.description = 'Service description must be 2000 characters or less';
+        } else {
+          delete newErrors.description;
+        }
+        break;
+
+      case 'metaTitle':
+        if (!value.trim()) {
+          newErrors.metaTitle = 'Meta title is required';
+        } else if (value.length > 60) {
+          newErrors.metaTitle = 'Meta title must be 60 characters or less';
+        } else {
+          delete newErrors.metaTitle;
+        }
+        break;
+
+      case 'metaDescription':
+        if (!value.trim()) {
+          newErrors.metaDescription = 'Meta description is required';
+        } else if (value.length > 160) {
+          newErrors.metaDescription = 'Meta description must be 160 characters or less';
+        } else {
+          delete newErrors.metaDescription;
+        }
+        break;
+    }
+
+    setErrors(newErrors);
+  };
+
+  // Scroll to error field
+  const scrollToElement = (elementId: string) => {
+    setTimeout(() => {
+      const element = document.getElementById(elementId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        element.focus();
+      }
+    }, 200);
   };
 
   // Draft management functions
@@ -226,9 +301,12 @@ export default function AddServicePage() {
   // Handle title change and auto-generate slug
   const handleTitleChange = (value: string) => {
     setTitle(value);
+    validateField('title', value);
     if (!slug || slug === generateSlug(title)) {
       // Only auto-generate if slug is empty or was auto-generated before
-      setSlug(generateSlug(value));
+      const newSlug = generateSlug(value);
+      setSlug(newSlug);
+      validateField('slug', newSlug);
     }
   };
 
@@ -491,34 +569,29 @@ export default function AddServicePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!title || !slug || !description || !metaTitle || !metaDescription) {
-      toast.error("Please fill all required fields.");
+    // Validate all fields
+    validateField('title', title);
+    validateField('slug', slug);
+    validateField('description', description);
+    validateField('metaTitle', metaTitle);
+    validateField('metaDescription', metaDescription);
+
+    // Check for basic field errors and scroll to first error
+    if (!title) {
+      toast.error("Service title is required.");
+      scrollToElement('service-title');
       return;
     }
 
-    // Character limit validations
     if (title.length > 100) {
       toast.error("Service title must be 100 characters or less.");
+      scrollToElement('service-title');
       return;
     }
 
-    if (metaTitle.length > 60) {
-      toast.error("Meta title must be 60 characters or less.");
-      return;
-    }
-
-    if (metaDescription.length > 160) {
-      toast.error("Meta description must be 160 characters or less.");
-      return;
-    }
-
-    if (description.length < 50) {
-      toast.error("Service description must be at least 50 characters long.");
-      return;
-    }
-
-    if (description.length > 2000) {
-      toast.error("Service description must be 2000 characters or less.");
+    if (!slug) {
+      toast.error("Slug is required.");
+      scrollToElement('service-slug');
       return;
     }
 
@@ -526,6 +599,49 @@ export default function AddServicePage() {
     const slugPattern = /^[a-z0-9-]+$/;
     if (!slugPattern.test(slug)) {
       toast.error("Slug can only contain lowercase letters, numbers, and hyphens.");
+      scrollToElement('service-slug');
+      return;
+    }
+
+    if (!description) {
+      toast.error("Service description is required.");
+      scrollToElement('service-description');
+      return;
+    }
+
+    if (description.length < 100) {
+      toast.error("Service description must be at least 100 characters long.");
+      scrollToElement('service-description');
+      return;
+    }
+
+    if (description.length > 2000) {
+      toast.error("Service description must be 2000 characters or less.");
+      scrollToElement('service-description');
+      return;
+    }
+
+    if (!metaTitle) {
+      toast.error("Meta title is required.");
+      scrollToElement('meta-title');
+      return;
+    }
+
+    if (metaTitle.length > 60) {
+      toast.error("Meta title must be 60 characters or less.");
+      scrollToElement('meta-title');
+      return;
+    }
+
+    if (!metaDescription) {
+      toast.error("Meta description is required.");
+      scrollToElement('meta-description');
+      return;
+    }
+
+    if (metaDescription.length > 160) {
+      toast.error("Meta description must be 160 characters or less.");
+      scrollToElement('meta-description');
       return;
     }
 
@@ -545,7 +661,7 @@ export default function AddServicePage() {
       formData.append("description", description);
       formData.append("meta_title", metaTitle);
       formData.append("meta_description", metaDescription);
-      formData.append("published", published.toString()); // Append published field
+      formData.append("is_active", published.toString()); // Backend expects is_active, not published
 
       // Process sections data - convert points to description for what_we_offer_section
       const processedSectionsData = { ...sectionsData };
@@ -563,7 +679,10 @@ export default function AddServicePage() {
       formData.append("sections_data", JSON.stringify(processedSectionsData));
 
       // Add files for each section
+      // Exclude 'image_files' as it's handled separately below
       Object.entries(sectionFiles).forEach(([key, files]) => {
+        if (key === 'image_files') return; // Skip image_files here, handled separately
+        
         if (files && files.length > 0) {
           if (key === "hero_section_image_file") {
             // Hero section expects a single file
@@ -607,9 +726,11 @@ export default function AddServicePage() {
         });
       });
       
-      // If no files are uploaded, append empty files as placeholders
-      if (sectionFiles.image_files.length === 0) {
-        formData.append("image_files", new File([""], "placeholder.png"));
+      // Only add image_files if they exist (don't send empty placeholder)
+      if (sectionFiles.image_files.length > 0) {
+        sectionFiles.image_files.forEach(file => {
+          formData.append('image_files', file);
+        });
       }
 
       // Add image alt texts
@@ -655,8 +776,72 @@ export default function AddServicePage() {
       toast.success("Service created successfully!");
       router.push("/dashboard/services");
     } catch (error: any) {
-      toast.error("Failed to create service. Please try again.");
       console.error("Service creation error:", error);
+      
+      // Check for field-specific validation errors
+      const errorDetails = error.response?.data?.error_details;
+      if (errorDetails) {
+        console.log("Field validation errors:", errorDetails);
+        
+        // Map backend field errors to frontend error state
+        const newErrors: Record<string, string> = {};
+        
+        if (errorDetails.title) {
+          newErrors.title = Array.isArray(errorDetails.title) 
+            ? errorDetails.title[0] 
+            : errorDetails.title;
+          scrollToElement('service-title');
+        }
+        
+        if (errorDetails.slug) {
+          newErrors.slug = Array.isArray(errorDetails.slug) 
+            ? errorDetails.slug[0] 
+            : errorDetails.slug;
+          if (!newErrors.title) scrollToElement('service-slug');
+        }
+        
+        if (errorDetails.description) {
+          newErrors.description = Array.isArray(errorDetails.description) 
+            ? errorDetails.description[0] 
+            : errorDetails.description;
+          if (!newErrors.title && !newErrors.slug) scrollToElement('service-description');
+        }
+        
+        if (errorDetails.meta_title) {
+          newErrors.metaTitle = Array.isArray(errorDetails.meta_title) 
+            ? errorDetails.meta_title[0] 
+            : errorDetails.meta_title;
+          if (!newErrors.title && !newErrors.slug && !newErrors.description) scrollToElement('meta-title');
+        }
+        
+        if (errorDetails.meta_description) {
+          newErrors.metaDescription = Array.isArray(errorDetails.meta_description) 
+            ? errorDetails.meta_description[0] 
+            : errorDetails.meta_description;
+          if (!newErrors.title && !newErrors.slug && !newErrors.description && !newErrors.metaTitle) {
+            scrollToElement('meta-description');
+          }
+        }
+        
+        // Update error state to show under fields
+        setErrors(newErrors);
+        
+        // Show toast with first error
+        const firstError = Object.values(newErrors)[0];
+        toast.error(firstError || "Validation failed. Please check the form.");
+      } else {
+        // Generic error without field details
+        const errorMessage = error.response?.data?.message 
+          || error.response?.data?.error 
+          || error.message 
+          || "Failed to create service. Please try again.";
+        toast.error(errorMessage);
+      }
+      
+      // Log detailed error for debugging
+      if (error.response?.data) {
+        console.error("Backend error details:", error.response.data);
+      }
     }
   };
 
@@ -1315,9 +1500,9 @@ export default function AddServicePage() {
           <CardContent className="space-y-4">
             <div className="grid gap-4">
               <div className="space-y-2">
-                <Label htmlFor="title">Service Title * - h2</Label>
+                <Label htmlFor="service-title">Service Title * - h2</Label>
                 <Input
-                  id="title"
+                  id="service-title"
                   value={title}
                   onChange={(e) => {
                     const value = e.target.value;
@@ -1328,91 +1513,101 @@ export default function AddServicePage() {
                   placeholder="Enter service title"
                   maxLength={100}
                   required
+                  className={errors.title ? 'border-red-500' : ''}
                 />
-                <p className="text-sm text-muted-foreground mt-1">
-                  {100 - title.length} characters remaining
+                <p className={`text-sm mt-1 ${errors.title ? 'text-red-500' : 'text-muted-foreground'}`}>
+                  {errors.title || `${100 - title.length} characters remaining`}
                 </p>
               </div>
 
                              <div className="space-y-2">
-                 <Label htmlFor="slug">URL Slug *</Label>
+                 <Label htmlFor="service-slug">URL Slug *</Label>
                  <Input
-                   id="slug"
+                   id="service-slug"
                    value={slug}
                    maxLength={40}
                    onChange={(e) => {
                     const value = e.target.value;
                     if (value.length <= 40) {
-                      setSlug(generateSlug(value));
+                      const newSlug = generateSlug(value);
+                      setSlug(newSlug);
+                      validateField('slug', newSlug);
                     }
                   }}
                    placeholder="url-friendly-slug"
                    required
+                   className={errors.slug ? 'border-red-500' : ''}
                  />
-                 <p className="text-sm text-muted-foreground">
-                   This will be used in the URL. Only letters, numbers, and hyphens allowed.
+                 <p className={`text-sm ${errors.slug ? 'text-red-500' : 'text-muted-foreground'}`}>
+                   {errors.slug || 'This will be used in the URL. Only letters, numbers, and hyphens allowed.'}
                  </p>
                </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Description * - p</Label>
+                <Label htmlFor="service-description">Description * - p</Label>
                 <Textarea
-                  id="description"
+                  id="service-description"
                   value={description}
                   onChange={(e) => {
                     const value = e.target.value;
                     if (value.length <= 2000) {
                       setDescription(value);
+                      validateField('description', value);
                     }
                   }}
                   placeholder="Write your service description..."
                   rows={4}
                   maxLength={2000}
                   required
+                  className={errors.description ? 'border-red-500' : ''}
                 />
-                <p className="text-sm text-muted-foreground mt-1">
-                  {description.length}/2000 characters (minimum 50 required)
+                <p className={`text-sm mt-1 ${errors.description ? 'text-red-500' : 'text-muted-foreground'}`}>
+                  {errors.description || `${description.length}/2000 characters (minimum 100 required)`}
                 </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="metaTitle">Meta Title *</Label>
+                  <Label htmlFor="meta-title">Meta Title *</Label>
                   <Input
-                    id="metaTitle"
+                    id="meta-title"
                     value={metaTitle}
                     onChange={(e) => {
                       const value = e.target.value;
                       if (value.length <= 60) {
                         setMetaTitle(value);
+                        validateField('metaTitle', value);
                       }
                     }}
                     placeholder="Enter meta title for SEO"
                     maxLength={60}
                     required
+                    className={errors.metaTitle ? 'border-red-500' : ''}
                   />
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {60 - metaTitle.length} characters remaining
+                  <p className={`text-sm mt-1 ${errors.metaTitle ? 'text-red-500' : 'text-muted-foreground'}`}>
+                    {errors.metaTitle || `${60 - metaTitle.length} characters remaining`}
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="metaDescription">Meta Description *</Label>
+                  <Label htmlFor="meta-description">Meta Description *</Label>
                   <Textarea
-                    id="metaDescription"
+                    id="meta-description"
                     value={metaDescription}
                     onChange={(e) => {
                       const value = e.target.value;
                       if (value.length <= 160) {
                         setMetaDescription(value);
+                        validateField('metaDescription', value);
                       }
                     }}
                     placeholder="Enter meta description for SEO"
                     rows={3}
                     maxLength={160}
                     required
+                    className={errors.metaDescription ? 'border-red-500' : ''}
                   />
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {160 - metaDescription.length} characters remaining
+                  <p className={`text-sm mt-1 ${errors.metaDescription ? 'text-red-500' : 'text-muted-foreground'}`}>
+                    {errors.metaDescription || `${160 - metaDescription.length} characters remaining`}
                   </p>
                 </div>
               </div>

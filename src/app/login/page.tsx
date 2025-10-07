@@ -459,14 +459,14 @@ export default function Component() {
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger
                 value="admin"
-                className="flex items-center gap-2 data-[state=active]:bg-teal-500 data-[state=active]:text-white"
+                className="flex cursor-pointer items-center gap-2 data-[state=active]:bg-teal-500 data-[state=active]:text-white"
               >
                 <Shield className="h-4 w-4" />
                 Admin
               </TabsTrigger>
               <TabsTrigger
                 value="editor"
-                className="flex items-center gap-2 data-[state=active]:bg-teal-500 data-[state=active]:text-white"
+                className="flex items-center cursor-pointer gap-2 data-[state=active]:bg-teal-500 data-[state=active]:text-white"
               >
                 <User className="h-4 w-4" />
                 Editor

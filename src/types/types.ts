@@ -17,6 +17,7 @@ export interface BlogPost {
     meta_title: string;
     meta_description: string;
     og_image_file: string | null;
+    og_image: string | null; // URL of existing OG image from backend
     content: string;
     sections_data?: BlogSectionsData;
     info_section?: BlogSection;

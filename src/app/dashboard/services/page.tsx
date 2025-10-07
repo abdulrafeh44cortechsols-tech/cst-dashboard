@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Delete, Edit, Pencil, PlusCircle, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -21,6 +22,7 @@ import Image from "next/image";
 import { getImageUrl } from "@/lib/utils";
 
 export default function ServicesPage() {
+  const router = useRouter();
   const { getServicesList } = useServices();
   const { data: services, isLoading, isError } = getServicesList;
   const [editingService, setEditingService] = useState<Service | null>(null);
@@ -99,8 +101,7 @@ export default function ServicesPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        setEditingService(service);
-                        setIsModalOpen(true);
+                        router.push(`/dashboard/services/${service.id}/edit`);
                       }}
                       className="text-gray-600 hover:text-gray-600"
                     >

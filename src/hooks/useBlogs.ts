@@ -12,27 +12,47 @@ export const useBlogs = (page: number = 1, limit: number = 6) => {
     queryKey: ["blogs", page, limit],
     queryFn: async () => {
       try {
-        const response:any = await blogService.getBlogs();
-        console.log("response for get blogs list:", response.data);
+        // Fetch paginated data from backend
+        const paginated = await blogService.getBlogs(page, limit);
+        console.log("response for get blogs list:", paginated);
+
+        const blogs: BlogPost[] = Array.isArray(paginated?.results)
+          ? paginated.results
+          : [];
+
+        const count = typeof paginated?.count === "number" ? paginated.count : blogs.length;
+
+        // Infer total pages from backend data to avoid mismatches when the server uses a different page size
+        let inferredTotalPages = 1;
+        if (blogs.length > 0) {
+          if (paginated.next) {
+            // Not the last page; assume current page size is the server page size
+            inferredTotalPages = Math.max(1, Math.ceil(count / blogs.length));
+          } else {
+            // Last page -> total pages equals current page index
+            inferredTotalPages = Math.max(1, page);
+          }
+        }
+
         return {
-          posts: response.data.slice((page - 1) * limit, page * limit), // manual pagination if backend doesn't do it
-          totalPages: Math.ceil(response.data.length / limit),
-          allBlogs: response.data, // Store all blogs for the store
+          posts: blogs,
+          totalPages: inferredTotalPages,
+          allBlogs: blogs,
         };
       } catch (error) {
         console.error("API failed, using dummy blog posts...", error);
-        // Fallback to dummy data
-        // const fallbackData = await getPaginatedBlogPosts({ page, limit });
-        // return {
-        //   ...fallbackData,
-        //   allBlogs: fallbackData.posts, // Use fallback posts as all blogs
-        // };
+        // Optionally return empty fallback so hook always returns valid structure
+        return {
+          posts: [],
+          totalPages: 0,
+          allBlogs: [],
+        };
       }
     },
     staleTime: 1000 * 60 * 5, // cache for 5 minutes
-    retry: 0, // don't retry multiple times (we have fallback)
+    retry: 0,
   });
-
+  
   // Store blogs in Zustand store when data is fetched
   useEffect(() => {
     if (getBlogsList.data?.allBlogs) {

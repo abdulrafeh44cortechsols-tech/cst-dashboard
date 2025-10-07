@@ -37,7 +37,9 @@ export default function BlogsPage() {
   const currentPage = Number(searchParams.get("page")) || 1;
   const postsPerPage = 8;
   const { getBlogsList } = useBlogs(currentPage, postsPerPage);
+
   const { data, isLoading } = getBlogsList;
+  console.log(data,"here is blog data")
   const blogPosts = data?.posts || [];
   console.log("blogPosts", blogPosts);
   const totalPages = data?.totalPages || 1;
@@ -52,7 +54,6 @@ export default function BlogsPage() {
     params.set("page", String(page));
     router.push(`/dashboard/blogs?${params.toString()}`);
   };
-
   const renderPaginationItems = () => {
     const items = [];
     const maxPagesToShow = 5;
@@ -62,7 +63,7 @@ export default function BlogsPage() {
     if (startPage > 1) {
       items.push(
         <PaginationItem key="1">
-          <PaginationLink href="#" onClick={() => handlePageChange(1)}>
+          <PaginationLink href="#" onClick={(e) => { e.preventDefault(); handlePageChange(1); }}>
             1
           </PaginationLink>
         </PaginationItem>
@@ -78,7 +79,7 @@ export default function BlogsPage() {
           <PaginationLink
             href="#"
             isActive={i === currentPage}
-            onClick={() => handlePageChange(i)}
+            onClick={(e) => { e.preventDefault(); handlePageChange(i); }}
           >
             {i}
           </PaginationLink>
@@ -92,7 +93,7 @@ export default function BlogsPage() {
       }
       items.push(
         <PaginationItem key={totalPages}>
-          <PaginationLink href="#" onClick={() => handlePageChange(totalPages)}>
+          <PaginationLink href="#" onClick={(e) => { e.preventDefault(); handlePageChange(totalPages); }}>
             {totalPages}
           </PaginationLink>
         </PaginationItem>
@@ -170,8 +171,7 @@ export default function BlogsPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        setEditingBlog(post);
-                        setIsModalOpen(true);
+                        router.push(`/dashboard/blogs/${post.id}/edit`);
                       }}
                       className="text-gray-600 hover:text-gray-600"
                     >
@@ -207,7 +207,7 @@ export default function BlogsPage() {
                 <PaginationItem>
                   <PaginationPrevious
                     href="#"
-                    onClick={() => handlePageChange(currentPage - 1)}
+                    onClick={(e) => { e.preventDefault(); handlePageChange(currentPage - 1); }}
                     aria-disabled={currentPage <= 1}
                     tabIndex={currentPage <= 1 ? -1 : undefined}
                     className={
@@ -221,7 +221,7 @@ export default function BlogsPage() {
                 <PaginationItem>
                   <PaginationNext
                     href="#"
-                    onClick={() => handlePageChange(currentPage + 1)}
+                    onClick={(e) => { e.preventDefault(); handlePageChange(currentPage + 1); }}
                     aria-disabled={currentPage >= totalPages}
                     tabIndex={currentPage >= totalPages ? -1 : undefined}
                     className={
