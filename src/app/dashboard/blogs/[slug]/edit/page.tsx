@@ -11,15 +11,15 @@ import Link from "next/link";
 export default function EditBlogPage() {
   const params = useParams();
   const router = useRouter();
-  const idParam = params?.id as string | undefined;
+  const slugParam = params?.slug as string | undefined;
 
   const { data: blog, isLoading, isError } = useQuery({
-    queryKey: ["blog", idParam],
+    queryKey: ["blog", "slug", slugParam],
     queryFn: async () => {
-      if (!idParam) throw new Error("Missing blog id");
-      return blogService.getBlog(idParam);
+      if (!slugParam) throw new Error("Missing blog slug");
+      return blogService.getBlogBySlug(slugParam);
     },
-    enabled: !!idParam,
+    enabled: !!slugParam,
   });
 
   return (

@@ -87,6 +87,7 @@ export default function AddProjectPage() {
   // Basic project fields
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [descriptionError, setDescriptionError] = useState<string | null>(null);
   const [slug, setSlug] = useState("");
   const [selectedTags, setSelectedTags] = useState<number[]>([]);
 
@@ -145,6 +146,13 @@ export default function AddProjectPage() {
       sub_sections: [],
     },
   });
+
+  // Real-time validation state for sections
+  const [heroDescriptionError, setHeroDescriptionError] = useState<string | null>(null);
+  const [aboutDescriptionError, setAboutDescriptionError] = useState<string | null>(null);
+  const [techDescriptionError, setTechDescriptionError] = useState<string | null>(null);
+  const [servicesDescriptionError, setServicesDescriptionError] = useState<string | null>(null);
+  const [serviceSubDescriptionErrors, setServiceSubDescriptionErrors] = useState<Record<number, string | null>>({});
 
   // Draft management state
   const [draftExists, setDraftExists] = useState(false);
@@ -1035,11 +1043,11 @@ export default function AddProjectPage() {
       <form onSubmit={handleSubmit} className="space-y-6">
         <Tabs defaultValue="basic" className="w-full">
           <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="basic">Basic Info</TabsTrigger>
-            <TabsTrigger value="hero">Hero & About</TabsTrigger>
-            <TabsTrigger value="goals">Project Goals</TabsTrigger>
-            <TabsTrigger value="tech">Technologies</TabsTrigger>
-            <TabsTrigger value="services">Services</TabsTrigger>
+            <TabsTrigger value="basic" className="cursor-pointer">Basic Info</TabsTrigger>
+            <TabsTrigger value="hero" className="cursor-pointer">Hero & About</TabsTrigger>
+            <TabsTrigger value="goals" className="cursor-pointer">Project Goals</TabsTrigger>
+            <TabsTrigger value="tech" className="cursor-pointer">Technologies</TabsTrigger>
+            <TabsTrigger value="services" className="cursor-pointer">Services</TabsTrigger>
           </TabsList>
 
           <TabsContent value="basic" className="space-y-4">
@@ -1104,13 +1112,23 @@ export default function AddProjectPage() {
                       const value = e.target.value;
                       if (value.length <= 2000) {
                         setDescription(value);
+                        // real-time validation
+                        if (value.trim().length > 0 && value.trim().length < 100) {
+                          setDescriptionError("Project description must be at least 100 characters long.");
+                        } else {
+                          setDescriptionError(null);
+                        }
                       }
                     }}
                     placeholder="Enter project description"
                     rows={4}
                     maxLength={2000}
                     required
+                    className={descriptionError ? "border-red-500 focus-visible:ring-red-500" : undefined}
                   />
+                  {descriptionError && (
+                    <p className="text-sm text-red-600 mt-1">{descriptionError}</p>
+                  )}
                   <p className="text-sm text-muted-foreground mt-1">
                     {description.length}/2000 characters (minimum 100 required)
                   </p>
@@ -1261,12 +1279,22 @@ export default function AddProjectPage() {
                       const value = e.target.value;
                       if (value.length <= 1000) {
                         updateSection("hero_section", "description", value);
+                        // real-time validation
+                        if (value.trim().length > 0 && value.trim().length < 100) {
+                          setHeroDescriptionError("Hero section description must be at least 100 characters long.");
+                        } else {
+                          setHeroDescriptionError(null);
+                        }
                       }
                     }}
                     placeholder="Enter hero section description"
                     rows={3}
                     maxLength={1000}
+                    className={heroDescriptionError ? "border-red-500 focus-visible:ring-red-500" : undefined}
                   />
+                  {heroDescriptionError && (
+                    <p className="text-sm text-red-600 mt-1">{heroDescriptionError}</p>
+                  )}
                   <p className="text-sm text-muted-foreground mt-1">
                     {1000 -
                       (sectionsData.hero_section.description?.length || 0)}{" "}
@@ -1379,12 +1407,22 @@ export default function AddProjectPage() {
                       const value = e.target.value;
                       if (value.length <= 1000) {
                         updateSection("about_section", "description", value);
+                        // real-time validation
+                        if (value.trim().length > 0 && value.trim().length < 100) {
+                          setAboutDescriptionError("About section description must be at least 100 characters long.");
+                        } else {
+                          setAboutDescriptionError(null);
+                        }
                       }
                     }}
                     placeholder="Enter about section description"
                     rows={3}
                     maxLength={1000}
+                    className={aboutDescriptionError ? "border-red-500 focus-visible:ring-red-500" : undefined}
                   />
+                  {aboutDescriptionError && (
+                    <p className="text-sm text-red-600 mt-1">{aboutDescriptionError}</p>
+                  )}
                   <p className="text-sm text-muted-foreground mt-1">
                     {1000 -
                       (sectionsData.about_section.description?.length ||
@@ -1675,16 +1713,27 @@ export default function AddProjectPage() {
                   <Label>Section Description - p</Label>
                   <Textarea
                     value={sectionsData.technologies_used_section.description}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const value = e.target.value;
                       updateSection(
                         "technologies_used_section",
                         "description",
-                        e.target.value
-                      )
-                    }
+                        value
+                      );
+                      // real-time validation
+                      if (value.trim().length > 0 && value.trim().length < 100) {
+                        setTechDescriptionError("Technologies section description must be at least 100 characters long.");
+                      } else {
+                        setTechDescriptionError(null);
+                      }
+                    }}
                     placeholder="Enter technologies section description"
                     rows={3}
+                    className={techDescriptionError ? "border-red-500 focus-visible:ring-red-500" : undefined}
                   />
+                  {techDescriptionError && (
+                    <p className="text-sm text-red-600 mt-1">{techDescriptionError}</p>
+                  )}
                 </div>
 
                 <Separator />
@@ -1869,16 +1918,27 @@ export default function AddProjectPage() {
                   <Label>Section Description - p</Label>
                   <Textarea
                     value={sectionsData.services_provided_section.description}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const value = e.target.value;
                       updateSection(
                         "services_provided_section",
                         "description",
-                        e.target.value
-                      )
-                    }
+                        value
+                      );
+                      // real-time validation
+                      if (value.trim().length > 0 && value.trim().length < 100) {
+                        setServicesDescriptionError("Services section description must be at least 100 characters long.");
+                      } else {
+                        setServicesDescriptionError(null);
+                      }
+                    }}
                     placeholder="Enter services section description"
                     rows={3}
+                    className={servicesDescriptionError ? "border-red-500 focus-visible:ring-red-500" : undefined}
                   />
+                  {servicesDescriptionError && (
+                    <p className="text-sm text-red-600 mt-1">{servicesDescriptionError}</p>
+                  )}
                 </div>
 
                 <Separator />
@@ -1934,16 +1994,28 @@ export default function AddProjectPage() {
                           <Label>Description - p</Label>
                           <Textarea
                             value={service.description}
-                            onChange={(e) =>
+                            onChange={(e) => {
+                              const value = e.target.value;
                               updateServiceSubSection(
                                 serviceIndex,
                                 "description",
-                                e.target.value
-                              )
-                            }
+                                value
+                              );
+                              // real-time validation per sub-section
+                              setServiceSubDescriptionErrors((prev) => ({
+                                ...prev,
+                                [serviceIndex]: value.trim().length > 0 && value.trim().length < 100
+                                  ? `Services section sub-section ${serviceIndex + 1} description must be at least 100 characters long.`
+                                  : null,
+                              }));
+                            }}
                             placeholder="Enter service description"
                             rows={3}
+                            className={serviceSubDescriptionErrors[serviceIndex] ? "border-red-500 focus-visible:ring-red-500" : undefined}
                           />
+                          {serviceSubDescriptionErrors[serviceIndex] && (
+                            <p className="text-sm text-red-600 mt-1">{serviceSubDescriptionErrors[serviceIndex]}</p>
+                          )}
                         </div>
 
                         {/* Additional Info */}

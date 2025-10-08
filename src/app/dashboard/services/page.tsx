@@ -101,7 +101,7 @@ export default function ServicesPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        router.push(`/dashboard/services/${service.id}/edit`);
+                        router.push(`/dashboard/services/${service.slug}/edit`);
                       }}
                       className="text-gray-600 hover:text-gray-600"
                     >

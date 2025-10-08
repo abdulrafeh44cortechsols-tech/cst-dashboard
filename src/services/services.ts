@@ -35,6 +35,22 @@ export const servicesDataService = {
     return normalized;
   },
 
+  // Fetch a single service by slug (finds ID from slug, then fetches by ID)
+  getServiceBySlug: async (slug: string): Promise<Service> => {
+    // First, get all services to find the one with matching slug
+    const servicesResponse = await api.get("/api/v1/services/");
+    
+    const services = servicesResponse.data.data || [];
+    const serviceWithSlug = services.find((service: any) => service.slug === slug);
+    
+    if (!serviceWithSlug) {
+      throw new Error(`Service with slug "${slug}" not found`);
+    }
+    
+    // Now fetch the full service data using the ID with existing endpoint
+    return await servicesDataService.getService(serviceWithSlug.id);
+  },
+
   createService: async (data: FormData | CreateServiceData): Promise<Service> => {
     try {
       const response = await api.post("/api/v1/services/", data);

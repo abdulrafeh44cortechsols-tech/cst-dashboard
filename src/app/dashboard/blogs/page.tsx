@@ -171,7 +171,7 @@ export default function BlogsPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        router.push(`/dashboard/blogs/${post.id}/edit`);
+                        router.push(`/dashboard/blogs/${post.slug}/edit`);
                       }}
                       className="text-gray-600 hover:text-gray-600"
                     >

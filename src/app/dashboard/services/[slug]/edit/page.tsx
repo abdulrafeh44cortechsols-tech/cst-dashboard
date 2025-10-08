@@ -11,15 +11,15 @@ import Link from "next/link";
 export default function EditServicePage() {
   const params = useParams();
   const router = useRouter();
-  const idParam = params?.id as string | undefined;
+  const slugParam = params?.slug as string | undefined;
 
   const { data: service, isLoading, isError } = useQuery({
-    queryKey: ["service", idParam],
+    queryKey: ["service", "slug", slugParam],
     queryFn: async () => {
-      if (!idParam) throw new Error("Missing service id");
-      return servicesDataService.getService(idParam);
+      if (!slugParam) throw new Error("Missing service slug");
+      return servicesDataService.getServiceBySlug(slugParam);
     },
-    enabled: !!idParam,
+    enabled: !!slugParam,
   });
 
   return (

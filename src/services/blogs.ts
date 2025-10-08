@@ -47,6 +47,24 @@ export const blogService = {
     return normalized
   },
 
+  // Fetch a single blog by slug (finds ID from slug, then fetches by ID)
+  getBlogBySlug: async (slug: string): Promise<BlogPost> => {
+    // First, get all blogs to find the one with matching slug
+    const blogsResponse = await api.get("/api/v1/blogs/", {
+      params: { page: 1, limit: 1000 } // Get a large number to find the blog
+    });
+    
+    const blogs = blogsResponse.data.results || [];
+    const blogWithSlug = blogs.find((blog: any) => blog.slug === slug);
+    
+    if (!blogWithSlug) {
+      throw new Error(`Blog with slug "${slug}" not found`);
+    }
+    
+    // Now fetch the full blog data using the ID with existing endpoint
+    return await blogService.getBlog(blogWithSlug.id);
+  },
+
   createBlog: async (data: FormData | CreateBlogData): Promise<BlogPost> => {
     const response = await api.post("/api/v1/blogs/", data)
     console.log("create blog:",response.data)
