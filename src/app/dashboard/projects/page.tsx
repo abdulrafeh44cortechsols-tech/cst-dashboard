@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Delete, Edit, Pencil, PlusCircle, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -13,17 +14,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useProjects } from "@/hooks/useProjects";
-import { EditProjectModal } from "@/components/projects/EditProjectModal";
 import { DeleteProjectModal } from "@/components/projects/DeleteProjectModal";
 import { useState } from "react";
 import { Project } from "@/types/types";
 import Image from "next/image";
 
 export default function ProjectsPage() {
+  const router = useRouter();
   const { getProjectsList } = useProjects();
   const { data: projects, isLoading, isError } = getProjectsList;
-  const [editingProject, setEditingProject] = useState<Project | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
@@ -120,8 +119,7 @@ export default function ProjectsPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        setEditingProject(project);
-                        setIsModalOpen(true);
+                        router.push(`/dashboard/projects/${project.slug}/edit`);
                       }}
                       className="text-gray-600 hover:text-gray-600"
                     >
@@ -150,13 +148,6 @@ export default function ProjectsPage() {
             )}
           </div>
 
-          {editingProject && (
-            <EditProjectModal
-              project={editingProject}
-              isOpen={isModalOpen}
-              onClose={() => setIsModalOpen(false)}
-            />
-          )}
           {deletingProject && (
             <DeleteProjectModal
               project={deletingProject}

@@ -30,6 +30,7 @@ import ReCAPTCHA from "react-google-recaptcha";
 
 interface ProjectGoalSubSection {
   title: string;
+  image_alt_text?: string;
 }
 
 interface ProjectGoalApproach {
