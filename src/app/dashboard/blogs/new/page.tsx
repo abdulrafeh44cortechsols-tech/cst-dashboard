@@ -756,21 +756,29 @@ export default function AddBlogPage() {
                 value={hero.title || ""}
                 onChange={(e) => {
                   const value = e.target.value;
-                  if (value.length <= 40) {
-                    updateSection("hero_section", "title", value);
-                    // Clear error when user starts typing
-                    if (errors.heroSection?.title) {
-                      clearError('heroSection.title');
-                    }
+                  updateSection("hero_section", "title", value);
+                  // Real-time validation and error clearing
+                  const heroErrors = validateHeroSection();
+                  if (heroErrors.title) {
+                    setError('heroSection.title', heroErrors.title);
+                  } else {
+                    clearError('heroSection.title');
+                  }
+                }}
+                onBlur={() => {
+                  // Additional validation on blur if needed
+                  const heroErrors = validateHeroSection();
+                  if (heroErrors.title) {
+                    setError('heroSection.title', heroErrors.title);
                   }
                 }}
                 placeholder="Enter hero section title"
                 maxLength={40}
-                className={`${validateHeroSection().title ? 'border-red-500 focus:border-red-500' : ''}`}
+                className={`${errors.heroSection?.title ? 'border-red-500 focus:border-red-500' : ''}`}
               />
               <div className="flex justify-between items-start mt-2">
-                <p className="text-sm text-muted-foreground">
-                  {40 - (hero.title?.length || 0)} characters remaining
+                <p className={`text-sm ${errors.heroSection?.title ? 'text-red-600' : 'text-muted-foreground'}`}>
+                  {errors.heroSection?.title || `${40 - (hero.title?.length || 0)} characters remaining`}
                 </p>
               </div>
             </div>
@@ -780,22 +788,30 @@ export default function AddBlogPage() {
                 value={hero.description || ""}
                 onChange={(e) => {
                   const value = e.target.value;
-                  if (value.length <= 1000) {
-                    updateSection("hero_section", "description", value);
-                    // Clear error when user starts typing
-                    if (errors.heroSection?.description) {
-                      clearError('heroSection.description');
-                    }
+                  updateSection("hero_section", "description", value);
+                  // Real-time validation and error clearing
+                  const heroErrors = validateHeroSection();
+                  if (heroErrors.description) {
+                    setError('heroSection.description', heroErrors.description);
+                  } else {
+                    clearError('heroSection.description');
+                  }
+                }}
+                onBlur={() => {
+                  // Additional validation on blur if needed
+                  const heroErrors = validateHeroSection();
+                  if (heroErrors.description) {
+                    setError('heroSection.description', heroErrors.description);
                   }
                 }}
                 placeholder="Enter hero section description"
                 rows={3}
                 maxLength={1000}
-                className={`${validateHeroSection().description ? 'border-red-500 focus:border-red-500' : ''}`}
+                className={`${errors.heroSection?.description ? 'border-red-500 focus:border-red-500' : ''}`}
               />
               <div className="flex justify-between items-start mt-2">
-                <p className="text-sm text-muted-foreground">
-                  {1000 - (hero.description?.length || 0)} characters remaining
+                <p className={`text-sm ${errors.heroSection?.description ? 'text-red-600' : 'text-muted-foreground'}`}>
+                  {errors.heroSection?.description || `${1000 - (hero.description?.length || 0)} characters remaining`}
                 </p>
               </div>
             </div>
@@ -805,22 +821,30 @@ export default function AddBlogPage() {
                 value={hero.summary || ""}
                 onChange={(e) => {
                   const value = e.target.value;
-                  if (value.length <= 400) {
-                    updateSection("hero_section", "summary", value);
-                    // Clear error when user starts typing
-                    if (errors.heroSection?.summary) {
-                      clearError('heroSection.summary');
-                    }
+                  updateSection("hero_section", "summary", value);
+                  // Real-time validation and error clearing
+                  const heroErrors = validateHeroSection();
+                  if (heroErrors.summary) {
+                    setError('heroSection.summary', heroErrors.summary);
+                  } else {
+                    clearError('heroSection.summary');
+                  }
+                }}
+                onBlur={() => {
+                  // Additional validation on blur if needed
+                  const heroErrors = validateHeroSection();
+                  if (heroErrors.summary) {
+                    setError('heroSection.summary', heroErrors.summary);
                   }
                 }}
                 placeholder="Enter hero section summary (required)"
                 maxLength={400}
                 rows={3}
-                className={`${validateHeroSection().summary ? 'border-red-500 focus:border-red-500' : ''}`}
+                className={`${errors.heroSection?.summary ? 'border-red-500 focus:border-red-500' : ''}`}
               />
               <div className="flex justify-between items-start mt-2">
-                <p className="text-sm text-muted-foreground">
-                  {400 - (hero.summary?.length || 0)} characters remaining
+                <p className={`text-sm ${errors.heroSection?.summary ? 'text-red-600' : 'text-muted-foreground'}`}>
+                  {errors.heroSection?.summary || `${400 - (hero.summary?.length || 0)} characters remaining`}
                 </p>
               </div>
             </div>
@@ -887,22 +911,30 @@ export default function AddBlogPage() {
               value={quoteSection.summary || ""}
               onChange={(e) => {
                 const value = e.target.value;
-                if (value.length <= 400) {
-                  updateSection("quote_section", "summary", value);
-                  // Clear error when user starts typing
-                  if (errors.quoteSection?.summary) {
-                    clearError('quoteSection.summary');
-                  }
+                updateSection("quote_section", "summary", value);
+                // Real-time validation and error clearing
+                const quoteErrors = validateQuoteSection();
+                if (quoteErrors.summary) {
+                  setError('quoteSection.summary', quoteErrors.summary);
+                } else {
+                  clearError('quoteSection.summary');
+                }
+              }}
+              onBlur={() => {
+                // Additional validation on blur if needed
+                const quoteErrors = validateQuoteSection();
+                if (quoteErrors.summary) {
+                  setError('quoteSection.summary', quoteErrors.summary);
                 }
               }}
               placeholder="Enter quote section summary (required)"
               maxLength={400}
               rows={3}
-              className={`${validateQuoteSection().summary ? 'border-red-500 focus:border-red-500' : ''}`}
+              className={`${errors.quoteSection?.summary ? 'border-red-500 focus:border-red-500' : ''}`}
             />
             <div className="flex justify-between items-start mt-2">
-              <p className="text-sm text-muted-foreground">
-                {400 - (quoteSection.summary?.length || 0)} characters remaining
+              <p className={`text-sm ${errors.quoteSection?.summary ? 'text-red-600' : 'text-muted-foreground'}`}>
+                {errors.quoteSection?.summary || `${400 - (quoteSection.summary?.length || 0)} characters remaining`}
               </p>
             </div>
           </div>
@@ -934,19 +966,28 @@ export default function AddBlogPage() {
                             if (value.length <= 40) {
                               updateQuote(index, "title", value);
                             }
+                            // Real-time validation and error clearing
+                            const quoteErrors = validateQuoteSection();
+                            if (quoteErrors.quotes) {
+                              setError('quoteSection.quotes', quoteErrors.quotes);
+                            } else {
+                              clearError('quoteSection.quotes');
+                            }
+                          }}
+                          onBlur={() => {
+                            // Additional validation on blur if needed
+                            const quoteErrors = validateQuoteSection();
+                            if (quoteErrors.quotes) {
+                              setError('quoteSection.quotes', quoteErrors.quotes);
+                            }
                           }}
                           placeholder="Quote title"
                           maxLength={40}
                         />
-
                         <div className="flex justify-between">
-
-                        <ErrorMessage message={errors.quoteSection?.quotes} />
-
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {40 - (quote.title?.length || 0)} characters remaining
-                        </p>
-
+                          <p className={`text-sm ${errors.quoteSection?.quotes ? 'text-red-600' : 'text-muted-foreground'}`}>
+                            {errors.quoteSection?.quotes || `${40 - (quote.title?.length || 0)} characters remaining`}
+                          </p>
                         </div>
                       </div>
                     <div>
@@ -955,15 +996,27 @@ export default function AddBlogPage() {
                         value={quote.description}
                         onChange={(e) => {
                           const value = e.target.value;
-                          if (value.length <= 1000) {
-                            updateQuote(index, "description", value);
+                          updateQuote(index, "description", value);
+                          // Real-time validation and error clearing
+                          const quoteErrors = validateQuoteSection();
+                          if (quoteErrors.quotes) {
+                            setError('quoteSection.quotes', quoteErrors.quotes);
+                          } else {
+                            clearError('quoteSection.quotes');
+                          }
+                        }}
+                        onBlur={() => {
+                          // Additional validation on blur if needed
+                          const quoteErrors = validateQuoteSection();
+                          if (quoteErrors.quotes) {
+                            setError('quoteSection.quotes', quoteErrors.quotes);
                           }
                         }}
                         placeholder="Quote description"
                         maxLength={1000}
                       />
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {1000 - (quote.description?.length || 0)} characters remaining
+                      <p className={`text-sm mt-1 ${errors.quoteSection?.quotes ? 'text-red-600' : 'text-muted-foreground'}`}>
+                        {errors.quoteSection?.quotes || `${1000 - (quote.description?.length || 0)} characters remaining`}
                       </p>
                     </div>
                   </div>
@@ -973,16 +1026,28 @@ export default function AddBlogPage() {
                       value={quote.quote}
                       onChange={(e) => {
                         const value = e.target.value;
-                        if (value.length <= 1000) {
-                          updateQuote(index, "quote", value);
+                        updateQuote(index, "quote", value);
+                        // Real-time validation and error clearing
+                        const quoteErrors = validateQuoteSection();
+                        if (quoteErrors.quotes) {
+                          setError('quoteSection.quotes', quoteErrors.quotes);
+                        } else {
+                          clearError('quoteSection.quotes');
+                        }
+                      }}
+                      onBlur={() => {
+                        // Additional validation on blur if needed
+                        const quoteErrors = validateQuoteSection();
+                        if (quoteErrors.quotes) {
+                          setError('quoteSection.quotes', quoteErrors.quotes);
                         }
                       }}
                       placeholder="Enter the quote"
                       rows={3}
                       maxLength={200}
                     />
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {200 - (quote.quote?.length || 0)} characters remaining
+                    <p className={`text-sm mt-1 ${errors.quoteSection?.quotes ? 'text-red-600' : 'text-muted-foreground'}`}>
+                      {errors.quoteSection?.quotes || `${200 - (quote.quote?.length || 0)} characters remaining`}
                     </p>
                   </div>
                   <div>
@@ -991,15 +1056,27 @@ export default function AddBlogPage() {
                       value={quote.quoteusername}
                       onChange={(e) => {
                         const value = e.target.value;
-                        if (value.length <= 40) {
-                          updateQuote(index, "quoteusername", value);
+                        updateQuote(index, "quoteusername", value);
+                        // Real-time validation and error clearing
+                        const quoteErrors = validateQuoteSection();
+                        if (quoteErrors.quotes) {
+                          setError('quoteSection.quotes', quoteErrors.quotes);
+                        } else {
+                          clearError('quoteSection.quotes');
+                        }
+                      }}
+                      onBlur={() => {
+                        // Additional validation on blur if needed
+                        const quoteErrors = validateQuoteSection();
+                        if (quoteErrors.quotes) {
+                          setError('quoteSection.quotes', quoteErrors.quotes);
                         }
                       }}
                       placeholder="Quote author name"
                       maxLength={40}
                     />
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {40 - (quote.quoteusername?.length || 0)} characters remaining
+                    <p className={`text-sm mt-1 ${errors.quoteSection?.quotes ? 'text-red-600' : 'text-muted-foreground'}`}>
+                      {errors.quoteSection?.quotes || `${40 - (quote.quoteusername?.length || 0)} characters remaining`}
                     </p>
                   </div>
                   <Button
@@ -1035,21 +1112,29 @@ export default function AddBlogPage() {
                 value={info.title || ""}
                 onChange={(e) => {
                   const value = e.target.value;
-                  if (value.length <= 40) {
-                    updateSection("info_section", "title", value);
-                    // Clear error when user starts typing
-                    if (errors.infoSection?.title) {
-                      clearError('infoSection.title');
-                    }
+                  updateSection("info_section", "title", value);
+                  // Real-time validation and error clearing
+                  const infoErrors = validateInfoSection();
+                  if (infoErrors.title) {
+                    setError('infoSection.title', infoErrors.title);
+                  } else {
+                    clearError('infoSection.title');
+                  }
+                }}
+                onBlur={() => {
+                  // Additional validation on blur if needed
+                  const infoErrors = validateInfoSection();
+                  if (infoErrors.title) {
+                    setError('infoSection.title', infoErrors.title);
                   }
                 }}
                 placeholder="Enter info section title (required)"
                 maxLength={40}
-                className={`${validateInfoSection().title ? 'border-red-500 focus:border-red-500' : ''}`}
+                className={`${errors.infoSection?.title ? 'border-red-500 focus:border-red-500' : ''}`}
               />
               <div className="flex justify-between items-start mt-2">
-                <p className="text-sm text-muted-foreground">
-                  {40 - (info.title?.length || 0)} characters remaining
+                <p className={`text-sm ${errors.infoSection?.title ? 'text-red-600' : 'text-muted-foreground'}`}>
+                  {errors.infoSection?.title || `${40 - (info.title?.length || 0)} characters remaining`}
                 </p>
               </div>
             </div>
@@ -1059,22 +1144,30 @@ export default function AddBlogPage() {
                 value={info.description || ""}
                 onChange={(e) => {
                   const value = e.target.value;
-                  if (value.length <= 1000) {
-                    updateSection("info_section", "description", value);
-                    // Clear error when user starts typing
-                    if (errors.infoSection?.description) {
-                      clearError('infoSection.description');
-                    }
+                  updateSection("info_section", "description", value);
+                  // Real-time validation and error clearing
+                  const infoErrors = validateInfoSection();
+                  if (infoErrors.description) {
+                    setError('infoSection.description', infoErrors.description);
+                  } else {
+                    clearError('infoSection.description');
+                  }
+                }}
+                onBlur={() => {
+                  // Additional validation on blur if needed
+                  const infoErrors = validateInfoSection();
+                  if (infoErrors.description) {
+                    setError('infoSection.description', infoErrors.description);
                   }
                 }}
                 placeholder="Enter info section description (required)"
                 rows={3}
                 maxLength={1000}
-                className={`${validateInfoSection().description ? 'border-red-500 focus:border-red-500' : ''}`}
+                className={`${errors.infoSection?.description ? 'border-red-500 focus:border-red-500' : ''}`}
               />
               <div className="flex justify-between items-start mt-2">
-                <p className="text-sm text-muted-foreground">
-                  {1000 - (info.description?.length || 0)} characters remaining
+                <p className={`text-sm ${errors.infoSection?.description ? 'text-red-600' : 'text-muted-foreground'}`}>
+                  {errors.infoSection?.description || `${1000 - (info.description?.length || 0)} characters remaining`}
                 </p>
               </div>
             </div>
@@ -1084,22 +1177,30 @@ export default function AddBlogPage() {
                 value={info.summary || ""}
                 onChange={(e) => {
                   const value = e.target.value;
-                  if (value.length <= 400) {
-                    updateSection("info_section", "summary", value);
-                    // Clear error when user starts typing
-                    if (errors.infoSection?.summary) {
-                      clearError('infoSection.summary');
-                    }
+                  updateSection("info_section", "summary", value);
+                  // Real-time validation and error clearing
+                  const infoErrors = validateInfoSection();
+                  if (infoErrors.summary) {
+                    setError('infoSection.summary', infoErrors.summary);
+                  } else {
+                    clearError('infoSection.summary');
+                  }
+                }}
+                onBlur={() => {
+                  // Additional validation on blur if needed
+                  const infoErrors = validateInfoSection();
+                  if (infoErrors.summary) {
+                    setError('infoSection.summary', infoErrors.summary);
                   }
                 }}
                 placeholder="Enter info section summary (required)"
                 maxLength={400}
                 rows={3}
-                className={`${validateInfoSection().summary ? 'border-red-500 focus:border-red-500' : ''}`}
+                className={`${errors.infoSection?.summary ? 'border-red-500 focus:border-red-500' : ''}`}
               />
               <div className="flex justify-between items-start mt-2">
-                <p className="text-sm text-muted-foreground">
-                  {400 - (info.summary?.length || 0)} characters remaining
+                <p className={`text-sm ${errors.infoSection?.summary ? 'text-red-600' : 'text-muted-foreground'}`}>
+                  {errors.infoSection?.summary || `${400 - (info.summary?.length || 0)} characters remaining`}
                 </p>
               </div>
             </div>
@@ -1109,22 +1210,30 @@ export default function AddBlogPage() {
                 value={info.summary_2 || ""}
                 onChange={(e) => {
                   const value = e.target.value;
-                  if (value.length <= 400) {
-                    updateSection("info_section", "summary_2", value);
-                    // Clear error when user starts typing
-                    if (errors.infoSection?.summary2) {
-                      clearError('infoSection.summary2');
-                    }
+                  updateSection("info_section", "summary_2", value);
+                  // Real-time validation and error clearing
+                  const infoErrors = validateInfoSection();
+                  if (infoErrors.summary2) {
+                    setError('infoSection.summary2', infoErrors.summary2);
+                  } else {
+                    clearError('infoSection.summary2');
+                  }
+                }}
+                onBlur={() => {
+                  // Additional validation on blur if needed
+                  const infoErrors = validateInfoSection();
+                  if (infoErrors.summary2) {
+                    setError('infoSection.summary2', infoErrors.summary2);
                   }
                 }}
                 placeholder="Enter additional info summary (required)"
                 maxLength={400}
                 rows={3}
-                className={`${validateInfoSection().summary2 ? 'border-red-500 focus:border-red-500' : ''}`}
+                className={`${errors.infoSection?.summary2 ? 'border-red-500 focus:border-red-500' : ''}`}
               />
               <div className="flex justify-between items-start mt-2">
-                <p className="text-sm text-muted-foreground">
-                  {400 - (info.summary_2?.length || 0)} characters remaining
+                <p className={`text-sm ${errors.infoSection?.summary2 ? 'text-red-600' : 'text-muted-foreground'}`}>
+                  {errors.infoSection?.summary2 || `${400 - (info.summary_2?.length || 0)} characters remaining`}
                 </p>
               </div>
             </div>
@@ -1466,30 +1575,35 @@ export default function AddBlogPage() {
                         value={metaDescription}
                         onChange={(e) => {
                           const value = e.target.value;
-                          if (value.length <= 300) {
-                            setMetaDescription(value);
-                            // Clear error when user starts typing
-                            if (errors.metaDescription) {
-                              clearError('metaDescription');
-                            }
+                          setMetaDescription(value);
+                          // Real-time validation and error clearing
+                          const error = validateMetaDescription(value);
+                          if (error) {
+                            setError('metaDescription', error);
+                          } else {
+                            clearError('metaDescription');
                           }
                         }}
                         onBlur={() => {
-                          // Validate on blur
+                          // Additional validation on blur if needed
                           const error = validateMetaDescription(metaDescription);
                           if (error) {
                             setError('metaDescription', error);
                           }
                         }}
-                        placeholder="Enter meta description for SEO"
+                        placeholder="Enter meta description for SEO (minimum 50 characters)"
                         rows={3}
                         required
                         maxLength={300}
-                        className={`${validateMetaDescription(metaDescription) ? 'border-red-500 focus:border-red-500' : ''}`}
+                        className={`${errors.metaDescription ? 'border-red-500 focus:border-red-500' : ''}`}
                       />
                       <div className="flex justify-between items-start mt-2">
-                        <p className="text-sm text-muted-foreground">
-                          {300 - metaDescription.length} characters remaining
+                        <p className={`text-sm flex items-center gap-1 ${metaDescription.length < 50 ? 'text-orange-600' : errors.metaDescription ? 'text-red-600' : 'text-muted-foreground'}`}>
+                          <AlertCircle className="h-3 w-3" />
+                          {metaDescription.length < 50
+                            ? `Need ${50 - metaDescription.length} more characters (${metaDescription.length}/50 min)`
+                            : errors.metaDescription || `${metaDescription.length} characters`
+                          }
                         </p>
                       </div>
                     </div>
