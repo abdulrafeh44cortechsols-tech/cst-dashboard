@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Delete, Edit, Pencil, PlusCircle, Trash2 } from "lucide-react";
 import {
   Card,
@@ -13,29 +14,19 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useIndustries } from "@/hooks/useIndustries";
-import { EditIndustryModal } from "@/components/industries/EditIndustryModal";
 import { DeleteIndustryModal } from "@/components/industries/DeleteIndustryModal";
 import { useState } from "react";
 import { Industry } from "@/types/types";
 import Image from "next/image";
 
 export default function IndustriesPage() {
+  const router = useRouter();
   const { getIndustriesList } = useIndustries();
   const { data: industries, isLoading, isError } = getIndustriesList;
-  const [editingIndustry, setEditingIndustry] = useState<Industry | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [deletingIndustry, setDeletingIndustry] = useState<Industry | null>(
     null
   );
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-
-  function parseImageUrl(fullUrl: string | undefined) {
-    if (!fullUrl || typeof fullUrl !== "string") return "/placeholder.svg";
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
-    const parsedUrl = fullUrl.replace(/^http:\/\/localhost:7000/, baseUrl);
-    console.log("parsedUrl:", parsedUrl);
-    return parsedUrl;
-  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -121,8 +112,7 @@ export default function IndustriesPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          setEditingIndustry(industry);
-                          setIsModalOpen(true);
+                          router.push(`/dashboard/industries/${industry.slug}/edit`);
                         }}
                         className="text-gray-600 hover:text-gray-600"
                       >
@@ -152,13 +142,14 @@ export default function IndustriesPage() {
             )}
           </div>
 
-          {editingIndustry && (
+          {/* Edit modal commented out - now using dedicated edit page */}
+          {/* {editingIndustry && (
             <EditIndustryModal
               industry={editingIndustry}
               isOpen={isModalOpen}
               onClose={() => setIsModalOpen(false)}
             />
-          )}
+          )} */}
           {deletingIndustry && (
             <DeleteIndustryModal
               industry={deletingIndustry}

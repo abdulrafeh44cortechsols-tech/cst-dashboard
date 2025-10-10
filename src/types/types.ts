@@ -283,9 +283,12 @@ export interface Industry {
   name: string;
   slug: string;
   description: string;
+  meta_title: string;
+  meta_description: string;
   image: string;
+  images: string[] | null;
   image_alt_text?: string; // Add alt text for main industry image
-  published: boolean;
+  is_active: boolean; // Changed from published to is_active to match API
   created_at: string;
   updated_at: string;
   tags: {
@@ -299,7 +302,8 @@ export interface Industry {
 export interface CreateIndustryData {
   name: string;
   description: string;
-  published: boolean;
+  meta_title: string;
+  meta_description: string;
   tag_ids: number[];
   image_files?: File[];
   image_alt_text?: string; // Add alt text for main industry image

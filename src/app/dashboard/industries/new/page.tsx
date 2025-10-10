@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -106,6 +106,118 @@ export default function AddIndustryPage() {
   // reCAPTCHA verification state
   const [captchaVerified, setCaptchaVerified] = useState(false);
   const [captchaValue, setCaptchaValue] = useState<string | null>(null);
+
+  // Error handling state
+  const [errors, setErrors] = useState<{
+    name?: string;
+    slug?: string;
+    description?: string;
+    metaTitle?: string;
+    metaDescription?: string;
+    heroSection?: {
+      title?: string;
+      description?: string;
+      image_alt_text?: string;
+    };
+    challengesSection?: {
+      title?: string;
+      description?: string;
+    };
+    expertiseSection?: {
+      title?: string;
+      description?: string;
+      sub_sections?: string;
+    };
+    whatSetsUsApartSection?: {
+      title?: string;
+      description?: string;
+      sub_sections?: string;
+    };
+    weBuildSection?: {
+      title?: string;
+      description?: string;
+      sub_sections?: string;
+    };
+    captcha?: string;
+    general?: string;
+  }>({});
+
+  // Error handling utilities
+  const clearError = (field: string) => {
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      if (field.includes('.')) {
+        const [section, subField] = field.split('.');
+        if (newErrors[section as keyof typeof newErrors]) {
+          delete (newErrors[section as keyof typeof newErrors] as any)[subField];
+          if (Object.keys(newErrors[section as keyof typeof newErrors] as any).length === 0) {
+            delete newErrors[section as keyof typeof newErrors];
+          }
+        }
+      } else {
+        delete newErrors[field as keyof typeof newErrors];
+      }
+      return newErrors;
+    });
+  };
+
+  const setError = (field: string, message: string) => {
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      if (field.includes('.')) {
+        const [section, subField] = field.split('.');
+        if (!newErrors[section as keyof typeof newErrors]) {
+          (newErrors as any)[section] = {};
+        }
+        ((newErrors as any)[section] as any)[subField] = message;
+      } else {
+        (newErrors as any)[field] = message;
+      }
+      return newErrors;
+    });
+  };
+
+  const clearAllErrors = () => {
+    setErrors({});
+  };
+
+  // Validation functions
+  const validateName = (value: string): string | null => {
+    if (!value.trim()) return "Industry name is required";
+    if (value.length < 3) return "Name must be at least 3 characters long";
+    if (value.length > 100) return "Name must be 100 characters or less";
+    return null;
+  };
+
+  const validateSlug = (value: string): string | null => {
+    if (!value.trim()) return "URL slug is required";
+    if (value.length < 3) return "Slug must be at least 3 characters long";
+    if (value.length > 40) return "Slug must be 40 characters or less";
+    const slugPattern = /^[a-z0-9-]+$/;
+    if (!slugPattern.test(value)) return "Slug can only contain lowercase letters, numbers, and hyphens";
+    return null;
+  };
+
+  const validateDescription = (value: string): string | null => {
+    if (!value.trim()) return "Industry description is required";
+    if (value.length < 50) return "Description must be at least 50 characters long";
+    if (value.length > 500) return "Description must be 500 characters or less";
+    return null;
+  };
+
+  const validateMetaTitle = (value: string): string | null => {
+    if (!value.trim()) return "Meta title is required";
+    if (value.length < 5) return "Meta title must be at least 5 characters long";
+    if (value.length > 60) return "Meta title must be 60 characters or less";
+    return null;
+  };
+
+  const validateMetaDescription = (value: string): string | null => {
+    if (!value.trim()) return "Meta description is required";
+    if (value.length < 50) return "Meta description must be at least 50 characters long";
+    if (value.length > 160) return "Meta description must be 160 characters or less";
+    return null;
+  };
 
   // Sections data
   const [sectionsData, setSectionsData] = useState<IndustrySectionsData>({
@@ -544,12 +656,12 @@ export default function AddIndustryPage() {
       <form onSubmit={handleSubmit} className="space-y-6">
         <Tabs defaultValue="basic" className="w-full">
           <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="basic">Basic Info</TabsTrigger>
-            <TabsTrigger value="hero">Hero Section</TabsTrigger>
-            <TabsTrigger value="challenges">Challenges</TabsTrigger>
-            <TabsTrigger value="expertise">Expertise</TabsTrigger>
-            <TabsTrigger value="apart">What Sets Us Apart</TabsTrigger>
-            <TabsTrigger value="build">We Build</TabsTrigger>
+            <TabsTrigger value="basic" className="cursor-pointer">Basic Info</TabsTrigger>
+            <TabsTrigger value="hero" className="cursor-pointer">Hero Section</TabsTrigger>
+            <TabsTrigger value="challenges" className="cursor-pointer">Challenges</TabsTrigger>
+            <TabsTrigger value="expertise" className="cursor-pointer">Expertise</TabsTrigger>
+            <TabsTrigger value="apart" className="cursor-pointer">What Sets Us Apart</TabsTrigger>
+            <TabsTrigger value="build" className="cursor-pointer">We Build</TabsTrigger>
           </TabsList>
 
           {/* Basic Information Tab */}
@@ -567,16 +679,33 @@ export default function AddIndustryPage() {
                       value={name}
                       onChange={(e) => {
                         const value = e.target.value;
-                        if (value.length <= 100) {
-                          setName(value);
+                        setName(value);
+                        // Auto-generate slug in real-time as user types
+                        if (value.trim()) {
+                          setSlug(generateSlug(value));
+                        } else {
+                          setSlug("");
+                        }
+                        const error = validateName(value);
+                        if (error) {
+                          setError('name', error);
+                        } else {
+                          clearError('name');
+                        }
+                      }}
+                      onBlur={() => {
+                        const error = validateName(name);
+                        if (error) {
+                          setError('name', error);
                         }
                       }}
                       placeholder="Enter industry name"
                       maxLength={100}
                       required
+                      className={`${errors.name ? 'border-red-500 focus:border-red-500' : ''}`}
                     />
-                    <p className="text-sm text-muted-foreground">
-                      {100 - name.length} characters remaining
+                    <p className={`text-sm ${errors.name ? 'text-red-600' : 'text-muted-foreground'}`}>
+                      {errors.name || `${100 - name.length} characters remaining`}
                     </p>
                   </div>
 
@@ -585,10 +714,31 @@ export default function AddIndustryPage() {
                     <Input
                       id="slug"
                       value={slug}
-                      onChange={(e) => setSlug(e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value.length <= 40) {
+                          setSlug(value);
+                          // Clear error when user starts typing
+                          if (errors.slug) {
+                            clearError('slug');
+                          }
+                        }
+                      }}
+                      onBlur={() => {
+                        // Validate on blur
+                        const error = validateSlug(slug);
+                        if (error) {
+                          setError('slug', error);
+                        }
+                      }}
                       placeholder="industry-slug"
+                      maxLength={40}
                       required
+                      className={`${errors.slug ? 'border-red-500 focus:border-red-500' : ''}`}
                     />
+                    <p className="text-sm text-muted-foreground">
+                      Auto-generated from industry name • URL-friendly identifier
+                    </p>
                   </div>
                 </div>
 
@@ -603,13 +753,22 @@ export default function AddIndustryPage() {
                         setDescription(value);
                       }
                     }}
+                    onBlur={() => {
+                      if (description.length < 10) {
+                        setError('description', 'Description must be at least 10 characters long');
+                      }
+                      else{
+                        clearError('description');
+                      }
+                    }}
                     placeholder="Enter industry description"
                     maxLength={500}
                     rows={4}
                     required
+                    className={`${errors.description ? 'border-red-500 focus:border-red-500' : ''}`}
                   />
-                  <p className="text-sm text-muted-foreground">
-                    {500 - description.length} characters remaining
+                  <p className={`text-sm ${errors.description ? 'text-red-600' : 'text-muted-foreground'}`}>
+                    {errors.description || `${500 - description.length} characters remaining`}
                   </p>
                 </div>
 
@@ -621,15 +780,28 @@ export default function AddIndustryPage() {
                       value={metaTitle}
                       onChange={(e) => {
                         const value = e.target.value;
-                        if (value.length <= 60) {
-                          setMetaTitle(value);
+                        setMetaTitle(value);
+                        // Real-time validation and error clearing
+                        const error = validateMetaTitle(value);
+                        if (error) {
+                          setError('metaTitle', error);
+                        } else {
+                          clearError('metaTitle');
+                        }
+                      }}
+                      onBlur={() => {
+                        // Additional validation on blur if needed
+                        const error = validateMetaTitle(metaTitle);
+                        if (error) {
+                          setError('metaTitle', error);
                         }
                       }}
                       placeholder="SEO meta title"
                       maxLength={60}
+                      className={`${errors.metaTitle ? 'border-red-500 focus:border-red-500' : ''}`}
                     />
-                    <p className="text-sm text-muted-foreground">
-                      {60 - metaTitle.length} characters remaining
+                    <p className={`text-sm ${errors.metaTitle ? 'text-red-600' : 'text-muted-foreground'}`}>
+                      {errors.metaTitle || `${60 - metaTitle.length} characters remaining`}
                     </p>
                   </div>
 
@@ -640,16 +812,29 @@ export default function AddIndustryPage() {
                       value={metaDescription}
                       onChange={(e) => {
                         const value = e.target.value;
-                        if (value.length <= 160) {
-                          setMetaDescription(value);
+                        setMetaDescription(value);
+                        // Real-time validation and error clearing
+                        const error = validateMetaDescription(value);
+                        if (error) {
+                          setError('metaDescription', error);
+                        } else {
+                          clearError('metaDescription');
+                        }
+                      }}
+                      onBlur={() => {
+                        // Additional validation on blur if needed
+                        const error = validateMetaDescription(metaDescription);
+                        if (error) {
+                          setError('metaDescription', error);
                         }
                       }}
                       placeholder="SEO meta description"
                       maxLength={160}
                       rows={2}
+                      className={`${errors.metaDescription ? 'border-red-500 focus:border-red-500' : ''}`}
                     />
-                    <p className="text-sm text-muted-foreground">
-                      {160 - metaDescription.length} characters remaining
+                    <p className={`text-sm ${errors.metaDescription ? 'text-red-600' : 'text-muted-foreground'}`}>
+                      {errors.metaDescription || `${160 - metaDescription.length} characters remaining`}
                     </p>
                   </div>
                 </div>
@@ -750,15 +935,27 @@ export default function AddIndustryPage() {
                       value={sectionsData.hero_section.title}
                       onChange={(e) => {
                         const value = e.target.value;
-                        if (value.length <= 100) {
-                          updateSection("hero_section", "title", value);
+                        updateSection("hero_section", "title", value);
+                        // Real-time validation and error clearing
+                        if (value.length < 1) {
+                          setError('heroSection.title', 'Hero title must be 1 characters or more');
+                        } else {
+                          clearError('heroSection.title');
+                        }
+                      }}
+                      onBlur={() => {
+                        // Additional validation on blur if needed
+                        const title = sectionsData.hero_section.title;
+                        if (title.length < 1) {
+                          setError('heroSection.title', 'Hero title must be 1 characters or more');
                         }
                       }}
                       placeholder="Hero section title"
                       maxLength={100}
+                      className={`${errors.heroSection?.title ? 'border-red-500 focus:border-red-500' : ''}`}
                     />
-                    <p className="text-sm text-muted-foreground">
-                      {100 - (sectionsData.hero_section.title?.length || 0)} characters remaining
+                    <p className={`text-sm ${errors.heroSection?.title ? 'text-red-600' : 'text-muted-foreground'}`}>
+                      {errors.heroSection?.title || `${100 - (sectionsData.hero_section.title?.length || 0)} characters remaining`}
                     </p>
                   </div>
 
@@ -768,15 +965,22 @@ export default function AddIndustryPage() {
                       value={sectionsData.hero_section.image_alt_text}
                       onChange={(e) => {
                         const value = e.target.value;
-                        if (value.length <= 255) {
-                          updateSection("hero_section", "image_alt_text", value);
+                        updateSection("hero_section", "image_alt_text", value);
+                        // Clear error when user starts typing
+                        // Note: Image alt text validation would go here if needed
+                      }}
+                      onBlur={() => {
+                        // Validate on blur if needed
+                        if (sectionsData.hero_section.image_alt_text.length > 255) {
+                          // Set error if alt text is too long
                         }
                       }}
                       placeholder="Alt text for hero content (stored in sections_data)"
                       maxLength={255}
+                      className={`${errors.heroSection?.image_alt_text ? 'border-red-500 focus:border-red-500' : ''}`}
                     />
-                    <p className="text-sm text-muted-foreground">
-                      {255 - (sectionsData.hero_section.image_alt_text?.length || 0)} characters remaining
+                    <p className={`text-sm ${errors.heroSection?.image_alt_text ? 'text-red-600' : 'text-muted-foreground'}`}>
+                      {errors.heroSection?.image_alt_text || `${255 - (sectionsData.hero_section.image_alt_text?.length || 0)} characters remaining`}
                     </p>
                   </div>
                 </div>
@@ -787,16 +991,28 @@ export default function AddIndustryPage() {
                     value={sectionsData.hero_section.description}
                     onChange={(e) => {
                       const value = e.target.value;
-                      if (value.length <= 500) {
-                        updateSection("hero_section", "description", value);
+                      updateSection("hero_section", "description", value);
+                      // Real-time validation and error clearing
+                      if (value.length < 10) {
+                        setError('heroSection.description', 'Hero description must be at least 10 characters long');
+                      } else {
+                        clearError('heroSection.description');
+                      }
+                    }}
+                    onBlur={() => {
+                      // Additional validation on blur if needed
+                      const description = sectionsData.hero_section.description;
+                      if (description.length < 10) {
+                        setError('heroSection.description', 'Hero description must be at least 10 characters long');
                       }
                     }}
                     placeholder="Hero section description"
                     maxLength={500}
                     rows={3}
+                    className={`${errors.heroSection?.description ? 'border-red-500 focus:border-red-500' : ''}`}
                   />
-                  <p className="text-sm text-muted-foreground">
-                    {500 - (sectionsData.hero_section.description?.length || 0)} characters remaining
+                  <p className={`text-sm ${errors.heroSection?.description ? 'text-red-600' : 'text-muted-foreground'}`}>
+                    {errors.heroSection?.description || `${500 - (sectionsData.hero_section.description?.length || 0)} characters remaining`}
                   </p>
                 </div>
 
@@ -917,76 +1133,124 @@ export default function AddIndustryPage() {
                     value={sectionsData.challenges_section.title}
                     onChange={(e) => {
                       const value = e.target.value;
-                      if (value.length <= 100) {
-                        updateSection("challenges_section", "title", value);
+                      updateSection("challenges_section", "title", value);
+                      // Real-time validation and error clearing
+                      if (value.length < 10) {
+                        setError('challengesSection.title', 'Challenges title must be 10 characters or more');
+                      } else {
+                        clearError('challengesSection.title');
+                      }
+                    }}
+                    onBlur={() => {
+                      // Additional validation on blur if needed
+                      const title = sectionsData.challenges_section.title;
+                      if (title.length < 10) {
+                        setError('challengesSection.title', 'Challenges title must be 10 characters or more');
+                      } else {
+                        clearError('challengesSection.title');
                       }
                     }}
                     placeholder="Challenges section title"
                     maxLength={100}
+                    className={`${errors.challengesSection?.title ? 'border-red-500 focus:border-red-500' : ''}`}
                   />
-                  <p className="text-sm text-muted-foreground">
-                    {100 - (sectionsData.challenges_section.title?.length || 0)} characters remaining
+                  <p className={`text-sm ${errors.challengesSection?.title ? 'text-red-600' : 'text-muted-foreground'}`}>
+                    {errors.challengesSection?.title || `${100 - (sectionsData.challenges_section.title?.length || 0)} characters remaining`}
                   </p>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <Label>Challenge Points</Label>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const currentDescription = sectionsData.challenges_section.description || "";
-                        const points = currentDescription ? currentDescription.split("|||") : [];
-                        points.push("");
-                        updateSection("challenges_section", "description", points.join("|||"));
-                      }}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Challenge Point
-                    </Button>
-                  </div>
-                  
-                  {(() => {
-                    const currentDescription = sectionsData.challenges_section.description || "";
-                    const points = currentDescription ? currentDescription.split("|||") : [""];
-                    const displayPoints = points.length === 0 ? [""] : points;
-                    
-                    return displayPoints.map((point, index) => (
-                      <div key={index} className="flex items-start gap-2">
-                        <div className="flex-1">
-                          <Input
-                            value={point}
-                            onChange={(e) => {
-                              const newPoints = [...displayPoints];
-                              newPoints[index] = e.target.value;
-                              updateSection("challenges_section", "description", newPoints.join("|||"));
-                            }}
-                            placeholder={`Challenge point ${index + 1}`}
-                            maxLength={200}
-                          />
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {200 - point.length} characters remaining
-                          </p>
-                        </div>
-                        {displayPoints.length > 1 && (
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => {
-                              const newPoints = displayPoints.filter((_, i) => i !== index);
-                              updateSection("challenges_section", "description", newPoints.join("|||"));
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    ));
-                  })()}
+                <div className="space-y-2">
+                  <Label>Description</Label>
+                  <Textarea
+                    value={sectionsData.challenges_section.description}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      updateSection("challenges_section", "description", value);
+                      // Clear error when user starts typing
+                      // Note: Description validation would go here if needed
+                    }}
+                    onBlur={() => {
+                      // Validate on blur if needed
+                      if (sectionsData.challenges_section.description.length < 10) {
+                        setError('challengesSection.description', 'Description must be 10 characters or more');
+                      }
+                    }}
+                    placeholder="Challenges section description"
+                    maxLength={500}
+                    rows={3}
+                    className={`${errors.challengesSection?.description ? 'border-red-500 focus:border-red-500' : ''}`}
+                  />
+                  <p className={`text-sm ${errors.challengesSection?.description ? 'text-red-600' : 'text-muted-foreground'}`}>
+                    {errors.challengesSection?.description || `${500 - (sectionsData.challenges_section.description?.length || 0)} characters remaining`}
+                  </p>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const currentDescription = sectionsData.challenges_section.description || "";
+                      const points = currentDescription ? currentDescription.split("|||") : [];
+                      points.push("");
+                      updateSection("challenges_section", "description", points.join("|||"));
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Challenge Point
+                  </Button>
                 </div>
+
+                {(() => {
+                  const currentDescription = sectionsData.challenges_section.description || "";
+                  const points = currentDescription ? currentDescription.split("|||") : [""];
+                  const displayPoints = points.length === 0 ? [""] : points;
+
+                  return displayPoints.map((point, index) => (
+                    <div key={index} className="flex items-start gap-2">
+                      <div className="flex-1">
+                        <Input
+                          value={point}
+                          onChange={(e) => {
+                            const newPoints = [...displayPoints];
+                            newPoints[index] = e.target.value;
+                            updateSection("challenges_section", "description", newPoints.join("|||"));
+                            // Real-time validation and error clearing
+                            if (e.target.value.length > 200) {
+                              setError(`challengesSection.description`, `Challenge point ${index + 1} must be 200 characters or less`);
+                            } else {
+                              clearError(`challengesSection.description`);
+                            }
+                          }}
+                          onBlur={() => {
+                            // Additional validation on blur if needed
+                            if (point.length > 200) {
+                              setError(`challengesSection.description`, `Challenge point ${index + 1} must be 200 characters or less`);
+                            }
+                          }}
+                          placeholder={`Challenge point ${index + 1}`}
+                          maxLength={200}
+                          className={`${errors.challengesSection?.description ? 'border-red-500 focus:border-red-500' : ''}`}
+                        />
+                        <p className={`text-xs ${errors.challengesSection?.description ? 'text-red-600' : 'text-muted-foreground'} mt-1`}>
+                          {errors.challengesSection?.description || `${200 - point.length} characters remaining`}
+                        </p>
+                      </div>
+                      {displayPoints.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => {
+                            const newPoints = displayPoints.filter((_, i) => i !== index);
+                            updateSection("challenges_section", "description", newPoints.join("|||"));
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ));
+                })()}
               </CardContent>
             </Card>
           </TabsContent>
@@ -1005,15 +1269,27 @@ export default function AddIndustryPage() {
                       value={sectionsData.expertise_section.title}
                       onChange={(e) => {
                         const value = e.target.value;
-                        if (value.length <= 100) {
-                          updateSection("expertise_section", "title", value);
+                        updateSection("expertise_section", "title", value);
+                        // Real-time validation and error clearing
+                        if (value.length < 10) {
+                          setError('expertiseSection.title', 'Expertise title must be 10 characters or more');
+                        } else {
+                          clearError('expertiseSection.title');
+                        }
+                      }}
+                      onBlur={() => {
+                        // Additional validation on blur if needed
+                        const title = sectionsData.expertise_section.title;
+                        if (title.length < 10) {
+                          setError('expertiseSection.title', 'Expertise title must be 10 characters or more');
                         }
                       }}
                       placeholder="Expertise section title"
                       maxLength={100}
+                      className={`${errors.expertiseSection?.title ? 'border-red-500 focus:border-red-500' : ''}`}
                     />
-                    <p className="text-sm text-muted-foreground">
-                      {100 - (sectionsData.expertise_section.title?.length || 0)} characters remaining
+                    <p className={`text-sm ${errors.expertiseSection?.title ? 'text-red-600' : 'text-muted-foreground'}`}>
+                      {errors.expertiseSection?.title || `${100 - (sectionsData.expertise_section.title?.length || 0)} characters remaining`}
                     </p>
                   </div>
                 </div>
@@ -1024,16 +1300,28 @@ export default function AddIndustryPage() {
                     value={sectionsData.expertise_section.description}
                     onChange={(e) => {
                       const value = e.target.value;
-                      if (value.length <= 500) {
-                        updateSection("expertise_section", "description", value);
+                      updateSection("expertise_section", "description", value);
+                      // Real-time validation and error clearing
+                      if (value.length < 10) {
+                        setError('expertiseSection.description', 'Description must be 10 characters or more');
+                      } else {
+                        clearError('expertiseSection.description');
+                      }
+                    }}
+                    onBlur={() => {
+                      // Additional validation on blur if needed
+                      const description = sectionsData.expertise_section.description;
+                      if (description.length < 10) {
+                        setError('expertiseSection.description', 'Description must be 10 characters or more');
                       }
                     }}
                     placeholder="Expertise section description"
                     maxLength={500}
                     rows={3}
+                    className={`${errors.expertiseSection?.description ? 'border-red-500 focus:border-red-500' : ''}`}
                   />
-                  <p className="text-sm text-muted-foreground">
-                    {500 - (sectionsData.expertise_section.description?.length || 0)} characters remaining
+                  <p className={`text-sm ${errors.expertiseSection?.description ? 'text-red-600' : 'text-muted-foreground'}`}>
+                    {errors.expertiseSection?.description || `${500 - (sectionsData.expertise_section.description?.length || 0)} characters remaining`}
                   </p>
                 </div>
 
@@ -1061,7 +1349,7 @@ export default function AddIndustryPage() {
                                 {file.name}
                               </p>
                               <div>
-                                <Label htmlFor={`expertiseAlt${index}`}>Alt Text</Label>
+                                <Label htmlFor={`expertiseAlt${index}`} className="mb-2">Alt Text</Label>
                                 <Input
                                   id={`expertiseAlt${index}`}
                                   value={expertiseSectionImagesAltTexts[index] || ""}
@@ -1113,15 +1401,26 @@ export default function AddIndustryPage() {
                             value={subSection.title}
                             onChange={(e) => {
                               const value = e.target.value;
-                              if (value.length <= 100) {
-                                updateExpertiseSubSection(index, "title", value);
+                              updateExpertiseSubSection(index, "title", value);
+                              // Real-time validation and error clearing
+                              if (value.length < 10) {
+                                setError(`expertiseSection.sub_sections`, `Expertise title ${index + 1} must be 10 characters or more`);
+                              } else {
+                                clearError(`expertiseSection.sub_sections`);
+                              }
+                            }}
+                            onBlur={() => {
+                              // Additional validation on blur if needed
+                              if (subSection.title.length < 10) {
+                                setError(`expertiseSection.sub_sections`, `Expertise title ${index + 1} must be 10 characters or more`);
                               }
                             }}
                             placeholder="Expertise title"
                             maxLength={100}
+                            className={`${errors.expertiseSection?.sub_sections ? 'border-red-500 focus:border-red-500' : ''}`}
                           />
-                          <p className="text-sm text-muted-foreground">
-                            {100 - (subSection.title?.length || 0)} characters remaining
+                          <p className={`text-sm ${errors.expertiseSection?.sub_sections ? 'text-red-600' : 'text-muted-foreground'}`}>
+                            {errors.expertiseSection?.sub_sections || `${100 - (subSection.title?.length || 0)} characters remaining`}
                           </p>
                         </div>
                       </div>
@@ -1132,16 +1431,27 @@ export default function AddIndustryPage() {
                           value={subSection.description}
                           onChange={(e) => {
                             const value = e.target.value;
-                            if (value.length <= 500) {
-                              updateExpertiseSubSection(index, "description", value);
+                            updateExpertiseSubSection(index, "description", value);
+                            // Real-time validation and error clearing
+                            if (value.length < 10) {
+                              setError(`expertiseSection.sub_sections`, `Expertise description ${index + 1} must be 10 characters or more`);
+                            } else {
+                              clearError(`expertiseSection.sub_sections`);
+                            }
+                          }}
+                          onBlur={() => {
+                            // Additional validation on blur if needed
+                            if (subSection.description.length < 10) {
+                              setError(`expertiseSection.sub_sections`, `Expertise description ${index + 1} must be 10 characters or more`);
                             }
                           }}
                           placeholder="Expertise description"
                           maxLength={500}
                           rows={3}
+                          className={`${errors.expertiseSection?.sub_sections ? 'border-red-500 focus:border-red-500' : ''}`}
                         />
-                        <p className="text-sm text-muted-foreground">
-                          {500 - (subSection.description?.length || 0)} characters remaining
+                        <p className={`text-sm ${errors.expertiseSection?.sub_sections ? 'text-red-600' : 'text-muted-foreground'}`}>
+                          {errors.expertiseSection?.sub_sections || `${500 - (subSection.description?.length || 0)} characters remaining`}
                         </p>
                       </div>
 
@@ -1175,15 +1485,27 @@ export default function AddIndustryPage() {
                       value={sectionsData.what_sets_us_apart_section.title}
                       onChange={(e) => {
                         const value = e.target.value;
-                        if (value.length <= 100) {
-                          updateSection("what_sets_us_apart_section", "title", value);
+                        updateSection("what_sets_us_apart_section", "title", value);
+                        if (value.length < 10) {
+                          setError('whatSetsUsApartSection.title', 'What sets us apart title must be 10 characters or more');
+                        } else {
+                          clearError('whatSetsUsApartSection.title');
+                        }
+                      }}
+                      onBlur={() => {
+                        const title = sectionsData.what_sets_us_apart_section.title;
+                        if (title.length < 10) {
+                          setError('whatSetsUsApartSection.title', 'What sets us apart title must be 10 characters or more');
+                        } else {
+                          clearError('whatSetsUsApartSection.title');
                         }
                       }}
                       placeholder="What sets us apart title"
                       maxLength={100}
+                      className={`${errors.whatSetsUsApartSection?.title ? 'border-red-500 focus:border-red-500' : ''}`}
                     />
-                    <p className="text-sm text-muted-foreground">
-                      {100 - (sectionsData.what_sets_us_apart_section.title?.length || 0)} characters remaining
+                    <p className={`text-sm ${errors.whatSetsUsApartSection?.title ? 'text-red-600' : 'text-muted-foreground'}`}>
+                      {errors.whatSetsUsApartSection?.title || `${100 - (sectionsData.what_sets_us_apart_section.title?.length || 0)} characters remaining`}
                     </p>
                   </div>
                 </div>
@@ -1194,16 +1516,28 @@ export default function AddIndustryPage() {
                     value={sectionsData.what_sets_us_apart_section.description}
                     onChange={(e) => {
                       const value = e.target.value;
-                      if (value.length <= 500) {
-                        updateSection("what_sets_us_apart_section", "description", value);
+                      updateSection("what_sets_us_apart_section", "description", value);
+                      if (value.length < 10) {
+                        setError('whatSetsUsApartSection.description', 'Description must be 10 characters or more');
+                      } else {
+                        clearError('whatSetsUsApartSection.description');
+                      }
+                    }}
+                    onBlur={() => {
+                      const description = sectionsData.what_sets_us_apart_section.description;
+                      if (description.length < 10) {
+                        setError('whatSetsUsApartSection.description', 'Description must be 10 characters or more');
+                      } else {
+                        clearError('whatSetsUsApartSection.description');
                       }
                     }}
                     placeholder="What sets us apart description"
                     maxLength={500}
                     rows={3}
+                    className={`${errors.whatSetsUsApartSection?.description ? 'border-red-500 focus:border-red-500' : ''}`}
                   />
-                  <p className="text-sm text-muted-foreground">
-                    {500 - (sectionsData.what_sets_us_apart_section.description?.length || 0)} characters remaining
+                  <p className={`text-sm ${errors.whatSetsUsApartSection?.description ? 'text-red-600' : 'text-muted-foreground'}`}>
+                    {errors.whatSetsUsApartSection?.description || `${500 - (sectionsData.what_sets_us_apart_section.description?.length || 0)} characters remaining`}
                   </p>
                 </div>
 
@@ -1283,15 +1617,26 @@ export default function AddIndustryPage() {
                             value={subSection.title}
                             onChange={(e) => {
                               const value = e.target.value;
-                              if (value.length <= 100) {
-                                updateWhatSetsUsApartSubSection(index, "title", value);
+                              updateWhatSetsUsApartSubSection(index, "title", value);
+                              if (value.length < 10) {
+                                setError(`whatSetsUsApartSection.sub_sections`, `Point title ${index + 1} must be 10 characters or more`);
+                              } else {
+                                clearError(`whatSetsUsApartSection.sub_sections`);
+                              }
+                            }}
+                            onBlur={() => {
+                              if (subSection.title.length < 10) {
+                                setError(`whatSetsUsApartSection.sub_sections`, `Point title ${index + 1} must be 10 characters or more`);
+                              } else {
+                                clearError(`whatSetsUsApartSection.sub_sections`);
                               }
                             }}
                             placeholder="Point title"
                             maxLength={100}
+                            className={`${errors.whatSetsUsApartSection?.sub_sections ? 'border-red-500 focus:border-red-500' : ''}`}
                           />
-                          <p className="text-sm text-muted-foreground">
-                            {100 - (subSection.title?.length || 0)} characters remaining
+                          <p className={`text-sm ${errors.whatSetsUsApartSection?.sub_sections ? 'text-red-600' : 'text-muted-foreground'}`}>
+                            {errors.whatSetsUsApartSection?.sub_sections || `${100 - (subSection.title?.length || 0)} characters remaining`}
                           </p>
                         </div>
                       </div>
@@ -1302,16 +1647,27 @@ export default function AddIndustryPage() {
                           value={subSection.description}
                           onChange={(e) => {
                             const value = e.target.value;
-                            if (value.length <= 500) {
-                              updateWhatSetsUsApartSubSection(index, "description", value);
+                            updateWhatSetsUsApartSubSection(index, "description", value);
+                            if (value.length < 10) {
+                              setError(`whatSetsUsApartSection.sub_sections`, `Point description ${index + 1} must be 10 characters or more`);
+                            } else {
+                              clearError(`whatSetsUsApartSection.sub_sections`);
+                            }
+                          }}
+                          onBlur={() => {
+                            if (subSection.description.length < 10) {
+                              setError(`whatSetsUsApartSection.sub_sections`, `Point description ${index + 1} must be 10 characters or more`);
+                            } else {
+                              clearError(`whatSetsUsApartSection.sub_sections`);
                             }
                           }}
                           placeholder="Point description"
                           maxLength={500}
                           rows={3}
+                          className={`${errors.whatSetsUsApartSection?.sub_sections ? 'border-red-500 focus:border-red-500' : ''}`}
                         />
-                        <p className="text-sm text-muted-foreground">
-                          {500 - (subSection.description?.length || 0)} characters remaining
+                        <p className={`text-sm ${errors.whatSetsUsApartSection?.sub_sections ? 'text-red-600' : 'text-muted-foreground'}`}>
+                          {errors.whatSetsUsApartSection?.sub_sections || `${500 - (subSection.description?.length || 0)} characters remaining`}
                         </p>
                       </div>
 
@@ -1345,38 +1701,61 @@ export default function AddIndustryPage() {
                       value={sectionsData.we_build_section.title}
                       onChange={(e) => {
                         const value = e.target.value;
-                        if (value.length <= 100) {
-                          updateSection("we_build_section", "title", value);
+                        updateSection("we_build_section", "title", value);
+                        if (value.length < 10) {
+                          setError('weBuildSection.title', 'We build title must be 10 characters or more');
+                        } else {
+                          clearError('weBuildSection.title');
+                        }
+                      }}
+                      onBlur={() => {
+                        const title = sectionsData.we_build_section.title;
+                        if (title.length < 10) {
+                          setError('weBuildSection.title', 'We build title must be 10 characters or more');
+                        } else {
+                          clearError('weBuildSection.title');
                         }
                       }}
                       placeholder="We build section title"
                       maxLength={100}
+                      className={`${errors.weBuildSection?.title ? 'border-red-500 focus:border-red-500' : ''}`}
                     />
-                    <p className="text-sm text-muted-foreground">
-                      {100 - (sectionsData.we_build_section.title?.length || 0)} characters remaining
+                    <p className={`text-sm ${errors.weBuildSection?.title ? 'text-red-600' : 'text-muted-foreground'}`}>
+                      {errors.weBuildSection?.title || `${100 - (sectionsData.we_build_section.title?.length || 0)} characters remaining`}
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Description</Label>
+                    <Textarea
+                      value={sectionsData.we_build_section.description}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        updateSection("we_build_section", "description", value);
+                        if (value.length < 10) {
+                          setError('weBuildSection.description', 'Description must be 10 characters or more');
+                        } else {
+                          clearError('weBuildSection.description');
+                        }
+                      }}
+                      onBlur={() => {
+                        const description = sectionsData.we_build_section.description;
+                        if (description.length < 10) {
+                          setError('weBuildSection.description', 'Description must be 10 characters or more');
+                        } else {
+                          clearError('weBuildSection.description');
+                        }
+                      }}
+                      placeholder="We build section description"
+                      maxLength={500}
+                      rows={3}
+                      className={`${errors.weBuildSection?.description ? 'border-red-500 focus:border-red-500' : ''}`}
+                    />
+                    <p className={`text-sm ${errors.weBuildSection?.description ? 'text-red-600' : 'text-muted-foreground'}`}>
+                      {errors.weBuildSection?.description || `${500 - (sectionsData.we_build_section.description?.length || 0)} characters remaining`}
                     </p>
                   </div>
                 </div>
-
-                <div className="space-y-2">
-                  <Label>Description</Label>
-                  <Textarea
-                    value={sectionsData.we_build_section.description}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (value.length <= 500) {
-                        updateSection("we_build_section", "description", value);
-                      }
-                    }}
-                    placeholder="We build section description"
-                    maxLength={500}
-                    rows={3}
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    {500 - (sectionsData.we_build_section.description?.length || 0)} characters remaining
-                  </p>
-                </div>
-
                 <Separator />
 
                 <div className="space-y-4">
@@ -1401,16 +1780,27 @@ export default function AddIndustryPage() {
                           value={subSection.description}
                           onChange={(e) => {
                             const value = e.target.value;
-                            if (value.length <= 500) {
-                              updateWeBuildSubSection(index, "description", value);
+                            updateWeBuildSubSection(index, "description", value);
+                            if (value.length < 10) {
+                              setError(`weBuildSection.sub_sections`, `Build item description ${index + 1} must be 10 characters or more`);
+                            } else {
+                              clearError(`weBuildSection.sub_sections`);
+                            }
+                          }}
+                          onBlur={() => {
+                            if (subSection.description.length < 10) {
+                              setError(`weBuildSection.sub_sections`, `Build item description ${index + 1} must be 10 characters or more`);
+                            } else {
+                              clearError(`weBuildSection.sub_sections`);
                             }
                           }}
                           placeholder="What we build description"
                           maxLength={500}
                           rows={3}
+                          className={`${errors.weBuildSection?.sub_sections ? 'border-red-500 focus:border-red-500' : ''}`}
                         />
-                        <p className="text-sm text-muted-foreground">
-                          {500 - (subSection.description?.length || 0)} characters remaining
+                        <p className={`text-sm ${errors.weBuildSection?.sub_sections ? 'text-red-600' : 'text-muted-foreground'}`}>
+                          {errors.weBuildSection?.sub_sections || `${500 - (subSection.description?.length || 0)} characters remaining`}
                         </p>
                       </div>
 
