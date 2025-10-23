@@ -61,7 +61,7 @@ export default function DashboardOverviewPage() {
   const publishedServices = services.filter(service => service.is_active).length;
   const publishedPages = pages.filter(page => page.is_published).length;
   const publishedProjects = projects.filter(project => project.published).length;
-  const publishedIndustries = industries.filter(industry => industry.published).length;
+  const publishedIndustries = industries.filter(industry => industry.is_active).length;
 
   // Get media stats
   const totalMediaFiles = media?.data ? 

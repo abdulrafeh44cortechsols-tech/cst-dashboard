@@ -142,7 +142,7 @@ export  function EditIndustryModal({
       setSlug(industry.slug || "");
       setMetaTitle("");
       setMetaDescription("");
-      setIsActive(industry.published || true);
+      setIsActive(industry.is_active || true);
       setSelectedTags(industry.tags?.map(tag => tag.id) || []);
       
       // Load sections data from industry if available
