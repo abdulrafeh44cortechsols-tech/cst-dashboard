@@ -154,6 +154,23 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
     return null;
   };
 
+  // Utility function to generate slug from name (same as blog form implementation)
+  const generateSlug = (text: string) => {
+    return text
+      .toLowerCase()
+      .replace(/[^a-z0-9 -]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .trim();
+  };
+
+  const handleNameChange = (value: string) => {
+    setName(value);
+    if (!slug || slug === generateSlug(name)) {
+      setSlug(generateSlug(value));
+    }
+  };
+
   // Sections data
   const [sectionsData, setSectionsData] = useState<IndustrySectionsData>({
     hero_section: {
@@ -182,6 +199,15 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
       sub_sections: [],
     },
   });
+
+  // Helper to resolve relative media paths to absolute URLs (same as blog form)
+  const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+  const resolveUrl = (u?: string | File | null) => {
+    if (!u || typeof u !== "string") return null;
+    if (u.startsWith("http://") || u.startsWith("https://")) return u;
+    if (!u.trim()) return null;
+    return `${apiBase}${u.startsWith("/") ? u : `/${u}`}`;
+  };
 
   // Get tags data safely
   const tags = getTags.data?.data;
@@ -228,9 +254,7 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
         // Load existing section images
         if (apiSectionsData.hero_section?.image) {
           // Convert relative path to full URL if needed
-          const heroImageUrl = apiSectionsData.hero_section.image.startsWith('http')
-            ? apiSectionsData.hero_section.image
-            : `${window.location.origin}${apiSectionsData.hero_section.image}`;
+          const heroImageUrl = resolveUrl(apiSectionsData.hero_section.image);
           setExistingHeroImage(heroImageUrl);
           setExistingHeroImageAltText(apiSectionsData.hero_section.image_alt_text || "");
         }
@@ -240,9 +264,7 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
             .filter((sub: any) => sub.image)
             .map((sub: any) => {
               // Convert relative path to full URL if needed
-              return sub.image.startsWith('http')
-                ? sub.image
-                : `${window.location.origin}${sub.image}`;
+              return resolveUrl(sub.image);
             });
           setExistingExpertiseImages(expertiseImages);
           setExistingExpertiseImagesAltTexts(
@@ -257,9 +279,7 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
             .filter((sub: any) => sub.image)
             .map((sub: any) => {
               // Convert relative path to full URL if needed
-              return sub.image.startsWith('http')
-                ? sub.image
-                : `${window.location.origin}${sub.image}`;
+              return resolveUrl(sub.image);
             });
           setExistingWhatSetsUsApartImages(wsuaImages);
           setExistingWhatSetsUsApartImagesAltTexts(
@@ -456,6 +476,10 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
       setImages(filesArray);
       // Initialize alt text array for new images
       setImagesAltTexts(new Array(filesArray.length).fill(""));
+
+      // Clear existing images when new ones are selected (they will be replaced)
+      setExistingImages([]);
+      setExistingImagesAltTexts([]);
     }
   };
 
@@ -464,6 +488,10 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
       setHeroSectionImage(e.target.files[0]);
       // Initialize alt text for new hero section image
       setHeroSectionImageAltText("");
+
+      // Clear existing hero image when new one is selected
+      setExistingHeroImage(null);
+      setExistingHeroImageAltText("");
     }
   };
 
@@ -473,6 +501,10 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
       setExpertiseSectionImages(filesArray);
       // Initialize alt text array for new expertise images
       setExpertiseSectionImagesAltTexts(new Array(filesArray.length).fill(""));
+
+      // Clear existing expertise images when new ones are selected
+      setExistingExpertiseImages([]);
+      setExistingExpertiseImagesAltTexts([]);
     }
   };
 
@@ -482,6 +514,10 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
       setWhatSetsUsApartSectionImages(filesArray);
       // Initialize alt text array for new what sets us apart images
       setWhatSetsUsApartSectionImagesAltTexts(new Array(filesArray.length).fill(""));
+
+      // Clear existing WSUA images when new ones are selected
+      setExistingWhatSetsUsApartImages([]);
+      setExistingWhatSetsUsApartImagesAltTexts([]);
     }
   };
 
@@ -528,60 +564,75 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
       return;
     }
 
-    if (!captchaVerified) {
-      toast.error("Please complete the reCAPTCHA verification.");
-      return;
-    }
+    // if (!captchaVerified) {
+    //   toast.error("Please complete the reCAPTCHA verification.");
+    //   return;
+    // }
 
     try {
       const formData = new FormData();
 
-      // Basic fields
-      formData.append("name", name);
-      formData.append("description", description);
-      formData.append("slug", slug);
-      formData.append("meta_title", metaTitle);
-      formData.append("meta_description", metaDescription);
-      formData.append("is_active", isActive.toString()); // Changed from published to is_active
+      // Helper to compare primitive field differences safely (same as blog form)
+      const changed = (a: any, b: any) => JSON.stringify(a ?? null) !== JSON.stringify(b ?? null);
+
+      // Append only changed top-level fields
+      if (name !== industry.name) formData.append("name", name);
+      if (slug !== industry.slug) formData.append("slug", slug);
+      if (description !== industry.description) formData.append("description", description);
+      if (metaTitle !== industry.meta_title) formData.append("meta_title", metaTitle);
+      if (metaDescription !== industry.meta_description) formData.append("meta_description", metaDescription);
+      if (isActive !== industry.is_active) formData.append("is_active", isActive.toString());
+
+      // Check if tags changed
+      const originalTagIds = industry.tags?.map(tag => tag.id) || [];
+      if (JSON.stringify(selectedTags) !== JSON.stringify(originalTagIds)) {
+        formData.append("tag_ids", JSON.stringify(selectedTags));
+      }
 
       // Add images (existing images are already saved, only add new ones)
-      images.forEach((file) => {
-        formData.append("images", file);
-      });
+      if (images.length > 0) {
+        images.forEach((file) => {
+          formData.append("images", file);
+        });
 
-      // Add main images alt texts for new uploads
-      if (imagesAltTexts.length > 0) {
-        formData.append("images_alt_text", JSON.stringify(imagesAltTexts));
+        // Add main images alt texts for new uploads
+        if (imagesAltTexts.length > 0) {
+          formData.append("images_alt_text", JSON.stringify(imagesAltTexts));
+        }
       }
 
       // Add hero section image (new upload)
       if (heroSectionImage) {
         formData.append("hero_section_image", heroSectionImage);
-      }
 
-      // Add hero section image alt text for new upload
-      if (heroSectionImageAltText) {
-        formData.append("hero_section_image_alt_text", heroSectionImageAltText);
+        // Add hero section image alt text for new upload
+        if (heroSectionImageAltText) {
+          formData.append("hero_section_image_alt_text", heroSectionImageAltText);
+        }
       }
 
       // Add expertise section images (new uploads)
-      expertiseSectionImages.forEach((file) => {
-        formData.append("expertise_section_images", file);
-      });
+      if (expertiseSectionImages.length > 0) {
+        expertiseSectionImages.forEach((file) => {
+          formData.append("expertise_section_images", file);
+        });
 
-      // Add expertise section images alt texts for new uploads
-      if (expertiseSectionImagesAltTexts.length > 0) {
-        formData.append("expertise_section_images_alt_text", JSON.stringify(expertiseSectionImagesAltTexts));
+        // Add expertise section images alt texts for new uploads
+        if (expertiseSectionImagesAltTexts.length > 0) {
+          formData.append("expertise_section_images_alt_text", JSON.stringify(expertiseSectionImagesAltTexts));
+        }
       }
 
       // Add what sets us apart section images (new uploads)
-      whatSetsUsApartSectionImages.forEach((file) => {
-        formData.append("what_sets_us_apart_section_images", file);
-      });
+      if (whatSetsUsApartSectionImages.length > 0) {
+        whatSetsUsApartSectionImages.forEach((file) => {
+          formData.append("what_sets_us_apart_section_images", file);
+        });
 
-      // Add what sets us apart section images alt texts for new uploads
-      if (whatSetsUsApartSectionImagesAltTexts.length > 0) {
-        formData.append("what_sets_us_apart_section_images_alt_text", JSON.stringify(whatSetsUsApartSectionImagesAltTexts));
+        // Add what sets us apart section images alt texts for new uploads
+        if (whatSetsUsApartSectionImagesAltTexts.length > 0) {
+          formData.append("what_sets_us_apart_section_images_alt_text", JSON.stringify(whatSetsUsApartSectionImagesAltTexts));
+        }
       }
 
       // Add sections data (convert challenge points back to comma-separated)
@@ -596,9 +647,10 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
       };
       formData.append("sections_data", JSON.stringify(sectionsDataForAPI));
 
-      // Add selected tags
-      if (selectedTags.length > 0) {
-        formData.append("tag_ids", JSON.stringify(selectedTags));
+      // If nothing changed, avoid sending an empty PATCH
+      if (Array.from(formData.keys()).length === 0) {
+        toast.info("No changes to save.");
+        return;
       }
 
       await editIndustry.mutateAsync({ id: industry.id.toString(), data: formData });
@@ -614,12 +666,12 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
     <div className="flex flex-col gap-4">
       <Tabs defaultValue="basic" className="w-full">
         <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="basic">Basic Info</TabsTrigger>
-          <TabsTrigger value="hero">Hero Section</TabsTrigger>
-          <TabsTrigger value="challenges">Challenges</TabsTrigger>
-          <TabsTrigger value="expertise">Expertise</TabsTrigger>
-          <TabsTrigger value="apart">What Sets Us Apart</TabsTrigger>
-          <TabsTrigger value="build">We Build</TabsTrigger>
+          <TabsTrigger value="basic" className="cursor-pointer">Basic Info</TabsTrigger>
+          <TabsTrigger value="hero" className="cursor-pointer">Hero Section</TabsTrigger>
+          <TabsTrigger value="challenges" className="cursor-pointer">Challenges</TabsTrigger>
+          <TabsTrigger value="expertise" className="cursor-pointer">Expertise</TabsTrigger>
+          <TabsTrigger value="apart" className="cursor-pointer">What Sets Us Apart</TabsTrigger>
+          <TabsTrigger value="build" className="cursor-pointer">We Build</TabsTrigger>
         </TabsList>
 
         {/* Basic Information Tab */}
@@ -634,7 +686,7 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
                 onChange={(e) => {
                   const value = e.target.value;
                   if (value.length <= 100) {
-                    setName(value);
+                    handleNameChange(value);
                     const error = validateName(value);
                     if (error) {
                       setErrors(prev => ({ ...prev, name: error }));
@@ -831,19 +883,19 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
           <div className="space-y-2">
             <label className="text-sm font-medium">Main Industry Images</label>
 
-            {/* Show existing images */}
-            {existingImages.length > 0 && (
+            {/* Show current images preview */}
+            {existingImages.length > 0 && images.length === 0 && (
               <div className="space-y-4">
-                <p className="text-sm text-gray-600">Existing Images:</p>
+                <p className="text-sm text-gray-600">Current Images:</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {existingImages.map((imageUrl, index) => (
                     <div key={index} className="space-y-2">
                       <img
                         src={imageUrl}
-                        alt={`Existing industry image ${index + 1}`}
+                        alt={`Current industry image ${index + 1}`}
                         className="h-32 w-full rounded border object-cover"
                       />
-                      <div>
+                      {/* <div>
                         <label className="text-xs font-medium">Alt Text</label>
                         <input
                           type="text"
@@ -856,24 +908,24 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
                               setExistingImagesAltTexts(newAltTexts);
                             }
                           }}
-                          placeholder={`Alt text for existing image ${index + 1}`}
+                          placeholder={`Alt text for image ${index + 1}`}
                           maxLength={255}
                           className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
                         />
                         <p className="text-xs text-gray-500 mt-1">
                           {255 - (existingImagesAltTexts[index]?.length || 0)} characters remaining
                         </p>
-                      </div>
+                      </div> */}
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Show new images */}
+            {/* Show new images preview */}
             {images.length > 0 && (
               <div className="space-y-4">
-                <p className="text-sm text-gray-600">New Images:</p>
+                <p className="text-sm text-gray-600">New Images Preview:</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {images.map((file, index) => (
                     <div key={index} className="space-y-2">
@@ -882,7 +934,7 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
                         alt={`New industry image ${index + 1}`}
                         className="h-32 w-full rounded border object-cover"
                       />
-                      <div>
+                      {/* <div>
                         <label className="text-xs font-medium">Alt Text</label>
                         <input
                           type="text"
@@ -902,7 +954,7 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
                         <p className="text-xs text-gray-500 mt-1">
                           {255 - (imagesAltTexts[index]?.length || 0)} characters remaining
                         </p>
-                      </div>
+                      </div> */}
                     </div>
                   ))}
                 </div>
@@ -917,6 +969,7 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
               onChange={handleImagesChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+            <p className="text-xs text-gray-500">Select new images to replace current ones</p>
           </div>
 
           {/* Tags */}
@@ -1010,16 +1063,16 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
           <div className="space-y-2">
             <label className="text-sm font-medium">Hero Section Image</label>
 
-            {/* Show existing hero image */}
-            {existingHeroImage && (
+            {/* Show current hero image */}
+            {existingHeroImage && !heroSectionImage && (
               <div className="space-y-2 p-3 border rounded-lg">
-                <p className="text-sm text-gray-600">Existing Hero Image:</p>
+                <p className="text-sm text-gray-600">Current Hero Image:</p>
                 <img
                   src={existingHeroImage}
-                  alt="Existing hero section"
+                  alt="Current hero section"
                   className="h-32 w-48 rounded border object-cover"
                 />
-                <div>
+                {/* <div>
                   <label className="text-xs font-medium">Alt Text</label>
                   <input
                     type="text"
@@ -1030,29 +1083,21 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
                         setExistingHeroImageAltText(value);
                       }
                     }}
-                    placeholder="Alt text for existing hero image"
+                    placeholder="Alt text for current hero image"
                     maxLength={255}
                     className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     {255 - existingHeroImageAltText.length} characters remaining
                   </p>
-                </div>
+                </div> */}
               </div>
             )}
 
-            {/* File input for new hero image */}
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleHeroSectionImageChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-
-            {/* Show new hero image */}
+            {/* Show new hero image preview */}
             {heroSectionImage && (
               <div className="space-y-2 p-3 border rounded-lg">
-                <p className="text-sm text-gray-600">New Hero Image:</p>
+                <p className="text-sm text-gray-600">New Hero Image Preview:</p>
                 <img
                   src={getFilePreview(heroSectionImage)}
                   alt="New hero section preview"
@@ -1079,6 +1124,15 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
                 </div>
               </div>
             )}
+
+            {/* File input for new hero image */}
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleHeroSectionImageChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <p className="text-xs text-gray-500">Select a new image to replace the current one</p>
           </div>
         </TabsContent>
 
@@ -1210,19 +1264,19 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
           <div className="space-y-2">
             <label className="text-sm font-medium">Expertise Section Images</label>
 
-            {/* Show existing expertise images */}
-            {existingExpertiseImages.length > 0 && (
+            {/* Show current expertise images */}
+            {existingExpertiseImages.length > 0 && expertiseSectionImages.length === 0 && (
               <div className="space-y-4">
-                <p className="text-sm text-gray-600">Existing Images:</p>
+                <p className="text-sm text-gray-600">Current Images:</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {existingExpertiseImages.map((imageUrl, index) => (
                     <div key={index} className="space-y-2">
                       <img
                         src={imageUrl}
-                        alt={`Existing expertise image ${index + 1}`}
+                        alt={`Current expertise image ${index + 1}`}
                         className="h-32 w-full rounded border object-cover"
                       />
-                      <div>
+                      {/* <div>
                         <label className="text-xs font-medium">Alt Text</label>
                         <input
                           type="text"
@@ -1235,24 +1289,24 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
                               setExistingExpertiseImagesAltTexts(newAltTexts);
                             }
                           }}
-                          placeholder={`Alt text for existing expertise image ${index + 1}`}
+                          placeholder={`Alt text for current image ${index + 1}`}
                           maxLength={255}
                           className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
                         />
                         <p className="text-xs text-gray-500 mt-1">
                           {255 - (existingExpertiseImagesAltTexts[index]?.length || 0)} characters remaining
                         </p>
-                      </div>
+                      </div> */}
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Show new expertise images */}
+            {/* Show new expertise images preview */}
             {expertiseSectionImages.length > 0 && (
               <div className="space-y-4">
-                <p className="text-sm text-gray-600">New Images:</p>
+                <p className="text-sm text-gray-600">New Images Preview:</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {expertiseSectionImages.map((file, index) => (
                     <div key={index} className="space-y-2">
@@ -1261,7 +1315,7 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
                         alt={`New expertise image ${index + 1}`}
                         className="h-32 w-full rounded border object-cover"
                       />
-                      <div>
+                      {/* <div>
                         <label className="text-xs font-medium">Alt Text</label>
                         <input
                           type="text"
@@ -1274,14 +1328,14 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
                               setExpertiseSectionImagesAltTexts(newAltTexts);
                             }
                           }}
-                          placeholder={`Alt text for new expertise image ${index + 1}`}
+                          placeholder={`Alt text for new image ${index + 1}`}
                           maxLength={255}
                           className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
                         />
                         <p className="text-xs text-gray-500 mt-1">
                           {255 - (expertiseSectionImagesAltTexts[index]?.length || 0)} characters remaining
                         </p>
-                      </div>
+                      </div> */}
                     </div>
                   ))}
                 </div>
@@ -1296,6 +1350,7 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
               onChange={handleExpertiseSectionImagesChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+            <p className="text-xs text-gray-500">Select new images to replace current ones</p>
           </div>
         </TabsContent>
 
@@ -1346,19 +1401,19 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
           <div className="space-y-2">
             <label className="text-sm font-medium">What Sets Us Apart Section Images</label>
 
-            {/* Show existing WSUA images */}
-            {existingWhatSetsUsApartImages.length > 0 && (
+            {/* Show current WSUA images */}
+            {existingWhatSetsUsApartImages.length > 0 && whatSetsUsApartSectionImages.length === 0 && (
               <div className="space-y-4">
-                <p className="text-sm text-gray-600">Existing Images:</p>
+                <p className="text-sm text-gray-600">Current Images:</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {existingWhatSetsUsApartImages.map((imageUrl, index) => (
                     <div key={index} className="space-y-2">
                       <img
                         src={imageUrl}
-                        alt={`Existing WSUA image ${index + 1}`}
+                        alt={`Current WSUA image ${index + 1}`}
                         className="h-32 w-full rounded border object-cover"
                       />
-                      <div>
+                      {/* <div>
                         <label className="text-xs font-medium">Alt Text</label>
                         <input
                           type="text"
@@ -1371,24 +1426,24 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
                               setExistingWhatSetsUsApartImagesAltTexts(newAltTexts);
                             }
                           }}
-                          placeholder={`Alt text for existing WSUA image ${index + 1}`}
+                          placeholder={`Alt text for current image ${index + 1}`}
                           maxLength={255}
                           className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
                         />
                         <p className="text-xs text-gray-500 mt-1">
                           {255 - (existingWhatSetsUsApartImagesAltTexts[index]?.length || 0)} characters remaining
                         </p>
-                      </div>
+                      </div> */}
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Show new WSUA images */}
+            {/* Show new WSUA images preview */}
             {whatSetsUsApartSectionImages.length > 0 && (
               <div className="space-y-4">
-                <p className="text-sm text-gray-600">New Images:</p>
+                <p className="text-sm text-gray-600">New Images Preview:</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {whatSetsUsApartSectionImages.map((file, index) => (
                     <div key={index} className="space-y-2">
@@ -1397,7 +1452,7 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
                         alt={`New WSUA image ${index + 1}`}
                         className="h-32 w-full rounded border object-cover"
                       />
-                      <div>
+                      {/* <div>
                         <label className="text-xs font-medium">Alt Text</label>
                         <input
                           type="text"
@@ -1410,14 +1465,14 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
                               setWhatSetsUsApartSectionImagesAltTexts(newAltTexts);
                             }
                           }}
-                          placeholder={`Alt text for new WSUA image ${index + 1}`}
+                          placeholder={`Alt text for new image ${index + 1}`}
                           maxLength={255}
                           className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
                         />
                         <p className="text-xs text-gray-500 mt-1">
                           {255 - (whatSetsUsApartSectionImagesAltTexts[index]?.length || 0)} characters remaining
                         </p>
-                      </div>
+                      </div> */}
                     </div>
                   ))}
                 </div>
@@ -1432,6 +1487,7 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
               onChange={handleWhatSetsUsApartSectionImagesChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+            <p className="text-xs text-gray-500">Select new images to replace current ones</p>
           </div>
         </TabsContent>
 
