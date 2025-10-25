@@ -20,6 +20,9 @@ export function HeroSectionCard({ hero, updateSection, currentImageUrl }: HeroSe
           <div>
             <Label className="mb-2 block">Hero Title</Label>
             <Input
+              id="hero-title"
+              name="hero_title"
+              data-field="heroSection.title"
               value={hero.title || ""}
               onChange={(e) => {
                 const value = e.target.value;
@@ -34,6 +37,9 @@ export function HeroSectionCard({ hero, updateSection, currentImageUrl }: HeroSe
           <div>
             <Label className="mb-2 block">Hero Description</Label>
             <Textarea
+              id="hero-description"
+              name="hero_description"
+              data-field="heroSection.description"
               value={hero.description || ""}
               onChange={(e) => {
                 const value = e.target.value;
@@ -49,6 +55,9 @@ export function HeroSectionCard({ hero, updateSection, currentImageUrl }: HeroSe
           <div>
             <Label className="mb-2 block">Hero Summary</Label>
             <Input
+              id="hero-summary"
+              name="hero_summary"
+              data-field="heroSection.summary"
               value={hero.summary || ""}
               onChange={(e) => {
                 const value = e.target.value;

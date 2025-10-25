@@ -131,15 +131,15 @@ export default function BlogsPage() {
         </div>
       ) : (
         <>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 justify-items-center items-center">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 justify-items-center items-stretch">
             {blogPosts.length > 0 ? (
               blogPosts.map((post: BlogPost) => (
-                <Card key={post.id} className="w-full max-w-sm pt-0 overflow-hidden">
+                <Card key={post.id} className="w-full max-w-sm pt-0 overflow-hidden h-full">
                   <div className="relative overflow-hidden group aspect-[400/360]">
                     <Image
-                      src={parseImageUrl(post.images?.[0]) || "/placeholer.svg"} // fallback if no image
+                      src={parseImageUrl(post.images?.[0]) || "/placeholer.svg"}
                       alt={post.title}
-                   fill
+                      fill
                       className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -151,19 +151,18 @@ export default function BlogsPage() {
                           ? `${post.title.slice(0, 25)}...`
                           : post.title}
                       </span>
-                      <Badge variant={post.published ? "default" : "secondary"}>
+                      <Badge variant={post.published ? "default" : "outline"}>
                         {post.published ? "Published" : "Draft"}
                       </Badge>
                     </CardTitle>
                     <CardDescription>
-                      {post.summary ?? "No description available."}
+                      {post.content ? post.content.slice(0, 100) + (post.content.length > 100 ? "..." : "") : "No description available."}
                     </CardDescription>
                   </CardHeader>
 
                   <CardContent>
                     <p className="text-sm text-muted-foreground">
-                      Published on:{" "}
-                      {new Date(post.created_at).toLocaleDateString()}
+                      Published on: {new Date(post.created_at).toLocaleDateString()}
                     </p>
                   </CardContent>
                   <CardFooter className="pt-0 flex justify-end gap-2">

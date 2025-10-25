@@ -20,6 +20,9 @@ export function InfoSectionCard({ info, updateSection, currentImageUrl }: InfoSe
           <div>
             <Label className="mb-2 block">Info Title</Label>
             <Input
+              id="info-title"
+              name="info_title"
+              data-field="infoSection.title"
               value={info.title || ""}
               onChange={(e) => {
                 const value = e.target.value;
@@ -34,6 +37,9 @@ export function InfoSectionCard({ info, updateSection, currentImageUrl }: InfoSe
           <div>
             <Label className="mb-2 block">Info Description</Label>
             <Textarea
+              id="info-description"
+              name="info_description"
+              data-field="infoSection.description"
               value={info.description || ""}
               onChange={(e) => {
                 const value = e.target.value;
@@ -49,6 +55,9 @@ export function InfoSectionCard({ info, updateSection, currentImageUrl }: InfoSe
           <div>
             <Label className="mb-2 block">Info Summary</Label>
             <Input
+              id="info-summary"
+              name="info_summary"
+              data-field="infoSection.summary"
               value={info.summary || ""}
               onChange={(e) => {
                 const value = e.target.value;
@@ -63,6 +72,9 @@ export function InfoSectionCard({ info, updateSection, currentImageUrl }: InfoSe
           <div>
             <Label className="mb-2 block">Info Summary 2</Label>
             <Input
+              id="info-summary-2"
+              name="info_summary_2"
+              data-field="infoSection.summary2"
               value={info.summary_2 || ""}
               onChange={(e) => {
                 const value = e.target.value;

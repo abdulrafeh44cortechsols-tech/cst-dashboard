@@ -1,6 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface BasicInfoTabProps {
@@ -18,6 +19,8 @@ interface BasicInfoTabProps {
   selectedTagIds: number[];
   setSelectedTagIds: (value: number[]) => void;
   tagsData: any[];
+  published: boolean;
+  setPublished: (value: boolean) => void;
 }
 
 export function BasicInfoTab({
@@ -34,6 +37,8 @@ export function BasicInfoTab({
   selectedTagIds,
   setSelectedTagIds,
   tagsData,
+  published,
+  setPublished,
 }: BasicInfoTabProps) {
   return (
     <Card>
@@ -88,6 +93,17 @@ export function BasicInfoTab({
             rows={3}
           />
         </div>
+
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="published"
+            checked={published}
+            onCheckedChange={setPublished}
+            className="data-[state=checked]:bg-teal-500"
+          />
+          <Label htmlFor="published">Publish</Label>
+        </div>
+
         <div>
           <Label>Tags</Label>
           <div className="flex flex-wrap gap-2 mt-2">

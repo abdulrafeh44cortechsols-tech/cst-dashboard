@@ -59,44 +59,41 @@ export default function ServicesPage() {
         </div>
       ) : (
         <>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 justify-items-center items-stretch">
             {services && services.length > 0 ? (
               services.map((service) => (
-                <Card
-                  key={service.id}
-                  className="flex flex-col justify-between h-full pt-0 overflow-hidden" // Make card a flex column
-                >
-                  <div>
-                    <CardHeader className="flex flex-col pt-4 items-start justify-between space-y-0 pb-2">
-                      <div className="flex flex-row items-center gap-2">
-                        <div className="relative overflow-hidden ">
-                          <Image
-                            src={
-                              parseImageUrl(service.images?.[0]) ||
-                              "/placeholer.svg"
-                            }
-                            alt="img"
-                            height={50}
-                            width={50}
-                            className="object-cover transition-transform duration-300 group-hover:scale-105"
-                          />
-                        </div>
-                        <CardTitle className="text-lg font-medium flex flex-col-reverse items-start gap-2 pt-2">
-                          {service.title}
-                        </CardTitle>
-                      </div>
-                      <Badge
-                        variant={service.is_active ? "default" : "outline"}
-                      >
+                <Card key={service.id} className="w-full max-w-sm pt-0 overflow-hidden h-full">
+                  <div className="relative overflow-hidden group aspect-[400/360]">
+                    <Image
+                      src={parseImageUrl(service.images?.[0]) || "/placeholer.svg"}
+                      alt={service.title}
+                      fill
+                      className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  </div>
+                  <CardHeader>
+                    <CardTitle className="flex flex-col-reverse items-start gap-3 w-full">
+                      <span className="line-clamp-2 w-full break-words">
+                        {service.title.length > 25
+                          ? `${service.title.slice(0, 25)}...`
+                          : service.title}
+                      </span>
+                      <Badge variant={service.is_active ? "default" : "outline"}>
                         {service.is_active ? "Active" : "Inactive"}
                       </Badge>
-                    </CardHeader>
-                    <CardContent>
-                      <CardDescription>{service.description}</CardDescription>
-                    </CardContent>
-                  </div>
-                  <CardFooter className="pt-0 flex justify-end gap-2 mt-auto">
-                    {/* mt-auto pushes footer to bottom */}
+                    </CardTitle>
+                    <CardDescription>
+                      {service.description}
+                    </CardDescription>
+                  </CardHeader>
+
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      Created on: {new Date(service.created_at).toLocaleDateString()}
+                    </p>
+                  </CardContent>
+                  <CardFooter className="pt-0 flex justify-end gap-2">
                     <Button
                       variant="outline"
                       size="sm"

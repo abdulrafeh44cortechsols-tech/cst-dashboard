@@ -64,8 +64,14 @@ export default function DashboardOverviewPage() {
   const publishedIndustries = industries.filter(industry => industry.is_active).length;
 
   // Get media stats
-  const totalMediaFiles = media?.data ? 
-    Object.values(media.data).reduce((total, files) => total + (Array.isArray(files) ? files.length : 0), 0) : 0;
+  const totalMediaFiles = media?.data ?
+    Object.entries(media.data).reduce((total, [mediaType, mediaItems]) => {
+      // mediaItems is an object like { "3": [...], "5": [...] }
+      return total + Object.values(mediaItems).reduce((typeTotal, imageArray) => {
+        // imageArray is an array of URLs
+        return typeTotal + (Array.isArray(imageArray) ? imageArray.length : 0);
+      }, 0);
+    }, 0) : 0;
 
   // Use editors from hook if store is empty (fallback)
   const editorsData = editors.length > 0 ? editors : (editorsHook.getEditorsList.data || []);
@@ -77,6 +83,10 @@ export default function DashboardOverviewPage() {
 
   const getStatusText = (status: boolean) => {
     return status ? 'Published' : 'Draft';
+  };
+
+  const getServiceStatusText = (status: boolean) => {
+    return status ? 'Active' : 'Inactive';
   };
 
   const formatDate = (dateString: string) => {
@@ -198,7 +208,7 @@ export default function DashboardOverviewPage() {
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        onClick={() => router.push(`/dashboard/blogs`)}
+                        onClick={() => router.push(`/dashboard/blogs/${blog.slug}/edit`)}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -245,7 +255,7 @@ export default function DashboardOverviewPage() {
                         <h4 className="font-medium text-sm truncate">{service.title}</h4>
                         <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
                           <span className={`px-2 py-1 rounded-full ${getStatusColor(service.is_active)}`}>
-                            {getStatusText(service.is_active)}
+                            {getServiceStatusText(service.is_active)}
                           </span>
                           <span className="flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
@@ -256,7 +266,7 @@ export default function DashboardOverviewPage() {
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        onClick={() => router.push(`/dashboard/services`)}
+                        onClick={() => router.push(`/dashboard/services/${service.slug}/edit`)}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -314,7 +324,7 @@ export default function DashboardOverviewPage() {
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        onClick={() => router.push(`/dashboard/projects`)}
+                        onClick={() => router.push(`/dashboard/projects/${project.slug}/edit`)}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>

@@ -46,6 +46,14 @@ export function EditBlogForm({ blog, onCancel, onSaved }: EditBlogFormProps) {
     getDefaultBlogSectionsData()
   );
 
+  // Tab state for field jumping
+  const [activeTab, setActiveTab] = useState("basic");
+
+  // Error state management
+  const [errors, setErrors] = useState<{
+    [key: string]: string | { [key: string]: string } | undefined;
+  }>({});
+
   // Get tags data safely
   const tagsData = getTags.data?.data || [];
 
@@ -57,6 +65,45 @@ export function EditBlogForm({ blog, onCancel, onSaved }: EditBlogFormProps) {
       .replace(/\s+/g, "-")
       .replace(/-+/g, "-")
       .trim();
+  };
+
+  // Error management functions
+  const clearError = (field: string) => {
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      if (field.includes('.')) {
+        const [section, subField] = field.split('.');
+        if (newErrors[section] && typeof newErrors[section] === 'object') {
+          delete (newErrors[section] as any)[subField];
+          if (Object.keys(newErrors[section] as any).length === 0) {
+            delete newErrors[section];
+          }
+        }
+      } else {
+        delete newErrors[field];
+      }
+      return newErrors;
+    });
+  };
+
+  const setError = (field: string, message: string) => {
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      if (field.includes('.')) {
+        const [section, subField] = field.split('.');
+        if (!newErrors[section]) {
+          (newErrors as any)[section] = {};
+        }
+        ((newErrors as any)[section] as any)[subField] = message;
+      } else {
+        (newErrors as any)[field] = message;
+      }
+      return newErrors;
+    });
+  };
+
+  const clearAllErrors = () => {
+    setErrors({});
   };
 
   const handleTitleChange = (value: string) => {
@@ -158,57 +205,221 @@ export function EditBlogForm({ blog, onCancel, onSaved }: EditBlogFormProps) {
     if (!blog) return;
 
     if (!title || !slug || !content || !metaTitle || !metaDescription) {
+      setActiveTab("basic");
+      setTimeout(() => {
+        if (!title) {
+          const fieldElement = document.getElementById("title") || document.querySelector('input[name="title"]');
+          if (fieldElement) {
+            fieldElement.focus();
+            fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        } else if (!slug) {
+          const fieldElement = document.getElementById("slug") || document.querySelector('input[name="slug"]');
+          if (fieldElement) {
+            fieldElement.focus();
+            fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        } else if (!content) {
+          const fieldElement = document.getElementById("content") || document.querySelector('textarea[name="content"]');
+          if (fieldElement) {
+            fieldElement.focus();
+            fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        } else if (!metaTitle) {
+          const fieldElement = document.getElementById("metaTitle") || document.querySelector('input[name="metaTitle"]');
+          if (fieldElement) {
+            fieldElement.focus();
+            fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        } else if (!metaDescription) {
+          const fieldElement = document.getElementById("metaDescription") || document.querySelector('textarea[name="metaDescription"]');
+          if (fieldElement) {
+            fieldElement.focus();
+            fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }
+      }, 100);
       toast.error("Please fill all required fields.");
       return;
     }
 
     if (title.length > 40) {
+      setActiveTab("basic");
+      setTimeout(() => {
+        const fieldElement = document.getElementById("title") || document.querySelector('input[name="title"]');
+        if (fieldElement) {
+          fieldElement.focus();
+          fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
       toast.error("Blog title must be 40 characters or less.");
       return;
     }
 
     if (metaTitle.length > 40) {
+      setActiveTab("basic");
+      setTimeout(() => {
+        const fieldElement = document.getElementById("metaTitle") || document.querySelector('input[name="metaTitle"]');
+        if (fieldElement) {
+          fieldElement.focus();
+          fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
       toast.error("Meta title must be 40 characters or less.");
       return;
     }
 
     if (metaDescription.length > 300) {
+      setActiveTab("basic");
+      setTimeout(() => {
+        const fieldElement = document.getElementById("metaDescription") || document.querySelector('textarea[name="metaDescription"]');
+        if (fieldElement) {
+          fieldElement.focus();
+          fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
       toast.error("Meta description must be 300 characters or less.");
       return;
     }
 
     const slugPattern = /^[a-z0-9-]+$/;
     if (!slugPattern.test(slug)) {
-      toast.error(
-        "Slug can only contain lowercase letters, numbers, and hyphens."
-      );
+      setActiveTab("basic");
+      setTimeout(() => {
+        const fieldElement = document.getElementById("slug") || document.querySelector('input[name="slug"]');
+        if (fieldElement) {
+          fieldElement.focus();
+          fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+      toast.error("Slug can only contain lowercase letters, numbers, and hyphens.");
       return;
     }
 
     if (content.length < 100) {
+      setActiveTab("basic");
+      setTimeout(() => {
+        const fieldElement = document.getElementById("content") || document.querySelector('textarea[name="content"]');
+        if (fieldElement) {
+          fieldElement.focus();
+          fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
       toast.error("Blog content must be more than 100 characters long.");
       return;
     }
 
     if (sectionsData.hero_section) {
       const hero = sectionsData.hero_section;
-      if (hero.title && hero.title.length > 40) {
+      if (!hero.title || hero.title.trim() === "") {
+        setActiveTab("sections");
+        setTimeout(() => {
+          const fieldElement = document.getElementById("hero-title") ||
+                             document.querySelector('input[name="hero_title"]') ||
+                             document.querySelector('input[data-field="heroSection.title"]');
+          if (fieldElement) {
+            fieldElement.focus();
+            fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
+        toast.error("Hero title is required.");
+        return;
+      }
+      if (hero.title.length > 40) {
+        setActiveTab("sections");
+        setTimeout(() => {
+          const fieldElement = document.getElementById("hero-title") ||
+                             document.querySelector('input[name="hero_title"]') ||
+                             document.querySelector('input[data-field="heroSection.title"]');
+          if (fieldElement) {
+            fieldElement.focus();
+            fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
         toast.error("Hero title must be 40 characters or less.");
         return;
       }
-      if (hero.description && hero.description.length < 100) {
+      if (!hero.description || hero.description.trim() === "") {
+        setActiveTab("sections");
+        setTimeout(() => {
+          const fieldElement = document.getElementById("hero-description") ||
+                             document.querySelector('textarea[name="hero_description"]') ||
+                             document.querySelector('textarea[data-field="heroSection.description"]');
+          if (fieldElement) {
+            fieldElement.focus();
+            fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
+        toast.error("Hero description is required.");
+        return;
+      }
+      if (hero.description.length < 100) {
+        setActiveTab("sections");
+        setTimeout(() => {
+          const fieldElement = document.getElementById("hero-description") ||
+                             document.querySelector('textarea[name="hero_description"]') ||
+                             document.querySelector('textarea[data-field="heroSection.description"]');
+          if (fieldElement) {
+            fieldElement.focus();
+            fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
         toast.error("Hero description must be at least 100 characters long.");
         return;
       }
-      if (hero.description && hero.description.length > 1000) {
+      if (hero.description.length > 1000) {
+        setActiveTab("sections");
+        setTimeout(() => {
+          const fieldElement = document.getElementById("hero-description") ||
+                             document.querySelector('textarea[name="hero_description"]') ||
+                             document.querySelector('textarea[data-field="heroSection.description"]');
+          if (fieldElement) {
+            fieldElement.focus();
+            fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
         toast.error("Hero description must be 1000 characters or less.");
         return;
       }
-      if (hero.summary && hero.summary.length < 100) {
+      if (!hero.summary || hero.summary.trim() === "") {
+        setActiveTab("sections");
+        setTimeout(() => {
+          const fieldElement = document.getElementById("hero-summary") ||
+                             document.querySelector('textarea[name="hero_summary"]') ||
+                             document.querySelector('textarea[data-field="heroSection.summary"]');
+          if (fieldElement) {
+            fieldElement.focus();
+            fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
+        toast.error("Hero summary is required.");
+        return;
+      }
+      if (hero.summary.length < 100) {
+        setActiveTab("sections");
+        setTimeout(() => {
+          const fieldElement = document.getElementById("hero-summary") ||
+                             document.querySelector('textarea[name="hero_summary"]') ||
+                             document.querySelector('textarea[data-field="heroSection.summary"]');
+          if (fieldElement) {
+            fieldElement.focus();
+            fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
         toast.error("Hero summary must be at least 100 characters long.");
         return;
       }
-      if (hero.summary && hero.summary.length > 400) {
+      if (hero.summary.length > 400) {
+        setActiveTab("sections");
+        setTimeout(() => {
+          const fieldElement = document.getElementById("hero-summary") ||
+                             document.querySelector('textarea[name="hero_summary"]') ||
+                             document.querySelector('textarea[data-field="heroSection.summary"]');
+          if (fieldElement) {
+            fieldElement.focus();
+            fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
         toast.error("Hero summary must be 400 characters or less.");
         return;
       }
@@ -216,11 +427,45 @@ export function EditBlogForm({ blog, onCancel, onSaved }: EditBlogFormProps) {
 
     if (sectionsData.quote_section) {
       const quote = sectionsData.quote_section;
-      if (quote.summary && quote.summary.length < 100) {
+      if (!quote.summary || quote.summary.trim() === "") {
+        setActiveTab("sections");
+        setTimeout(() => {
+          const fieldElement = document.getElementById("quote-summary") ||
+                             document.querySelector('textarea[name="quote_summary"]') ||
+                             document.querySelector('textarea[data-field="quoteSection.summary"]');
+          if (fieldElement) {
+            fieldElement.focus();
+            fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
+        toast.error("Quote section summary is required.");
+        return;
+      }
+      if (quote.summary.length < 100) {
+        setActiveTab("sections");
+        setTimeout(() => {
+          const fieldElement = document.getElementById("quote-summary") ||
+                             document.querySelector('textarea[name="quote_summary"]') ||
+                             document.querySelector('textarea[data-field="quoteSection.summary"]');
+          if (fieldElement) {
+            fieldElement.focus();
+            fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
         toast.error("Quote section summary must be at least 100 characters long.");
         return;
       }
-      if (quote.summary && quote.summary.length > 400) {
+      if (quote.summary.length > 400) {
+        setActiveTab("sections");
+        setTimeout(() => {
+          const fieldElement = document.getElementById("quote-summary") ||
+                             document.querySelector('textarea[name="quote_summary"]') ||
+                             document.querySelector('textarea[data-field="quoteSection.summary"]');
+          if (fieldElement) {
+            fieldElement.focus();
+            fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
         toast.error("Quote section summary must be 400 characters or less.");
         return;
       }
@@ -228,18 +473,58 @@ export function EditBlogForm({ blog, onCancel, onSaved }: EditBlogFormProps) {
         for (let i = 0; i < quote.quotes.length; i++) {
           const q = quote.quotes[i];
           if (q.title && q.title.length > 40) {
+            setActiveTab("sections");
+            setTimeout(() => {
+              const fieldElement = document.getElementById(`quote-${i}-title`) ||
+                                 document.querySelector(`input[name="quote_${i}_title"]`) ||
+                                 document.querySelector(`input[data-field="quoteSection.quotes.${i}.title"]`);
+              if (fieldElement) {
+                fieldElement.focus();
+                fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+            }, 100);
             toast.error(`Quote ${i + 1} title must be 40 characters or less.`);
             return;
           }
           if (q.description && q.description.length > 1000) {
+            setActiveTab("sections");
+            setTimeout(() => {
+              const fieldElement = document.getElementById(`quote-${i}-description`) ||
+                                 document.querySelector(`textarea[name="quote_${i}_description"]`) ||
+                                 document.querySelector(`textarea[data-field="quoteSection.quotes.${i}.description"]`);
+              if (fieldElement) {
+                fieldElement.focus();
+                fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+            }, 100);
             toast.error(`Quote ${i + 1} description must be 1000 characters or less.`);
             return;
           }
           if (q.quote && q.quote.length > 1000) {
+            setActiveTab("sections");
+            setTimeout(() => {
+              const fieldElement = document.getElementById(`quote-${i}-quote`) ||
+                                 document.querySelector(`textarea[name="quote_${i}_quote"]`) ||
+                                 document.querySelector(`textarea[data-field="quoteSection.quotes.${i}.quote"]`);
+              if (fieldElement) {
+                fieldElement.focus();
+                fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+            }, 100);
             toast.error(`Quote ${i + 1} text must be 1000 characters or less.`);
             return;
           }
           if (q.quoteusername && q.quoteusername.length > 40) {
+            setActiveTab("sections");
+            setTimeout(() => {
+              const fieldElement = document.getElementById(`quote-${i}-username`) ||
+                                 document.querySelector(`input[name="quote_${i}_username"]`) ||
+                                 document.querySelector(`input[data-field="quoteSection.quotes.${i}.username"]`);
+              if (fieldElement) {
+                fieldElement.focus();
+                fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+            }, 100);
             toast.error(`Quote ${i + 1} username must be 40 characters or less.`);
             return;
           }
@@ -249,31 +534,157 @@ export function EditBlogForm({ blog, onCancel, onSaved }: EditBlogFormProps) {
 
     if (sectionsData.info_section) {
       const info = sectionsData.info_section;
-      if (info.title && info.title.length > 40) {
+      if (!info.title || info.title.trim() === "") {
+        setActiveTab("sections");
+        setTimeout(() => {
+          const fieldElement = document.getElementById("info-title") ||
+                             document.querySelector('input[name="info_title"]') ||
+                             document.querySelector('input[data-field="infoSection.title"]');
+          if (fieldElement) {
+            fieldElement.focus();
+            fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
+        toast.error("Info title is required.");
+        return;
+      }
+      if (info.title.length > 40) {
+        setActiveTab("sections");
+        setTimeout(() => {
+          const fieldElement = document.getElementById("info-title") ||
+                             document.querySelector('input[name="info_title"]') ||
+                             document.querySelector('input[data-field="infoSection.title"]');
+          if (fieldElement) {
+            fieldElement.focus();
+            fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
         toast.error("Info title must be 40 characters or less.");
         return;
       }
-      if (info.description && info.description.length < 100) {
+      if (!info.description || info.description.trim() === "") {
+        setActiveTab("sections");
+        setTimeout(() => {
+          const fieldElement = document.getElementById("info-description") ||
+                             document.querySelector('textarea[name="info_description"]') ||
+                             document.querySelector('textarea[data-field="infoSection.description"]');
+          if (fieldElement) {
+            fieldElement.focus();
+            fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
+        toast.error("Info description is required.");
+        return;
+      }
+      if (info.description.length < 100) {
+        setActiveTab("sections");
+        setTimeout(() => {
+          const fieldElement = document.getElementById("info-description") ||
+                             document.querySelector('textarea[name="info_description"]') ||
+                             document.querySelector('textarea[data-field="infoSection.description"]');
+          if (fieldElement) {
+            fieldElement.focus();
+            fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
         toast.error("Info description must be at least 100 characters long.");
         return;
       }
-      if (info.description && info.description.length > 1000) {
+      if (info.description.length > 1000) {
+        setActiveTab("sections");
+        setTimeout(() => {
+          const fieldElement = document.getElementById("info-description") ||
+                             document.querySelector('textarea[name="info_description"]') ||
+                             document.querySelector('textarea[data-field="infoSection.description"]');
+          if (fieldElement) {
+            fieldElement.focus();
+            fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
         toast.error("Info description must be 1000 characters or less.");
         return;
       }
-      if (info.summary && info.summary.length < 100) {
+      if (!info.summary || info.summary.trim() === "") {
+        setActiveTab("sections");
+        setTimeout(() => {
+          const fieldElement = document.getElementById("info-summary") ||
+                             document.querySelector('textarea[name="info_summary"]') ||
+                             document.querySelector('textarea[data-field="infoSection.summary"]');
+          if (fieldElement) {
+            fieldElement.focus();
+            fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
+        toast.error("Info summary is required.");
+        return;
+      }
+      if (info.summary.length < 100) {
+        setActiveTab("sections");
+        setTimeout(() => {
+          const fieldElement = document.getElementById("info-summary") ||
+                             document.querySelector('textarea[name="info_summary"]') ||
+                             document.querySelector('textarea[data-field="infoSection.summary"]');
+          if (fieldElement) {
+            fieldElement.focus();
+            fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
         toast.error("Info summary must be at least 100 characters long.");
         return;
       }
-      if (info.summary && info.summary.length > 400) {
+      if (info.summary.length > 400) {
+        setActiveTab("sections");
+        setTimeout(() => {
+          const fieldElement = document.getElementById("info-summary") ||
+                             document.querySelector('textarea[name="info_summary"]') ||
+                             document.querySelector('textarea[data-field="infoSection.summary"]');
+          if (fieldElement) {
+            fieldElement.focus();
+            fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
         toast.error("Info summary must be 400 characters or less.");
         return;
       }
-      if (info.summary_2 && info.summary_2.length < 100) {
+      if (!info.summary_2 || info.summary_2.trim() === "") {
+        setActiveTab("sections");
+        setTimeout(() => {
+          const fieldElement = document.getElementById("info-summary-2") ||
+                             document.querySelector('textarea[name="info_summary_2"]') ||
+                             document.querySelector('textarea[data-field="infoSection.summary2"]');
+          if (fieldElement) {
+            fieldElement.focus();
+            fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
+        toast.error("Info summary 2 is required.");
+        return;
+      }
+      if (info.summary_2.length < 100) {
+        setActiveTab("sections");
+        setTimeout(() => {
+          const fieldElement = document.getElementById("info-summary-2") ||
+                             document.querySelector('textarea[name="info_summary_2"]') ||
+                             document.querySelector('textarea[data-field="infoSection.summary2"]');
+          if (fieldElement) {
+            fieldElement.focus();
+            fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
         toast.error("Info summary 2 must be at least 100 characters long.");
         return;
       }
-      if (info.summary_2 && info.summary_2.length > 400) {
+      if (info.summary_2.length > 400) {
+        setActiveTab("sections");
+        setTimeout(() => {
+          const fieldElement = document.getElementById("info-summary-2") ||
+                             document.querySelector('textarea[name="info_summary_2"]') ||
+                             document.querySelector('textarea[data-field="infoSection.summary2"]');
+          if (fieldElement) {
+            fieldElement.focus();
+            fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
         toast.error("Info summary 2 must be 400 characters or less.");
         return;
       }
@@ -409,7 +820,7 @@ export function EditBlogForm({ blog, onCancel, onSaved }: EditBlogFormProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <Tabs defaultValue="basic" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="basic" className="cursor-pointer">Basic Info</TabsTrigger>
           <TabsTrigger value="images" className="cursor-pointer">Images</TabsTrigger>
@@ -433,6 +844,8 @@ export function EditBlogForm({ blog, onCancel, onSaved }: EditBlogFormProps) {
             selectedTagIds={selectedTagIds}
             setSelectedTagIds={setSelectedTagIds}
             tagsData={tagsData}
+            published={published}
+            setPublished={setPublished}
           />
         </TabsContent>
 
@@ -456,6 +869,9 @@ export function EditBlogForm({ blog, onCancel, onSaved }: EditBlogFormProps) {
             updateQuote={updateQuote}
             addQuote={addQuote}
             removeQuote={removeQuote}
+            errors={errors}
+            setError={setError}
+            clearError={clearError}
           />
           <InfoSectionCard info={info} updateSection={updateSection} currentImageUrl={infoImageUrl} />
         </TabsContent>

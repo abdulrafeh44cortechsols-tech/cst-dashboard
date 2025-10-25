@@ -592,11 +592,15 @@ export function EditBlogModal({ blog, isOpen, onClose }: EditBlogModalProps) {
 
     if (sectionsData.quote_section) {
       const quote = sectionsData.quote_section;
-      if (quote.summary && quote.summary.length < 100) {
+      if (!quote.summary || quote.summary.trim() === "") {
+        toast.error("Quote section summary is required.");
+        return;
+      }
+      if (quote.summary.length < 100) {
         toast.error("Quote section summary must be at least 100 characters long.");
         return;
       }
-      if (quote.summary && quote.summary.length > 400) {
+      if (quote.summary.length > 400) {
         toast.error("Quote section summary must be 400 characters or less.");
         return;
       }
