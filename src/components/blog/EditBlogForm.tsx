@@ -715,67 +715,118 @@ export function EditBlogForm({ blog, onCancel, onSaved }: EditBlogFormProps) {
       formData.append("og_image_file", ogImageFile);
     }
 
-    // Sections: append only changed parts
+    // Sections: append combined sections_data when any section changed
     const originalSections = (blog.sections_data || {}) as any;
 
     // Helper to compare primitive field differences safely
     const changed = (a: any, b: any) => JSON.stringify(a ?? null) !== JSON.stringify(b ?? null);
 
-    // Hero section
-    if (sectionsData.hero_section) {
-      const origHero = originalSections.hero_section || {};
-      const currHero = sectionsData.hero_section as any;
+    // Prepare combined sections_data payload
+    const sectionsPayload: any = {};
 
-      const heroPayload: any = {};
-      if (changed(currHero.title, origHero.title)) heroPayload.title = currHero.title || "";
-      if (changed(currHero.description, origHero.description)) heroPayload.description = currHero.description || "";
-      if (changed(currHero.summary, origHero.summary)) heroPayload.summary = currHero.summary || "";
-      if (changed(currHero.image_alt_text, origHero.image_alt_text)) heroPayload.image_alt_text = currHero.image_alt_text || "";
-
-      if (Object.keys(heroPayload).length > 0) {
-        formData.append("hero_section", JSON.stringify(heroPayload));
+    // Hero section: detect changes and prepare full object
+    const origHero = originalSections.hero_section || {};
+    const currHero = sectionsData.hero_section as any;
+    let heroChangedFlag = false;
+    if (currHero) {
+      heroChangedFlag = (
+        changed(currHero.title, origHero.title) ||
+        changed(currHero.description, origHero.description) ||
+        changed(currHero.summary, origHero.summary) ||
+        changed(currHero.image_alt_text, origHero.image_alt_text)
+      );
+      if (heroChangedFlag) {
+        const heroImageValue = typeof currHero.image === "string" ? currHero.image : (origHero.image ?? null);
+        sectionsPayload.hero_section = {
+          title: currHero.title || "",
+          description: currHero.description || "",
+          summary: currHero.summary || "",
+          image: heroImageValue,
+          image_alt_text: currHero.image_alt_text || "",
+        };
       }
-      // If a new image file is selected, send it
+      // If a new image file is selected, send it separately
       if (currHero.image instanceof File) {
         formData.append("hero_image", currHero.image);
         formData.append("hero_section_image", currHero.image);
       }
     }
 
-    // Quote section
-    if (sectionsData.quote_section) {
-      const origQuote = originalSections.quote_section || {};
-      const currQuote = sectionsData.quote_section as any;
-
-      const quotePayload: any = {};
-      if (changed(currQuote.summary, origQuote.summary)) quotePayload.summary = currQuote.summary || "";
-      if (Array.isArray(currQuote.quotes)) {
-        const quotesChanged = JSON.stringify(currQuote.quotes || []) !== JSON.stringify(origQuote.quotes || []);
-        if (quotesChanged) quotePayload.quotes = currQuote.quotes || [];
-      }
-      if (Object.keys(quotePayload).length > 0) {
-        formData.append("quote_section", JSON.stringify(quotePayload));
+    // Quote section: include only fields that changed
+    const origQuote = originalSections.quote_section || {};
+    const currQuote = sectionsData.quote_section as any;
+    let quoteChangedFlag = false;
+    if (currQuote) {
+      const summaryChanged = changed(currQuote.summary, origQuote.summary);
+      const quotesChanged = JSON.stringify(currQuote.quotes || []) !== JSON.stringify(origQuote.quotes || []);
+      quoteChangedFlag = summaryChanged || quotesChanged;
+      if (quoteChangedFlag) {
+        const quotePayload: any = {
+          summary: currQuote.summary || "",
+          quotes: Array.isArray(currQuote.quotes) ? currQuote.quotes : [],
+        };
+        sectionsPayload.quote_section = quotePayload;
       }
     }
 
-    // Info section
-    if (sectionsData.info_section) {
-      const origInfo = originalSections.info_section || {};
-      const currInfo = sectionsData.info_section as any;
-
-      const infoPayload: any = {};
-      if (changed(currInfo.title, origInfo.title)) infoPayload.title = currInfo.title || "";
-      if (changed(currInfo.description, origInfo.description)) infoPayload.description = currInfo.description || "";
-      if (changed(currInfo.summary, origInfo.summary)) infoPayload.summary = currInfo.summary || "";
-      if (changed(currInfo.summary_2, origInfo.summary_2)) infoPayload.summary_2 = currInfo.summary_2 || "";
-      if (changed(currInfo.image_alt_text, origInfo.image_alt_text)) infoPayload.image_alt_text = currInfo.image_alt_text || "";
-
-      if (Object.keys(infoPayload).length > 0) {
-        formData.append("info_section", JSON.stringify(infoPayload));
+    // Info section: detect changes and prepare full object
+    const origInfo = originalSections.info_section || {};
+    const currInfo = sectionsData.info_section as any;
+    let infoChangedFlag = false;
+    if (currInfo) {
+      infoChangedFlag = (
+        changed(currInfo.title, origInfo.title) ||
+        changed(currInfo.description, origInfo.description) ||
+        changed(currInfo.summary, origInfo.summary) ||
+        changed(currInfo.summary_2, origInfo.summary_2) ||
+        changed(currInfo.image_alt_text, origInfo.image_alt_text)
+      );
+      if (infoChangedFlag) {
+        const infoImageValue = typeof currInfo.image === "string" ? currInfo.image : (origInfo.image ?? null);
+        sectionsPayload.info_section = {
+          title: currInfo.title || "",
+          description: currInfo.description || "",
+          summary: currInfo.summary || "",
+          summary_2: currInfo.summary_2 || "",
+          image: infoImageValue,
+          image_alt_text: currInfo.image_alt_text || "",
+        };
       }
       if (currInfo.image instanceof File) {
         formData.append("info_section_image", currInfo.image);
       }
+    }
+
+    // Append combined sections_data if any section changed
+    // Ensure full hero_section and info_section are included when any section changes
+    const anySectionChanged = Object.keys(sectionsPayload).length > 0;
+    if (anySectionChanged) {
+      if (sectionsData.hero_section) {
+        const currHeroFull: any = sectionsData.hero_section as any;
+        const heroImageValueFull = typeof currHeroFull.image === "string" ? currHeroFull.image : (originalSections.hero_section?.image ?? null);
+        sectionsPayload.hero_section = {
+          title: currHeroFull.title || "",
+          description: currHeroFull.description || "",
+          summary: currHeroFull.summary || "",
+          image: heroImageValueFull,
+          image_alt_text: currHeroFull.image_alt_text || "",
+        };
+      }
+      if (sectionsData.info_section) {
+        const currInfoFull: any = sectionsData.info_section as any;
+        const infoImageValueFull = typeof currInfoFull.image === "string" ? currInfoFull.image : (originalSections.info_section?.image ?? null);
+        sectionsPayload.info_section = {
+          title: currInfoFull.title || "",
+          description: currInfoFull.description || "",
+          summary: currInfoFull.summary || "",
+          summary_2: currInfoFull.summary_2 || "",
+          image: infoImageValueFull,
+          image_alt_text: currInfoFull.image_alt_text || "",
+        };
+      }
+    }
+    if (anySectionChanged) {
+      formData.append("sections_data", JSON.stringify(sectionsPayload));
     }
 
     // If nothing changed, avoid sending an empty PATCH
