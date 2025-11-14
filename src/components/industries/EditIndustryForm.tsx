@@ -228,8 +228,13 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
       if (industry.images && industry.images.length > 0) {
         console.log("Loading existing images:", industry.images);
         setExistingImages(industry.images);
-        // Initialize alt text arrays for existing images
-        setExistingImagesAltTexts(new Array(industry.images.length).fill(""));
+        // Initialize alt text arrays for existing images from API if available
+        const mainAlts = (industry as any).image_alt_texts;
+        if (Array.isArray(mainAlts) && mainAlts.length === industry.images.length) {
+          setExistingImagesAltTexts(mainAlts);
+        } else {
+          setExistingImagesAltTexts(new Array(industry.images.length).fill(""));
+        }
       } else {
         console.log("No existing images found in industry data");
       }
@@ -249,6 +254,13 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
           apiSectionsData.challenges_section.description = challengesDescription;
         }
 
+        // Ensure at least one default hero sub-section exists
+        if (!apiSectionsData.hero_section?.sub_sections || apiSectionsData.hero_section.sub_sections.length === 0) {
+          apiSectionsData.hero_section = {
+            ...apiSectionsData.hero_section,
+            sub_sections: [{ title: "", count: 0 }],
+          };
+        }
         setSectionsData(apiSectionsData as IndustrySectionsData);
 
         // Load existing section images
@@ -260,33 +272,46 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
         }
 
         if (apiSectionsData.expertise_section?.sub_sections) {
-          const expertiseImages = apiSectionsData.expertise_section.sub_sections
-            .filter((sub: any) => sub.image)
-            .map((sub: any) => {
-              // Convert relative path to full URL if needed
-              return resolveUrl(sub.image);
-            });
-          setExistingExpertiseImages(expertiseImages);
-          setExistingExpertiseImagesAltTexts(
-            apiSectionsData.expertise_section.sub_sections
-              .filter((sub: any) => sub.image)
-              .map((sub: any) => sub.image_alt_text || "")
-          );
+          const expertiseImages: (string | null)[] = [];
+          const expertiseAlts: string[] = [];
+          let pendingAlt: string | null = null;
+          for (const sub of apiSectionsData.expertise_section.sub_sections as any[]) {
+            if (sub?.type === "image") {
+              const hasImage = !!sub.image;
+              const alt = sub.image_alt_text || "";
+              if (!hasImage && alt) {
+                // Hold this alt for the next real image
+                pendingAlt = alt;
+              } else if (hasImage) {
+                expertiseImages.push(resolveUrl(sub.image));
+                expertiseAlts.push(alt || pendingAlt || "");
+                pendingAlt = null;
+              }
+            }
+          }
+          setExistingExpertiseImages(expertiseImages.filter(Boolean) as string[]);
+          setExistingExpertiseImagesAltTexts(expertiseAlts);
         }
 
         if (apiSectionsData.what_sets_us_apart_section?.sub_sections) {
-          const wsuaImages = apiSectionsData.what_sets_us_apart_section.sub_sections
-            .filter((sub: any) => sub.image)
-            .map((sub: any) => {
-              // Convert relative path to full URL if needed
-              return resolveUrl(sub.image);
-            });
-          setExistingWhatSetsUsApartImages(wsuaImages);
-          setExistingWhatSetsUsApartImagesAltTexts(
-            apiSectionsData.what_sets_us_apart_section.sub_sections
-              .filter((sub: any) => sub.image)
-              .map((sub: any) => sub.image_alt_text || "")
-          );
+          const wsuaImages: (string | null)[] = [];
+          const wsuaAlts: string[] = [];
+          let pendingAlt: string | null = null;
+          for (const sub of apiSectionsData.what_sets_us_apart_section.sub_sections as any[]) {
+            if (sub?.type === "image") {
+              const hasImage = !!sub.image;
+              const alt = sub.image_alt_text || "";
+              if (!hasImage && alt) {
+                pendingAlt = alt;
+              } else if (hasImage) {
+                wsuaImages.push(resolveUrl(sub.image));
+                wsuaAlts.push(alt || pendingAlt || "");
+                pendingAlt = null;
+              }
+            }
+          }
+          setExistingWhatSetsUsApartImages(wsuaImages.filter(Boolean) as string[]);
+          setExistingWhatSetsUsApartImagesAltTexts(wsuaAlts);
         }
       } else {
         // Reset sections data if no existing data
@@ -597,7 +622,7 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
 
         // Add main images alt texts for new uploads
         if (imagesAltTexts.length > 0) {
-          formData.append("images_alt_text", JSON.stringify(imagesAltTexts));
+          formData.append("image_alt_text", JSON.stringify(imagesAltTexts));
         }
       }
 
@@ -619,7 +644,7 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
 
         // Add expertise section images alt texts for new uploads
         if (expertiseSectionImagesAltTexts.length > 0) {
-          formData.append("expertise_section_images_alt_text", JSON.stringify(expertiseSectionImagesAltTexts));
+          formData.append("expertise_section_image_alt_text", JSON.stringify(expertiseSectionImagesAltTexts));
         }
       }
 
@@ -631,8 +656,29 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
 
         // Add what sets us apart section images alt texts for new uploads
         if (whatSetsUsApartSectionImagesAltTexts.length > 0) {
-          formData.append("what_sets_us_apart_section_images_alt_text", JSON.stringify(whatSetsUsApartSectionImagesAltTexts));
+          formData.append("what_sets_us_apart_section_image_alt_text", JSON.stringify(whatSetsUsApartSectionImagesAltTexts));
         }
+      }
+
+      // If no new uploads are provided, but user edited alt texts for existing images, send those too
+      // Main images alt texts (existing images)
+      if (images.length === 0 && existingImages.length > 0 && existingImagesAltTexts.length === existingImages.length) {
+        formData.append("image_alt_text", JSON.stringify(existingImagesAltTexts));
+      }
+
+      // Hero section existing image alt text
+      if (!heroSectionImage && existingHeroImage) {
+        formData.append("hero_section_image_alt_text", existingHeroImageAltText || "");
+      }
+
+      // Expertise section existing images alt texts
+      if (expertiseSectionImages.length === 0 && existingExpertiseImages.length > 0 && existingExpertiseImagesAltTexts.length === existingExpertiseImages.length) {
+        formData.append("expertise_section_image_alt_text", JSON.stringify(existingExpertiseImagesAltTexts));
+      }
+
+      // What sets us apart section existing images alt texts
+      if (whatSetsUsApartSectionImages.length === 0 && existingWhatSetsUsApartImages.length > 0 && existingWhatSetsUsApartImagesAltTexts.length === existingWhatSetsUsApartImages.length) {
+        formData.append("what_sets_us_apart_section_image_alt_text", JSON.stringify(existingWhatSetsUsApartImagesAltTexts));
       }
 
       // Add sections data (convert challenge points back to comma-separated)
@@ -895,6 +941,27 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
                         alt={`Current industry image ${index + 1}`}
                         className="h-32 w-full rounded border object-cover"
                       />
+                      <div>
+                        <label className="text-xs font-medium">Alt Text</label>
+                        <input
+                          type="text"
+                          value={existingImagesAltTexts[index] || ""}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (value.length <= 255) {
+                              const newAltTexts = [...existingImagesAltTexts];
+                              newAltTexts[index] = value;
+                              setExistingImagesAltTexts(newAltTexts);
+                            }
+                          }}
+                          placeholder={`Alt text for image ${index + 1}`}
+                          maxLength={255}
+                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          {255 - (existingImagesAltTexts[index]?.length || 0)} characters remaining
+                        </p>
+                      </div>
                       {/* <div>
                         <label className="text-xs font-medium">Alt Text</label>
                         <input
@@ -934,6 +1001,27 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
                         alt={`New industry image ${index + 1}`}
                         className="h-32 w-full rounded border object-cover"
                       />
+                      <div>
+                        <label className="text-xs font-medium">Alt Text</label>
+                        <input
+                          type="text"
+                          value={imagesAltTexts[index] || ""}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (value.length <= 255) {
+                              const newAltTexts = [...imagesAltTexts];
+                              newAltTexts[index] = value;
+                              setImagesAltTexts(newAltTexts);
+                            }
+                          }}
+                          placeholder={`Alt text for new image ${index + 1}`}
+                          maxLength={255}
+                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          {255 - (imagesAltTexts[index]?.length || 0)} characters remaining
+                        </p>
+                      </div>
                       {/* <div>
                         <label className="text-xs font-medium">Alt Text</label>
                         <input
@@ -998,141 +1086,70 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
 
         {/* Hero Section Tab */}
         <TabsContent value="hero" className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Title</label>
-              <input
-                type="text"
-                value={sectionsData.hero_section.title}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (value.length <= 100) {
-                    updateSection("hero_section", "title", value);
-                  }
-                }}
-                placeholder="Hero section title"
-                maxLength={100}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <p className="text-sm text-gray-500">
-                {100 - (sectionsData.hero_section.title?.length || 0)} characters remaining
-              </p>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">Statistics Sub-sections</label>
+              <button
+                type="button"
+                onClick={addHeroSubSection}
+                className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm"
+              >
+                Add Stat
+              </button>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Image Alt Text</label>
-              <input
-                type="text"
-                value={sectionsData.hero_section.image_alt_text}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (value.length <= 255) {
-                    updateSection("hero_section", "image_alt_text", value);
-                  }
-                }}
-                placeholder="Alt text for hero image"
-                maxLength={255}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <p className="text-sm text-gray-500">
-                {255 - (sectionsData.hero_section.image_alt_text?.length || 0)} characters remaining
-              </p>
-            </div>
-          </div>
+            {(sectionsData.hero_section.sub_sections.length === 0
+              ? [{ title: "", count: 0 }]
+              : sectionsData.hero_section.sub_sections
+            ).map((subSection, index) => (
+              <div key={index} className="grid gap-4 p-4 border rounded-lg">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Title</label>
+                    <input
+                      type="text"
+                      value={subSection.title}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value.length <= 100) {
+                          updateHeroSubSection(index, "title", value);
+                        }
+                      }}
+                      placeholder="Stat title"
+                      maxLength={100}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <p className="text-sm text-gray-500">
+                      {100 - (subSection.title?.length || 0)} characters remaining
+                    </p>
+                  </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Description</label>
-            <textarea
-              value={sectionsData.hero_section.description}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (value.length <= 500) {
-                  updateSection("hero_section", "description", value);
-                }
-              }}
-              placeholder="Hero section description"
-              maxLength={500}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <p className="text-sm text-gray-500">
-              {500 - (sectionsData.hero_section.description?.length || 0)} characters remaining
-            </p>
-          </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Count</label>
+                    <input
+                      type="number"
+                      value={subSection.count}
+                      onChange={(e) => {
+                        const num = parseInt(e.target.value || "0", 10);
+                        updateHeroSubSection(index, "count", isNaN(num) ? 0 : num);
+                      }}
+                      placeholder="Stat count"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Hero Section Image</label>
-
-            {/* Show current hero image */}
-            {existingHeroImage && !heroSectionImage && (
-              <div className="space-y-2 p-3 border rounded-lg">
-                <p className="text-sm text-gray-600">Current Hero Image:</p>
-                <img
-                  src={existingHeroImage}
-                  alt="Current hero section"
-                  className="h-32 w-48 rounded border object-cover"
-                />
-                {/* <div>
-                  <label className="text-xs font-medium">Alt Text</label>
-                  <input
-                    type="text"
-                    value={existingHeroImageAltText}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (value.length <= 255) {
-                        setExistingHeroImageAltText(value);
-                      }
-                    }}
-                    placeholder="Alt text for current hero image"
-                    maxLength={255}
-                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    {255 - existingHeroImageAltText.length} characters remaining
-                  </p>
-                </div> */}
-              </div>
-            )}
-
-            {/* Show new hero image preview */}
-            {heroSectionImage && (
-              <div className="space-y-2 p-3 border rounded-lg">
-                <p className="text-sm text-gray-600">New Hero Image Preview:</p>
-                <img
-                  src={getFilePreview(heroSectionImage)}
-                  alt="New hero section preview"
-                  className="h-32 w-48 rounded border object-cover"
-                />
-                <div>
-                  <label className="text-xs font-medium">Alt Text</label>
-                  <input
-                    type="text"
-                    value={heroSectionImageAltText}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (value.length <= 255) {
-                        setHeroSectionImageAltText(value);
-                      }
-                    }}
-                    placeholder="Alt text for new hero image"
-                    maxLength={255}
-                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    {255 - heroSectionImageAltText.length} characters remaining
-                  </p>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => removeHeroSubSection(index)}
+                    className="px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-sm"
+                  >
+                    Remove
+                  </button>
                 </div>
               </div>
-            )}
-
-            {/* File input for new hero image */}
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleHeroSectionImageChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <p className="text-xs text-gray-500">Select a new image to replace the current one</p>
+            ))}
           </div>
         </TabsContent>
 
@@ -1276,6 +1293,27 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
                         alt={`Current expertise image ${index + 1}`}
                         className="h-32 w-full rounded border object-cover"
                       />
+                      <div>
+                        <label className="text-xs font-medium">Alt Text</label>
+                        <input
+                          type="text"
+                          value={existingExpertiseImagesAltTexts[index] || ""}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (value.length <= 255) {
+                              const newAltTexts = [...existingExpertiseImagesAltTexts];
+                              newAltTexts[index] = value;
+                              setExistingExpertiseImagesAltTexts(newAltTexts);
+                            }
+                          }}
+                          placeholder={`Alt text for current image ${index + 1}`}
+                          maxLength={255}
+                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          {255 - (existingExpertiseImagesAltTexts[index]?.length || 0)} characters remaining
+                        </p>
+                      </div>
                       {/* <div>
                         <label className="text-xs font-medium">Alt Text</label>
                         <input
@@ -1315,6 +1353,27 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
                         alt={`New expertise image ${index + 1}`}
                         className="h-32 w-full rounded border object-cover"
                       />
+                      <div>
+                        <label className="text-xs font-medium">Alt Text</label>
+                        <input
+                          type="text"
+                          value={expertiseSectionImagesAltTexts[index] || ""}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (value.length <= 255) {
+                              const newAltTexts = [...expertiseSectionImagesAltTexts];
+                              newAltTexts[index] = value;
+                              setExpertiseSectionImagesAltTexts(newAltTexts);
+                            }
+                          }}
+                          placeholder={`Alt text for new image ${index + 1}`}
+                          maxLength={255}
+                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          {255 - (expertiseSectionImagesAltTexts[index]?.length || 0)} characters remaining
+                        </p>
+                      </div>
                       {/* <div>
                         <label className="text-xs font-medium">Alt Text</label>
                         <input
@@ -1351,6 +1410,79 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <p className="text-xs text-gray-500">Select new images to replace current ones</p>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">Expertise Sub-sections</label>
+              <button
+                type="button"
+                onClick={addExpertiseSubSection}
+                className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm"
+              >
+                Add Expertise
+              </button>
+            </div>
+
+            {(
+              (sectionsData.expertise_section.sub_sections || [])
+                .filter((sub: any) => sub?.type !== 'image')
+                .filter((sub: any) => (sub?.title?.trim()?.length || 0) > 0 || (sub?.description?.trim()?.length || 0) > 0)
+            ).map((subSection, index) => {
+              const titleInvalid = (subSection.title?.length || 0) > 0 && subSection.title.length < 10;
+              const descInvalid = (subSection.description?.length || 0) > 0 && subSection.description.length < 10;
+              return (
+                <div key={index} className="grid gap-4 p-4 border rounded-lg">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Title</label>
+                      <input
+                        type="text"
+                        value={subSection.title}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          updateExpertiseSubSection(index, "title", value);
+                        }}
+                        placeholder="Expertise title"
+                        maxLength={100}
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${titleInvalid ? 'border-red-500 focus:border-red-500' : 'border-gray-300'}`}
+                      />
+                      <p className={`text-sm ${titleInvalid ? 'text-red-600' : 'text-gray-500'}`}>
+                        {titleInvalid ? `Expertise title ${index + 1} must be 10 characters or more` : `${100 - (subSection.title?.length || 0)} characters remaining`}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Description</label>
+                    <textarea
+                      value={subSection.description}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        updateExpertiseSubSection(index, "description", value);
+                      }}
+                      placeholder="Expertise description"
+                      maxLength={500}
+                      rows={3}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${descInvalid ? 'border-red-500 focus:border-red-500' : 'border-gray-300'}`}
+                    />
+                    <p className={`text-sm ${descInvalid ? 'text-red-600' : 'text-gray-500'}`}>
+                      {descInvalid ? `Expertise description ${index + 1} must be 10 characters or more` : `${500 - (subSection.description?.length || 0)} characters remaining`}
+                    </p>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => removeExpertiseSubSection(index)}
+                      className="px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-sm"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </TabsContent>
 
@@ -1413,6 +1545,27 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
                         alt={`Current WSUA image ${index + 1}`}
                         className="h-32 w-full rounded border object-cover"
                       />
+                      <div>
+                        <label className="text-xs font-medium">Alt Text</label>
+                        <input
+                          type="text"
+                          value={existingWhatSetsUsApartImagesAltTexts[index] || ""}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (value.length <= 255) {
+                              const newAltTexts = [...existingWhatSetsUsApartImagesAltTexts];
+                              newAltTexts[index] = value;
+                              setExistingWhatSetsUsApartImagesAltTexts(newAltTexts);
+                            }
+                          }}
+                          placeholder={`Alt text for current image ${index + 1}`}
+                          maxLength={255}
+                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          {255 - (existingWhatSetsUsApartImagesAltTexts[index]?.length || 0)} characters remaining
+                        </p>
+                      </div>
                       {/* <div>
                         <label className="text-xs font-medium">Alt Text</label>
                         <input
@@ -1452,6 +1605,27 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
                         alt={`New WSUA image ${index + 1}`}
                         className="h-32 w-full rounded border object-cover"
                       />
+                      <div>
+                        <label className="text-xs font-medium">Alt Text</label>
+                        <input
+                          type="text"
+                          value={whatSetsUsApartSectionImagesAltTexts[index] || ""}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (value.length <= 255) {
+                              const newAltTexts = [...whatSetsUsApartSectionImagesAltTexts];
+                              newAltTexts[index] = value;
+                              setWhatSetsUsApartSectionImagesAltTexts(newAltTexts);
+                            }
+                          }}
+                          placeholder={`Alt text for new image ${index + 1}`}
+                          maxLength={255}
+                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          {255 - (whatSetsUsApartSectionImagesAltTexts[index]?.length || 0)} characters remaining
+                        </p>
+                      </div>
                       {/* <div>
                         <label className="text-xs font-medium">Alt Text</label>
                         <input
@@ -1488,6 +1662,79 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <p className="text-xs text-gray-500">Select new images to replace current ones</p>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">What Sets Us Apart Sub-sections</label>
+              <button
+                type="button"
+                onClick={addWhatSetsUsApartSubSection}
+                className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm"
+              >
+                Add Point
+              </button>
+            </div>
+
+            {(
+              (sectionsData.what_sets_us_apart_section.sub_sections || [])
+                .filter((sub: any) => sub?.type !== 'image')
+                .filter((sub: any) => (sub?.title?.trim()?.length || 0) > 0 || (sub?.description?.trim()?.length || 0) > 0)
+            ).map((subSection, index) => {
+              const titleInvalid = (subSection.title?.length || 0) > 0 && subSection.title.length < 10;
+              const descInvalid = (subSection.description?.length || 0) > 0 && subSection.description.length < 10;
+              return (
+                <div key={index} className="grid gap-4 p-4 border rounded-lg">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Title</label>
+                      <input
+                        type="text"
+                        value={subSection.title}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          updateWhatSetsUsApartSubSection(index, "title", value);
+                        }}
+                        placeholder="Point title"
+                        maxLength={100}
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${titleInvalid ? 'border-red-500 focus:border-red-500' : 'border-gray-300'}`}
+                      />
+                      <p className={`text-sm ${titleInvalid ? 'text-red-600' : 'text-gray-500'}`}>
+                        {titleInvalid ? `Point title ${index + 1} must be 10 characters or more` : `${100 - (subSection.title?.length || 0)} characters remaining`}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Description</label>
+                    <textarea
+                      value={subSection.description}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        updateWhatSetsUsApartSubSection(index, "description", value);
+                      }}
+                      placeholder="Point description"
+                      maxLength={500}
+                      rows={3}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${descInvalid ? 'border-red-500 focus:border-red-500' : 'border-gray-300'}`}
+                    />
+                    <p className={`text-sm ${descInvalid ? 'text-red-600' : 'text-gray-500'}`}>
+                      {descInvalid ? `Point description ${index + 1} must be 10 characters or more` : `${500 - (subSection.description?.length || 0)} characters remaining`}
+                    </p>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => removeWhatSetsUsApartSubSection(index)}
+                      className="px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-sm"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </TabsContent>
 
@@ -1533,6 +1780,54 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
             <p className="text-sm text-gray-500">
               {500 - (sectionsData.we_build_section.description?.length || 0)} characters remaining
             </p>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">We Build Sub-sections</label>
+              <button
+                type="button"
+                onClick={addWeBuildSubSection}
+                className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm"
+              >
+                Add Build Item
+              </button>
+            </div>
+
+            {sectionsData.we_build_section.sub_sections.map((subSection, index) => {
+              const descInvalid = (subSection.description?.length || 0) > 0 && subSection.description.length < 10;
+              return (
+                <div key={index} className="grid gap-4 p-4 border rounded-lg">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Description</label>
+                    <textarea
+                      value={subSection.description}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        updateWeBuildSubSection(index, "description", value);
+                      }}
+                      placeholder="What we build description"
+                      maxLength={500}
+                      rows={3}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${descInvalid ? 'border-red-500 focus:border-red-500' : 'border-gray-300'}`}
+                    />
+                    <p className={`text-sm ${descInvalid ? 'text-red-600' : 'text-gray-500'}`}>
+                      {descInvalid ? `Build item description ${index + 1} must be 10 characters or more` : `${500 - (subSection.description?.length || 0)} characters remaining`}
+                    </p>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => removeWeBuildSubSection(index)}
+                      className="px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-sm"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </TabsContent>
       </Tabs>

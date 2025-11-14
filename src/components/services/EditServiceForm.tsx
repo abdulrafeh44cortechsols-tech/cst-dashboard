@@ -14,6 +14,7 @@ import { Loader2 } from "lucide-react";
 import type { Service, ServiceSectionsData } from "@/types/types";
 import { useServices } from "@/hooks/useServices";
 import { getDefaultSectionsData } from "@/data/exampleServiceData";
+import { getImageUrl } from "@/lib/utils";
 
 interface EditServiceFormProps {
   service: Service | null;
@@ -23,7 +24,7 @@ interface EditServiceFormProps {
 
 export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormProps) {
   const { editService } = useServices();
-  
+
   // Basic service fields
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -33,6 +34,18 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
 
   // Sections data
   const [sectionsData, setSectionsData] = useState<ServiceSectionsData>(getDefaultSectionsData());
+
+
+  const SECTIONS_WITHOUT_IMAGES = [
+    'about_section',
+    'why_choose_us_section',
+    'what_we_offer_section',
+    'perfect_business_section',
+    'design_section',
+    'team_section',
+    'tools_used_section',
+    'client_feedback_section'
+  ];
 
   // File states for each section
   const [sectionFiles, setSectionFiles] = useState<Record<string, File[]>>({
@@ -87,7 +100,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
       setMetaTitle(service.meta_title);
       setMetaDescription(service.meta_description);
       setIsActive(service.is_active);
-      
+
       // Load sections data if it exists
       if (service.sections_data) {
         setSectionsData(service.sections_data);
@@ -115,7 +128,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
       ...prev,
       [sectionKey]: {
         ...prev[sectionKey],
-        sub_sections: prev[sectionKey].sub_sections.map((sub, i) => 
+        sub_sections: prev[sectionKey].sub_sections.map((sub, i) =>
           i === index ? { ...sub, [field]: value } : sub
         )
       }
@@ -127,14 +140,14 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
       ...prev,
       [sectionKey]: {
         ...prev[sectionKey],
-        sub_sections: [...prev[sectionKey].sub_sections, 
-          sectionKey === 'team_section' 
-            ? { name: "", designation: "", experience: "", summary: "" }
-            : sectionKey === 'client_feedback_section'
+        sub_sections: [...prev[sectionKey].sub_sections,
+        sectionKey === 'team_section'
+          ? { name: "", designation: "", experience: "", summary: "" }
+          : sectionKey === 'client_feedback_section'
             ? { name: "", designation: "", comment: "", stars: 5 }
             : sectionKey === 'what_we_offer_section'
-            ? { title: "", points: [""] }
-            : { title: "", description: "" }
+              ? { title: "", points: [""] }
+              : { title: "", description: "" }
         ]
       }
     }));
@@ -213,8 +226,8 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
       ...prev,
       [sectionKey]: {
         ...prev[sectionKey],
-        sub_sections: prev[sectionKey].sub_sections.map((sub, i) => 
-          i === subSectionIndex 
+        sub_sections: prev[sectionKey].sub_sections.map((sub, i) =>
+          i === subSectionIndex
             ? { ...sub, points: [...(sub.points || []), ""] }
             : sub
         )
@@ -227,8 +240,8 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
       ...prev,
       [sectionKey]: {
         ...prev[sectionKey],
-        sub_sections: prev[sectionKey].sub_sections.map((sub, i) => 
-          i === subSectionIndex 
+        sub_sections: prev[sectionKey].sub_sections.map((sub, i) =>
+          i === subSectionIndex
             ? { ...sub, points: sub.points?.filter((_, idx) => idx !== pointIndex) || [] }
             : sub
         )
@@ -241,14 +254,14 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
       ...prev,
       [sectionKey]: {
         ...prev[sectionKey],
-        sub_sections: prev[sectionKey].sub_sections.map((sub, i) => 
-          i === subSectionIndex 
-            ? { 
-                ...sub, 
-                points: sub.points?.map((point, idx) => 
-                  idx === pointIndex ? value : point
-                ) || []
-              }
+        sub_sections: prev[sectionKey].sub_sections.map((sub, i) =>
+          i === subSectionIndex
+            ? {
+              ...sub,
+              points: sub.points?.map((point, idx) =>
+                idx === pointIndex ? value : point
+              ) || []
+            }
             : sub
         )
       }
@@ -333,7 +346,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
 
   const scrollToTab = (tabValue: string) => {
     console.log('Attempting to scroll to tab:', tabValue);
-    
+
     // Try multiple selectors to find the tab trigger
     const selectors = [
       `button[value="${tabValue}"]`,
@@ -341,7 +354,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
       `[data-state][value="${tabValue}"]`,
       `.cursor-pointer[value="${tabValue}"]`
     ];
-    
+
     let tabTrigger: HTMLElement | null = null;
     for (const selector of selectors) {
       tabTrigger = document.querySelector(selector) as HTMLElement;
@@ -350,14 +363,14 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
         break;
       }
     }
-    
+
     if (tabTrigger) {
       // Force click the tab
       tabTrigger.click();
-      
+
       // Scroll to top immediately
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      
+
       // Then scroll to the tab content after a delay
       setTimeout(() => {
         const activeTabPanel = document.querySelector('[role="tabpanel"][data-state="active"]');
@@ -455,14 +468,14 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
     try {
       // Create FormData object
       const formData = new FormData();
-      
+
       // Add basic fields (only if they have values)
       if (title.trim()) formData.append("title", title);
       if (description.trim()) formData.append("description", description);
       formData.append("is_active", isActive.toString());
       if (metaTitle.trim()) formData.append("meta_title", metaTitle);
       if (metaDescription.trim()) formData.append("meta_description", metaDescription);
-      
+
       // Process sections data - convert points to description for what_we_offer_section
       const processedSectionsData = { ...sectionsData };
       Object.keys(processedSectionsData).forEach(sectionKey => {
@@ -474,7 +487,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
           }));
         }
       });
-      
+
       // Clean sections data - remove empty sections and sub-sections
       const cleanedSectionsData: any = {};
       Object.entries(processedSectionsData).forEach(([sectionKey, section]) => {
@@ -482,40 +495,40 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
         const hasTitle = section.title && section.title.trim() !== '';
         const hasDescription = section.description && section.description.trim() !== '';
         const hasSubSections = section.sub_sections && section.sub_sections.length > 0;
-        
+
         if (hasTitle || hasDescription || hasSubSections) {
           // Clean sub-sections - only include non-empty ones
           const cleanedSubSections = section.sub_sections.filter((subSection: any) => {
             if (sectionKey === 'team_section') {
-              return subSection.name?.trim() || subSection.designation?.trim() || 
-                     subSection.experience?.trim() || subSection.summary?.trim();
+              return subSection.name?.trim() || subSection.designation?.trim() ||
+                subSection.experience?.trim() || subSection.summary?.trim();
             } else if (sectionKey === 'client_feedback_section') {
-              return subSection.name?.trim() || subSection.designation?.trim() || 
-                     subSection.comment?.trim() || subSection.stars;
+              return subSection.name?.trim() || subSection.designation?.trim() ||
+                subSection.comment?.trim() || subSection.stars;
             } else if (sectionKey === 'what_we_offer_section') {
               return subSection.title?.trim() || subSection.description?.trim();
             } else {
               return subSection.title?.trim() || subSection.description?.trim();
             }
           });
-          
+
           cleanedSectionsData[sectionKey] = {
             ...section,
             sub_sections: cleanedSubSections
           };
         }
       });
-      
+
       // Only add sections data if there's meaningful content
       if (Object.keys(cleanedSectionsData).length > 0) {
         formData.append("sections_data", JSON.stringify(cleanedSectionsData));
       }
-      
+
       // Add files for each section (only if files exist)
       // Exclude 'image_files' as it's handled separately below
       Object.entries(sectionFiles).forEach(([key, files]) => {
         if (key === 'image_files') return; // Skip image_files here, handled separately
-        
+
         if (files && files.length > 0) {
           if (key === 'hero_section_image_file') {
             // Hero section expects a single file
@@ -531,10 +544,10 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
 
       // Add sub-section icons to the corresponding section files (only if files exist)
       Object.entries(subSectionIcons).forEach(([sectionKey, subSectionFiles]) => {
-        const sectionFileKey = sectionKey === 'hero_section' 
-          ? 'hero_section_image_file' 
+        const sectionFileKey = sectionKey === 'hero_section'
+          ? 'hero_section_image_file'
           : `${sectionKey}_image_files`;
-        
+
         Object.values(subSectionFiles).forEach(files => {
           if (files && files.length > 0) {
             files.forEach(file => {
@@ -561,7 +574,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
           });
         }
       });
-      
+
       // Only add general images if they exist
       if (sectionFiles.image_files && sectionFiles.image_files.length > 0) {
         sectionFiles.image_files.forEach(file => {
@@ -585,8 +598,8 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
       Object.entries(subSectionIconAltTexts).forEach(([sectionKey, subSectionAltTexts]) => {
         const altTextsArray = Object.values(subSectionAltTexts).flat().filter(text => text);
         if (altTextsArray.length > 0) {
-          const sectionFileKey = sectionKey === "hero_section" 
-            ? "hero_section_image_file" 
+          const sectionFileKey = sectionKey === "hero_section"
+            ? "hero_section_image_file"
             : `${sectionKey}_image_files`;
           formData.append(`${sectionFileKey}_subsection_alt_text`, JSON.stringify(altTextsArray));
         }
@@ -609,12 +622,12 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
       onSaved?.();
     } catch (error: any) {
       console.error("Service update error:", error);
-      
+
       // Check for field-specific validation errors from backend
       const errorDetails = error.response?.data?.error_details;
       if (errorDetails) {
         console.log("Field validation errors:", errorDetails);
-        
+
         // Show field-specific errors
         if (errorDetails.title) {
           const errorMsg = Array.isArray(errorDetails.title) ? errorDetails.title[0] : errorDetails.title;
@@ -649,13 +662,13 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
         }
       } else {
         // Generic error without field details
-        const errorMessage = error.response?.data?.message 
-          || error.response?.data?.error 
-          || error.message 
+        const errorMessage = error.response?.data?.message
+          || error.response?.data?.error
+          || error.message
           || "Failed to update service. Please try again.";
         toast.error(errorMessage);
       }
-      
+
       // Log detailed error for debugging
       if (error.response?.data) {
         console.error("Backend error details:", error.response.data);
@@ -691,7 +704,11 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
                 value={subSection.designation}
                 onChange={(e) => updateSubSection(sectionKey, index, 'designation', e.target.value)}
                 placeholder="Job title"
+                maxLength={100}
               />
+              <p className="text-sm text-muted-foreground mt-1">
+                {100 - (subSection.designation?.length || 0)} characters remaining
+              </p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -701,22 +718,64 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
                 value={subSection.experience}
                 onChange={(e) => updateSubSection(sectionKey, index, 'experience', e.target.value)}
                 placeholder="e.g., 5+ years"
+                maxLength={100}
               />
+              <p className="text-sm text-muted-foreground mt-1">
+                {100 - (subSection.experience?.length || 0)} characters remaining
+              </p>
             </div>
             <div className="space-y-2">
               <Label>Summary</Label>
               <Textarea
                 rows={3}
                 value={subSection.summary}
-                onChange={(e) => updateSubSection(sectionKey, index, 'summary', e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value.length <= 100) {
+                    updateSubSection(sectionKey, index, 'summary', value);
+                  }
+                }}
                 placeholder="Brief description"
+                maxLength={100}
               />
+              <p className="text-sm text-muted-foreground mt-1">
+                {100 - (subSection.summary?.length || 0)} characters remaining
+              </p>
             </div>
           </div>
-          
+
+          {/* Team Member Image Upload */}
           {/* Team Member Image Upload */}
           <div className="space-y-2">
             <Label>Team Member Photo</Label>
+            {subSection.image && (
+              <div className="mt-2">
+                <Label className="text-sm font-medium">Current Photo</Label>
+                <img
+                  src={getImageUrl(subSection.image)}
+                  alt={`${subSection.name}'s photo`}
+                  className="h-32 w-32 rounded-full border object-cover mt-2 bg-muted/50 p-2"
+                />
+              </div>
+            )}
+            <Label>Team Member Photo Alt Text</Label>
+            <Input
+              value={teamMemberImageAltTexts[index]?.[0] || ""}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value.length <= 255) {
+                  setTeamMemberImageAltTexts((prev) => ({
+                    ...prev,
+                    [index]: [value],
+                  }));
+                }
+              }}
+              placeholder="Enter alt text for team member photo"
+              maxLength={255}
+            />
+            <p className="text-sm text-muted-foreground mt-1">
+              {255 - (teamMemberImageAltTexts[index]?.[0]?.length || 0)} characters remaining
+            </p>
             <Input
               type="file"
               accept="image/*"
@@ -727,7 +786,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
               Upload a photo for this team member
             </p>
           </div>
-          
+
           <Button
             type="button"
             variant="destructive"
@@ -750,7 +809,11 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
                 value={subSection.name}
                 onChange={(e) => updateSubSection(sectionKey, index, 'name', e.target.value)}
                 placeholder="Client name"
+                maxLength={50}
               />
+              <p className="text-sm text-muted-foreground mt-1">
+                {50 - (subSection.name?.length || 0)} characters remaining
+              </p>
             </div>
             <div className="space-y-2">
               <Label>Designation</Label>
@@ -758,37 +821,81 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
                 value={subSection.designation}
                 onChange={(e) => updateSubSection(sectionKey, index, 'designation', e.target.value)}
                 placeholder="Job title"
+                maxLength={50}
               />
+              <p className="text-sm text-muted-foreground mt-1">
+                {50 - (subSection.designation?.length || 0)} characters remaining
+              </p>
             </div>
           </div>
           <div className="space-y-2">
             <Label>Comment</Label>
             <Textarea
               value={subSection.comment}
-              onChange={(e) => updateSubSection(sectionKey, index, 'comment', e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value.length <= 100) {
+                  updateSubSection(sectionKey, index, 'comment', value);
+                }
+              }}
               placeholder="Client feedback"
               rows={3}
+              maxLength={1000}
             />
+            <p className="text-sm text-muted-foreground mt-1">
+              {1000 - (subSection.comment?.length || 0)} characters remaining
+            </p>
           </div>
           <div className="space-y-2">
             <Label>Stars (1-5)</Label>
             <Input
               type="number"
-              min="1"
-              max="5"
-              value={subSection.stars}
-              onChange={(e) => updateSubSection(sectionKey, index, 'stars', parseInt(e.target.value))}
+              min={1}
+              max={5}
+              step="0.1"
+              value={subSection.stars === null || subSection.stars === undefined ? '' : subSection.stars}
+              onChange={(e) => {
+                const raw = e.target.value;
+                if (raw === '') {
+                  updateSubSection(sectionKey, index, 'stars', '');
+                  return;
+                }
+                const value = parseFloat(raw);
+                if (!Number.isNaN(value) && value >= 1 && value <= 5) {
+                  updateSubSection(sectionKey, index, 'stars', value);
+                }
+              }}
             />
+            <p className="text-sm text-muted-foreground mt-1">
+              Enter a rating between 1 and 5. Decimals allowed (e.g., 4.5).
+            </p>
           </div>
-          
+
           {/* Client Photo Upload */}
           <div className="space-y-2">
-            <Label>Client Photo</Label>
+            <Label>Client Photo Alt Text</Label>
+            <Input
+              value={clientFeedbackImageAltTexts[index]?.[0] || ""}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value.length <= 255) {
+                  setClientFeedbackImageAltTexts((prev) => ({
+                    ...prev,
+                    [index]: [value],
+                  }));
+                }
+              }}
+              placeholder="Enter alt text for client photo"
+              maxLength={255}
+              />
+            <p className="text-sm text-muted-foreground mt-1">
+              {255 - (clientFeedbackImageAltTexts[index]?.[0]?.length || 0)} characters remaining
+            </p>
             {subSection.image && (
               <div className="mt-2">
                 <Label className="text-sm font-medium">Current Client Photo</Label>
                 <img
-                  src={subSection.image}
+                  src={getImageUrl(subSection.image)}
                   alt="Current Client Photo"
                   className="h-32 w-32 rounded-full border object-cover mt-2 bg-muted/50 p-2"
                 />
@@ -804,7 +911,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
               Upload a photo for this client
             </p>
           </div>
-          
+
           <Button
             type="button"
             variant="destructive"
@@ -826,9 +933,13 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
               value={subSection.title}
               onChange={(e) => updateSubSection(sectionKey, index, 'title', e.target.value)}
               placeholder="Sub-section title"
+              maxLength={70}
             />
+            <p className="text-sm text-muted-foreground mt-1">
+              {70 - (subSection.title?.length || 0)} characters remaining
+            </p>
           </div>
-          
+
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <Label>Points</Label>
@@ -862,15 +973,37 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
               ))}
             </div>
           </div>
-          
+
           {/* Sub-section Icon Upload */}
           <div className="space-y-2">
+            <Label>Sub-section Icon Alt Text</Label>
+            <Input
+              value={subSectionIconAltTexts[sectionKey]?.[index]?.[0] || ""}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value.length <= 255) {
+                  setSubSectionIconAltTexts((prev) => ({
+                    ...prev,
+                    [sectionKey]: {
+                      ...prev[sectionKey],
+                      [index]: [value],
+                    },
+                  }));
+                }
+              }}
+              placeholder="Enter alt text for sub-section icon"
+              maxLength={255}
+            />
+            <p className="text-sm text-muted-foreground mt-1">
+              {255 - (subSectionIconAltTexts[sectionKey]?.[index]?.[0]?.length || 0)} characters remaining
+            </p>
+
             <Label>Sub-section Icon</Label>
             {subSection.image && (
               <div className="mt-2">
                 <Label className="text-sm font-medium">Current Icon</Label>
                 <img
-                  src={subSection.image}
+                  src={getImageUrl(subSection.image)}
                   alt="Current Sub-section Icon"
                   className="h-24 w-24 rounded border object-cover mt-2 bg-muted/50 p-2"
                 />
@@ -886,7 +1019,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
               Upload an icon for this sub-section
             </p>
           </div>
-          
+
           <Button
             type="button"
             variant="destructive"
@@ -908,28 +1041,58 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
               value={subSection.title}
               onChange={(e) => updateSubSection(sectionKey, index, 'title', e.target.value)}
               placeholder="Sub-section title"
+              maxLength={70}
             />
+            <p className="text-sm text-muted-foreground mt-1">
+              {70 - (subSection.title?.length || 0)} characters remaining
+            </p>
           </div>
           <div className="space-y-2">
             <Label>Description</Label>
             <Textarea
-            rows={3}
+              rows={3}
               value={subSection.description}
               onChange={(e) => updateSubSection(sectionKey, index, 'description', e.target.value)}
               placeholder="Sub-section description"
+              maxLength={200}
             />
+            <p className="text-sm text-muted-foreground mt-1">
+              {200 - (subSection.description?.length || 0)} characters remaining
+            </p>
           </div>
         </div>
-        
+
         {/* Sub-section Icon Upload - Only for non-hero sections */}
         {sectionKey !== 'hero_section' && (
           <div className="space-y-2">
+            <Label>Sub-section Icon Alt Text</Label>
+            <Input
+              value={subSectionIconAltTexts[sectionKey]?.[index]?.[0] || ""}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value.length <= 255) {
+                  setSubSectionIconAltTexts((prev) => ({
+                    ...prev,
+                    [sectionKey]: {
+                      ...prev[sectionKey],
+                      [index]: [value],
+                    },
+                  }));
+                }
+              }}
+              placeholder="Enter alt text for sub-section icon"
+              maxLength={255}
+            />
+            <p className="text-sm text-muted-foreground mt-1">
+              {255 - (subSectionIconAltTexts[sectionKey]?.[index]?.[0]?.length || 0)} characters remaining
+            </p>
+
             <Label>Sub-section Icon</Label>
             {subSection.image && (
               <div className="mt-2">
                 <Label className="text-sm font-medium">Current Icon</Label>
                 <img
-                  src={subSection.image}
+                  src={getImageUrl(subSection.image)}
                   alt="Current Sub-section Icon"
                   className="h-24 w-24 rounded border object-cover mt-2 bg-muted/50 p-2"
                 />
@@ -946,7 +1109,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
             </p>
           </div>
         )}
-        
+
         <Button
           type="button"
           variant="destructive"
@@ -960,11 +1123,11 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
   };
 
   const renderSection = (sectionKey: keyof ServiceSectionsData, section: any) => {
-    // Get the corresponding file upload key for this section
-    const fileUploadKey = sectionKey === 'hero_section' 
-      ? 'hero_section_image_file' 
-      : `${sectionKey}_image_files`;
 
+    if (sectionKey === 'hero_section') {
+      return null;
+    }
+    const fileUploadKey = `${sectionKey}_image_files`;
     return (
       <Card key={sectionKey} className="mb-4">
         <CardHeader>
@@ -974,6 +1137,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4">
+
             <div className="space-y-2">
               <Label>Section Title</Label>
               <Input
@@ -991,6 +1155,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
                 {100 - (section.title?.length || 0)} characters remaining
               </p>
             </div>
+
             <div className="space-y-2">
               <Label>Section Description</Label>
               <Textarea
@@ -1009,9 +1174,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
                 {1000 - (section.description?.length || 0)} characters remaining
               </p>
             </div>
-            
-            {/* File Upload - Only for hero section */}
-            {sectionKey === 'hero_section' && (
+            {!SECTIONS_WITHOUT_IMAGES.includes(sectionKey) && (
               <div className="space-y-2">
                 <Label>Section Image Alt Text</Label>
                 <Input
@@ -1031,7 +1194,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
                 <p className="text-sm text-muted-foreground mt-1">
                   {255 - (sectionAltTexts[fileUploadKey]?.[0]?.length || 0)} characters remaining
                 </p>
-                
+
                 <Label>Section Image</Label>
                 <Input
                   type="file"
@@ -1042,20 +1205,18 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
                 <p className="text-sm text-gray-500 mt-1">
                   Upload a single image for the hero section
                 </p>
-                
-                {/* Existing Hero Section Image */}
+
                 {section.image && (
                   <div className="mt-2">
                     <Label className="text-sm font-medium">Current Hero Image</Label>
                     <img
-                      src={section.image}
+                      src={getImageUrl(section.image)}
                       alt="Current Hero Section Image"
                       className="h-40 w-auto rounded border object-cover mt-2 bg-muted/50 p-2"
                     />
                   </div>
                 )}
 
-                {/* New Hero Section Image Preview */}
                 {sectionFiles[fileUploadKey]?.length > 0 && (
                   <div className="mt-2">
                     <Label className="text-sm font-medium">New Hero Image to Upload</Label>
@@ -1069,27 +1230,29 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
               </div>
             )}
           </div>
-          
-          <Separator />
-          
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <Label>Sub-sections</Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => addSubSection(sectionKey)}
-              >
-                Add Sub-section
-              </Button>
+          <>
+            <Separator />
+
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <Label>Sub-sections</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => addSubSection(sectionKey)}
+                >
+                  Add Sub-section
+                </Button>
+              </div>
+              <div className="space-y-4">
+                {section.sub_sections.map((subSection: any, index: number) =>
+                  renderSubSection(sectionKey, subSection, index)
+                )}
+              </div>
             </div>
-            <div className="space-y-4">
-              {section.sub_sections.map((subSection: any, index: number) => 
-                renderSubSection(sectionKey, subSection, index)
-              )}
-            </div>
-          </div>
+
+          </>
         </CardContent>
       </Card>
     );
@@ -1201,7 +1364,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
 
         <TabsContent value="sections" className="space-y-4">
           <div className="space-y-4">
-            {Object.entries(sectionsData).map(([sectionKey, section]) => 
+            {Object.entries(sectionsData).map(([sectionKey, section]) =>
               renderSection(sectionKey as keyof ServiceSectionsData, section)
             )}
           </div>
@@ -1221,7 +1384,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
               <p className="text-sm text-gray-500 mt-1">
                 Upload general images for this service
               </p>
-              
+
               {/* Existing Images from Service */}
               {service?.images && service.images.length > 0 && (
                 <div className="mt-4 space-y-4">
@@ -1229,7 +1392,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
                   {service.images.map((imageUrl, idx) => (
                     <div key={`existing-${idx}`} className="space-y-2 p-4 border rounded-lg bg-muted/50">
                       <img
-                        src={imageUrl}
+                        src={getImageUrl(imageUrl)}
                         alt={`Existing Service Image ${idx + 1}`}
                         className="h-40 w-auto rounded border object-cover"
                       />

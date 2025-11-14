@@ -10,15 +10,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { X, Plus, Trash2, Loader2 } from "lucide-react";
+import { X, Plus, Trash2, Loader2, ImageIcon, Upload } from "lucide-react";
 import { toast } from "sonner";
 import type { Project, Tag } from "@/types/types";
 import { useProjects } from "@/hooks/useProjects";
 import { useTags } from "@/hooks/useTags";
+import { getImageUrl } from "@/lib/utils";
 
 interface ProjectGoalSubSection {
   title: string;
   image_alt_text?: string;
+  image?: string;
 }
 
 interface ProjectGoalApproach {
@@ -46,6 +48,7 @@ interface ProjectSectionsData {
     title: string;
     description: string;
     sub_sections: any[];
+    hero_main_image?: string;
   };
   about_section: {
     title: string;
@@ -148,8 +151,13 @@ export function EditProjectForm({ project, onCancel, onSaved }: EditProjectFormP
       // Load sections data if available (API returns 'sections', not 'sections_data')
       const sections = project.sections_data || (project as any).sections;
       if (sections) {
+        const heroSection = sections.hero_section || { title: "", description: "", sub_sections: [] };
+        if (sections.hero_section?.hero_main_image) {
+          heroSection.hero_main_image = sections.hero_section.hero_main_image;
+        }
+        
         setSectionsData({
-          hero_section: sections.hero_section || { title: "", description: "", sub_sections: [] },
+          hero_section: heroSection,
           about_section: sections.about_section || { title: "", description: "" },
           project_goals_section: sections.project_goals_section || { title: "", sub_sections: [], approaches: [] },
           technologies_used_section: sections.technologies_used_section || { title: "", description: "", sub_sections: [] },
@@ -186,6 +194,25 @@ export function EditProjectForm({ project, onCancel, onSaved }: EditProjectFormP
   const handleMainImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setImageFile(file);
+    }
+  };
+
+  const handleHeroImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Create an object URL for preview
+      const objectUrl = URL.createObjectURL(file);
+      
+      setSectionsData(prev => ({
+        ...prev,
+        hero_section: {
+          ...prev.hero_section,
+          hero_main_image: objectUrl
+        }
+      }));
+      
+      // Store the file for submission
       setImageFile(file);
     }
   };
@@ -255,7 +282,44 @@ export function EditProjectForm({ project, onCancel, onSaved }: EditProjectFormP
       const currentSections = project.sections_data || (project as any).sections;
       const sectionsChanged = JSON.stringify(sectionsData) !== JSON.stringify(currentSections);
 
-      let finalSectionsData = sectionsData;
+      // Create a deep copy of sectionsData to avoid mutating the original state
+      let finalSectionsData = JSON.parse(JSON.stringify(sectionsData));
+
+      // Handle hero section main image (the one shown at the top of the hero section)
+      if (imageFile) {
+        // Append the main hero image file
+        formData.append('hero_section_image_files', imageFile);
+        // Add empty alt text for the main hero image
+        formData.append('hero_section_image_alt_text', '');
+      }
+      
+      // Handle the hero_main_image in sections_data (if it's a new upload)
+      if (finalSectionsData.hero_section.hero_main_image && 
+          finalSectionsData.hero_section.hero_main_image.startsWith('blob:')) {
+        try {
+          // If we have a blob URL, convert it to a file and add it
+          const response = await fetch(finalSectionsData.hero_section.hero_main_image);
+          const blob = await response.blob();
+          const file = new File([blob], 'hero-section-main-image.jpg', { type: blob.type });
+          
+          // Append the file to form data with the correct field name
+          formData.append('hero_section_image_files', file);
+          
+          // Add empty alt text for the main hero image
+          formData.append('hero_section_image_alt_text', '');
+          
+          // Clear the blob URL from the sections_data to avoid sending it in the JSON
+          finalSectionsData = {
+            ...finalSectionsData,
+            hero_section: {
+              ...finalSectionsData.hero_section,
+              hero_main_image: ''
+            }
+          };
+        } catch (error) {
+          console.error('Error processing hero section main image:', error);
+        }
+      }
 
       // Send existing hero images alt text if they've been updated
       if (existingHeroImages.length > 0) {
@@ -510,7 +574,35 @@ export function EditProjectForm({ project, onCancel, onSaved }: EditProjectFormP
                 </p>
               </div>
               
-              {/* Hero Images Section */}
+      
+              {/* <div className="space-y-2">
+                <Label>Hero Main Image</Label>
+                {sectionsData.hero_section.hero_main_image && (
+                  <div className="mt-2">
+                    <img
+                      src={getImageUrl(sectionsData.hero_section.hero_main_image)}
+                      alt="Main hero image"
+                      className="h-48 w-full max-w-2xl rounded border object-cover mt-2"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = '/placeholder.svg';
+                        target.alt = 'Image not available';
+                      }}
+                    />
+                  </div>
+                )}
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleHeroImageChange}
+                  className="cursor-pointer"
+                />
+                <p className="text-sm text-muted-foreground mt-1">
+                  Upload the main hero image for this project
+                </p>
+              </div>
+
+      
               <div className="space-y-2">
                 <Label>Hero Images</Label>
                 {existingHeroImages.length > 0 && heroSectionImages.length === 0 && (
@@ -622,7 +714,7 @@ export function EditProjectForm({ project, onCancel, onSaved }: EditProjectFormP
                     </div>
                   </div>
                 )}
-              </div>
+              </div> */}
             </CardContent>
           </Card>
 
@@ -773,16 +865,50 @@ export function EditProjectForm({ project, onCancel, onSaved }: EditProjectFormP
                     </div>
 
                     {/* Show existing image if available */}
-                    {subSection.image && (
-                      <div className="mb-3 flex justify-center border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors">
-                        {/* <Label>Current Image</Label> */}
-                        <img
-                          src={subSection.image}
-                          alt={subSection.image_alt_text || `Goal ${index + 1}`}
-                          className="h-32 w-48 rounded border object-cover"
-                        />
-                      </div>
-                    )}
+                    <div className="space-y-2">
+                      <Label>Image</Label>
+                      {subSection.image ? (
+                        <div className="mb-3 flex flex-col items-center border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors">
+                          <img
+                            src={getImageUrl(subSection.image)}
+                            alt={subSection.image_alt_text || `Goal ${index + 1}`}
+                            className="h-32 w-48 rounded border object-cover"
+                            onError={(e) => {
+                              // If image fails to load, show a placeholder
+                              const target = e.target as HTMLImageElement;
+                              target.src = '/placeholder.svg';
+                              target.alt = 'Image not available';
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center h-32 border-2 border-dashed rounded-lg bg-muted/50">
+                          <span className="text-muted-foreground text-sm">No image uploaded</span>
+                        </div>
+                      )}
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const newSubSections = [...sectionsData.project_goals_section.sub_sections];
+                            newSubSections[index] = { 
+                              ...newSubSections[index], 
+                              image: URL.createObjectURL(file) 
+                            };
+                            setSectionsData(prev => ({
+                              ...prev,
+                              project_goals_section: {
+                                ...prev.project_goals_section,
+                                sub_sections: newSubSections
+                              }
+                            }));
+                          }
+                        }}
+                        className="cursor-pointer"
+                      />
+                    </div>
 
                     <div className="space-y-2">
                       <Label>Image Alt Text</Label>
@@ -820,7 +946,7 @@ export function EditProjectForm({ project, onCancel, onSaved }: EditProjectFormP
                         project_goals_section: {
                           ...prev.project_goals_section,
                           approaches: [
-                            ...prev.project_goals_section.approaches,
+                            ...(prev.project_goals_section.approaches || []),
                             { title: "", description: "", additional_info: [""] },
                           ],
                         },
@@ -832,7 +958,7 @@ export function EditProjectForm({ project, onCancel, onSaved }: EditProjectFormP
                   </Button>
                 </div>
 
-                {(sectionsData.project_goals_section.approaches || []).map((approach: any, index: number) => (
+                {((sectionsData.project_goals_section?.approaches || []) as any[]).map((approach: any, index: number) => (
                   <div key={index} className="p-4 border rounded-lg space-y-4">
                     <div className="flex justify-between items-center">
                       <h4 className="font-medium">Approach {index + 1}</h4>

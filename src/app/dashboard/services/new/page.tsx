@@ -27,6 +27,7 @@ import ReCAPTCHA from "react-google-recaptcha";
 import { Save, Trash2, RefreshCw, AlertCircle } from "lucide-react";
 import type { ServiceSectionsData } from "@/types/types";
 import { getDefaultSectionsData } from "@/data/exampleServiceData";
+import { getImageUrl } from "@/lib/utils";
 
 export default function AddServicePage() {
   const router = useRouter();
@@ -48,6 +49,17 @@ export default function AddServicePage() {
   const [sectionsData, setSectionsData] = useState<ServiceSectionsData>(
     getDefaultSectionsData()
   );
+    const SECTIONS_WITHOUT_IMAGES = [
+    'about_section',
+    'why_choose_us_section',
+    'what_we_offer_section',
+    'perfect_business_section',
+    'design_section',
+    'team_section',
+    'tools_used_section',
+    'client_feedback_section'
+  ];
+
 
   // File states for each section
   const [sectionFiles, setSectionFiles] = useState<Record<string, File[]>>({
@@ -896,15 +908,15 @@ export default function AddServicePage() {
                 value={subSection.experience}
                 onChange={(e) => {
                   const value = e.target.value;
-                  if (value.length <= 50) {
+                  if (value.length <= 100) {
                     updateSubSection(sectionKey, index, "experience", value);
                   }
                 }}
                 placeholder="e.g., 5+ years"
-                maxLength={50}
+                maxLength={100}
               />
               <p className="text-sm text-muted-foreground mt-1">
-                {50 - (subSection.experience?.length || 0)} characters remaining
+                {100 - (subSection.experience?.length || 0)} characters remaining
               </p>
             </div>
             <div className="space-y-2">
@@ -913,21 +925,39 @@ export default function AddServicePage() {
                 value={subSection.summary}
                 onChange={(e) => {
                   const value = e.target.value;
-                  if (value.length <= 200) {
+                  if (value.length <= 100) {
                     updateSubSection(sectionKey, index, "summary", value);
                   }
                 }}
                 placeholder="Brief description"
-                maxLength={200}
+                maxLength={100}
               />
               <p className="text-sm text-muted-foreground mt-1">
-                {200 - (subSection.summary?.length || 0)} characters remaining
+                {100 - (subSection.summary?.length || 0)} characters remaining
               </p>
             </div>
           </div>
           
           {/* Team Member Image Upload */}
           <div className="space-y-2">
+            <Label>Team Member Photo Alt Text</Label>
+            <Input
+              value={teamMemberImageAltTexts[index]?.[0] || ""}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value.length <= 255) {
+                  setTeamMemberImageAltTexts((prev) => ({
+                    ...prev,
+                    [index]: [value],
+                  }));
+                }
+              }}
+              placeholder="Enter alt text for team member photo"
+              maxLength={255}
+              />
+            <p className="text-sm text-muted-foreground mt-1">
+              {255 - (teamMemberImageAltTexts[index]?.[0]?.length || 0)} characters remaining
+            </p>
             <Label>Team Member Photo</Label>
             <Input
               type="file"
@@ -1013,22 +1043,48 @@ export default function AddServicePage() {
             <Label>Stars (1-5)</Label>
             <Input
               type="number"
-              min="1"
-              max="5"
-              value={subSection.stars}
-              onChange={(e) =>
-                updateSubSection(
-                  sectionKey,
-                  index,
-                  "stars",
-                  parseInt(e.target.value)
-                )
-              }
+              min={1}
+              max={5}
+              step="0.1"
+              value={subSection.stars === null || subSection.stars === undefined ? '' : subSection.stars}
+              onChange={(e) => {
+                const raw = e.target.value;
+                if (raw === '') {
+                  // Allow clearing the field
+                  updateSubSection(sectionKey, index, 'stars', '');
+                  return;
+                }
+                const value = parseFloat(raw);
+                if (!Number.isNaN(value) && value >= 1 && value <= 5) {
+                  updateSubSection(sectionKey, index, 'stars', value);
+                }
+              }}
             />
+            <p className="text-sm text-muted-foreground mt-1">
+              Enter a rating between 1 and 5. Decimals allowed (e.g., 4.5).
+            </p>
           </div>
           
           {/* Client Photo Upload */}
           <div className="space-y-2">
+            <Label>Client Photo Alt Text</Label>
+            <Input
+              value={clientFeedbackImageAltTexts[index]?.[0] || ""}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value.length <= 255) {
+                  setClientFeedbackImageAltTexts((prev) => ({
+                    ...prev,
+                    [index]: [value],
+                  }));
+                }
+              }}
+              placeholder="Enter alt text for client photo"
+              maxLength={255}
+              />
+            <p className="text-sm text-muted-foreground mt-1">
+              {255 - (clientFeedbackImageAltTexts[index]?.[0]?.length || 0)} characters remaining
+            </p>
             <Label>Client Photo</Label>
             <Input
               type="file"
@@ -1062,15 +1118,15 @@ export default function AddServicePage() {
               value={subSection.title}
               onChange={(e) => {
                 const value = e.target.value;
-                if (value.length <= 100) {
+                if (value.length <= 70) {
                   updateSubSection(sectionKey, index, 'title', value);
                 }
               }}
               placeholder="Sub-section title"
-              maxLength={100}
+              maxLength={70}
             />
             <p className="text-sm text-muted-foreground mt-1">
-              {100 - (subSection.title?.length || 0)} characters remaining
+              {70 - (subSection.title?.length || 0)} characters remaining
             </p>
           </div>
 
@@ -1088,6 +1144,9 @@ export default function AddServicePage() {
             </div>
             <div className="space-y-2">
               {(subSection.points || [""]).map((point: string, pointIndex: number) => (
+
+                <>
+                
                 <div key={pointIndex} className="flex gap-2">
                   <Input
                     value={point}
@@ -1110,23 +1169,60 @@ export default function AddServicePage() {
                     Remove
                   </Button>
                 </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {200 - (point?.length || 0)} characters remaining
+                  </p>
+                
+                </>
               ))}
             </div>
           </div>
 
           {/* Sub-section Icon Upload */}
-          <div className="space-y-2">
-            <Label>Sub-section Icon</Label>
-            <Input
-              type="file"
-              accept="image/*"
-              onChange={(e) => handleSubSectionIconChange(sectionKey, index, e.target.files)}
-              className="cursor-pointer"
-            />
-            <p className="text-sm text-gray-500 mt-1">
-              Upload an icon for this sub-section
-            </p>
-          </div>
+           <div className="space-y-2">
+              <Label>Sub-section Icon Alt Text</Label>
+              <Input
+                value={subSectionIconAltTexts[sectionKey]?.[index]?.[0] || ""}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value.length <= 255) {
+                    setSubSectionIconAltTexts((prev) => ({
+                      ...prev,
+                      [sectionKey]: {
+                        ...prev[sectionKey],
+                        [index]: [value],
+                      },
+                    }));
+                  }
+                }}
+                placeholder="Enter alt text for sub-section icon"
+                maxLength={255}
+              />
+              <p className="text-sm text-muted-foreground mt-1">
+                {255 - (subSectionIconAltTexts[sectionKey]?.[index]?.[0]?.length || 0)} characters remaining
+              </p>
+
+              <Label>Sub-section Icon</Label>
+              {subSection.image && (
+                <div className="mt-2">
+                  <Label className="text-sm font-medium">Current Icon</Label>
+                  <img
+                    src={getImageUrl(subSection.image)}
+                    alt="Current Sub-section Icon"
+                    className="h-24 w-24 rounded border object-cover mt-2 bg-muted/50 p-2"
+                  />
+                </div>
+              )}
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleSubSectionIconChange(sectionKey, index, e.target.files)}
+                className="cursor-pointer"
+              />
+              <p className="text-sm text-gray-500 mt-1">
+                Upload an icon for this sub-section
+              </p>
+            </div>
 
           <Button
             type="button"
@@ -1149,15 +1245,15 @@ export default function AddServicePage() {
               value={subSection.title}
               onChange={(e) => {
                 const value = e.target.value;
-                if (value.length <= 100) {
+                if (value.length <= 70) {
                   updateSubSection(sectionKey, index, "title", value);
                 }
               }}
               placeholder="Sub-section title"
-              maxLength={100}
+              maxLength={70}
             />
             <p className="text-sm text-muted-foreground mt-1">
-              {100 - (subSection.title?.length || 0)} characters remaining
+              {70 - (subSection.title?.length || 0)} characters remaining
             </p>
           </div>
           <div className="space-y-2">
@@ -1166,21 +1262,20 @@ export default function AddServicePage() {
               value={subSection.description}
               onChange={(e) => {
                 const value = e.target.value;
-                if (value.length <= 500) {
+                if (value.length <= 200) {
                   updateSubSection(sectionKey, index, "description", value);
                 }
               }}
               placeholder="Sub-section description"
-              maxLength={500}
+              maxLength={200}
             />
             <p className="text-sm text-muted-foreground mt-1">
-              {500 - (subSection.description?.length || 0)} characters remaining
+              {200 - (subSection.description?.length || 0)} characters remaining
             </p>
           </div>
         </div>
 
         {/* Sub-section Icon Upload - Only for non-hero sections */}
-        {sectionKey !== "hero_section" && (
           <div className="space-y-2">
             <Label>Sub-section Icon Alt Text</Label>
             <Input
@@ -1228,7 +1323,6 @@ export default function AddServicePage() {
               </div>
             )}
           </div>
-        )}
 
         <Button
           type="button"
@@ -1246,11 +1340,12 @@ export default function AddServicePage() {
     sectionKey: keyof ServiceSectionsData,
     section: any
   ) => {
+
+        if (sectionKey === 'hero_section') {
+      return null;
+    }
     // Get the corresponding file upload key for this section
-    const fileUploadKey =
-      sectionKey === "hero_section"
-        ? "hero_section_image_file"
-        : `${sectionKey}_image_files`;
+      const fileUploadKey = `${sectionKey}_image_files`;
 
     return (
       <Card key={sectionKey} className="mb-6">
@@ -1301,7 +1396,7 @@ export default function AddServicePage() {
             </div>
 
             {/* File Upload - Only for hero section */}
-            {sectionKey === "hero_section" && (
+              {!SECTIONS_WITHOUT_IMAGES.includes(sectionKey) && (
               <div className="space-y-2">
                 <Label>Section Image Alt Text</Label>
                 <Input
@@ -1332,7 +1427,7 @@ export default function AddServicePage() {
                   className="cursor-pointer"
                 />
                 <p className="text-sm text-gray-500 mt-1">
-                  Upload a single image for the hero section
+                  Upload an image for this section
                 </p>
                 
                 {/* Hero Section Image Preview */}

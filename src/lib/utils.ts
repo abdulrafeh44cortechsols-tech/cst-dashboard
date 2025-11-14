@@ -5,17 +5,27 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-// Utility function to replace localhost URLs with environment variable
+// Utility function to handle both relative and absolute image URLs
 export function getImageUrl(imageUrl: string | null | undefined): string {
   if (!imageUrl) return "/placeholder.svg";
-  
-  // Replace localhost:8000 with environment variable if it exists
-  if (imageUrl.includes("localhost:8000")) {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-    if (apiUrl) {
-      return imageUrl.replace("http://localhost:8000", apiUrl);
+
+  // If it's already a full URL (http or https), return as is
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    // Still check for localhost to replace with production URL if needed
+    if (imageUrl.includes("localhost:8000") && process.env.NEXT_PUBLIC_API_URL) {
+      return imageUrl.replace("http://localhost:8000", process.env.NEXT_PUBLIC_API_URL);
     }
+    return imageUrl;
   }
-  
+
+  // Handle relative URLs (starting with /)
+  if (imageUrl.startsWith('/')) {
+    // Remove any leading slashes to prevent double slashes when joining with base URL
+    const cleanPath = imageUrl.replace(/^\/+/, '');
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    return `${baseUrl}/${cleanPath}`;
+  }
+
+  // For any other case, return as is (though this shouldn't happen with proper API responses)
   return imageUrl;
 }

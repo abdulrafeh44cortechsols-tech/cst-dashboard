@@ -539,7 +539,7 @@ export default function AddIndustryPage() {
 
       // Add main images alt texts
       if (imagesAltTexts.length > 0) {
-        formData.append("images_alt_text", JSON.stringify(imagesAltTexts));
+        formData.append("image_alt_text", JSON.stringify(imagesAltTexts));
       }
 
       // Add hero section image
@@ -559,7 +559,7 @@ export default function AddIndustryPage() {
 
       // Add expertise section images alt texts
       if (expertiseSectionImagesAltTexts.length > 0) {
-        formData.append("expertise_section_images_alt_text", JSON.stringify(expertiseSectionImagesAltTexts));
+        formData.append("expertise_section_image_alt_text", JSON.stringify(expertiseSectionImagesAltTexts));
       }
 
       // Add what sets us apart section images
@@ -569,7 +569,7 @@ export default function AddIndustryPage() {
 
       // Add what sets us apart section images alt texts
       if (whatSetsUsApartSectionImagesAltTexts.length > 0) {
-        formData.append("what_sets_us_apart_section_images_alt_text", JSON.stringify(whatSetsUsApartSectionImagesAltTexts));
+        formData.append("what_sets_us_apart_section_image_alt_text", JSON.stringify(whatSetsUsApartSectionImagesAltTexts));
       }
 
       // Add sections data (convert challenge points back to comma-separated)
@@ -579,8 +579,8 @@ export default function AddIndustryPage() {
           ...sectionsData.challenges_section,
           description: sectionsData.challenges_section.description
             ? sectionsData.challenges_section.description.split("|||").filter(p => p.trim()).join(", ")
-            : ""
-        }
+            : "",
+        },
       };
       formData.append("sections_data", JSON.stringify(sectionsDataForAPI));
 
@@ -928,133 +928,6 @@ export default function AddIndustryPage() {
                 <CardTitle>Hero Section</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Title</Label>
-                    <Input
-                      value={sectionsData.hero_section.title}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        updateSection("hero_section", "title", value);
-                        // Real-time validation and error clearing
-                        if (value.length < 1) {
-                          setError('heroSection.title', 'Hero title must be 1 characters or more');
-                        } else {
-                          clearError('heroSection.title');
-                        }
-                      }}
-                      onBlur={() => {
-                        // Additional validation on blur if needed
-                        const title = sectionsData.hero_section.title;
-                        if (title.length < 1) {
-                          setError('heroSection.title', 'Hero title must be 1 characters or more');
-                        }
-                      }}
-                      placeholder="Hero section title"
-                      maxLength={100}
-                      className={`${errors.heroSection?.title ? 'border-red-500 focus:border-red-500' : ''}`}
-                    />
-                    <p className={`text-sm ${errors.heroSection?.title ? 'text-red-600' : 'text-muted-foreground'}`}>
-                      {errors.heroSection?.title || `${100 - (sectionsData.hero_section.title?.length || 0)} characters remaining`}
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Hero Content Alt Text (for sections_data)</Label>
-                    <Input
-                      value={sectionsData.hero_section.image_alt_text}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        updateSection("hero_section", "image_alt_text", value);
-                        // Clear error when user starts typing
-                        // Note: Image alt text validation would go here if needed
-                      }}
-                      onBlur={() => {
-                        // Validate on blur if needed
-                        if (sectionsData.hero_section.image_alt_text.length > 255) {
-                          // Set error if alt text is too long
-                        }
-                      }}
-                      placeholder="Alt text for hero content (stored in sections_data)"
-                      maxLength={255}
-                      className={`${errors.heroSection?.image_alt_text ? 'border-red-500 focus:border-red-500' : ''}`}
-                    />
-                    <p className={`text-sm ${errors.heroSection?.image_alt_text ? 'text-red-600' : 'text-muted-foreground'}`}>
-                      {errors.heroSection?.image_alt_text || `${255 - (sectionsData.hero_section.image_alt_text?.length || 0)} characters remaining`}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Description</Label>
-                  <Textarea
-                    value={sectionsData.hero_section.description}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      updateSection("hero_section", "description", value);
-                      // Real-time validation and error clearing
-                      if (value.length < 10) {
-                        setError('heroSection.description', 'Hero description must be at least 10 characters long');
-                      } else {
-                        clearError('heroSection.description');
-                      }
-                    }}
-                    onBlur={() => {
-                      // Additional validation on blur if needed
-                      const description = sectionsData.hero_section.description;
-                      if (description.length < 10) {
-                        setError('heroSection.description', 'Hero description must be at least 10 characters long');
-                      }
-                    }}
-                    placeholder="Hero section description"
-                    maxLength={500}
-                    rows={3}
-                    className={`${errors.heroSection?.description ? 'border-red-500 focus:border-red-500' : ''}`}
-                  />
-                  <p className={`text-sm ${errors.heroSection?.description ? 'text-red-600' : 'text-muted-foreground'}`}>
-                    {errors.heroSection?.description || `${500 - (sectionsData.hero_section.description?.length || 0)} characters remaining`}
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Hero Section Image</Label>
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleHeroSectionImageChange}
-                    className="cursor-pointer"
-                  />
-                  {heroSectionImage && (
-                    <div className="space-y-2 p-3 border rounded-lg">
-                      <img
-                        src={getFilePreview(heroSectionImage)}
-                        alt="Hero section preview"
-                        className="h-32 w-48 rounded border object-cover"
-                      />
-                      <div>
-                        <Label htmlFor="heroImageAlt">Uploaded Hero Image Alt Text</Label>
-                        <Input
-                          id="heroImageAlt"
-                          value={heroSectionImageAltText}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            if (value.length <= 255) {
-                              setHeroSectionImageAltText(value);
-                            }
-                          }}
-                          placeholder="Alt text for the uploaded hero section image file"
-                          maxLength={255}
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {255 - heroSectionImageAltText.length} characters remaining
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <Separator />
-
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <Label>Statistics Sub-sections</Label>
@@ -1069,7 +942,10 @@ export default function AddIndustryPage() {
                     </Button>
                   </div>
 
-                  {sectionsData.hero_section.sub_sections.map((subSection, index) => (
+                  {(sectionsData.hero_section.sub_sections.length === 0
+                    ? [{ title: "", count: 0 }]
+                    : sectionsData.hero_section.sub_sections
+                  ).map((subSection, index) => (
                     <div key={index} className="grid gap-4 p-4 border rounded-lg">
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">

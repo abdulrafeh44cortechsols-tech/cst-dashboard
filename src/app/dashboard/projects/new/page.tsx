@@ -1302,7 +1302,7 @@ export default function AddProjectPage() {
                     characters remaining
                   </p>
                 </div>
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <Label>Hero Images</Label>
                   <div className="relative">
                     <input
@@ -1372,12 +1372,12 @@ export default function AddProjectPage() {
                       )}
                     </div>
                   </div>
-                </div>
+                </div> */}
               </CardContent>
             </Card>
 
             {/* About Section */}
-            <Card>
+            {/* <Card>
               <CardHeader>
                 <CardTitle>About Section</CardTitle>
               </CardHeader>
@@ -1432,7 +1432,7 @@ export default function AddProjectPage() {
                   </p>
                 </div>
               </CardContent>
-            </Card>
+            </Card> */}
           </TabsContent>
 
           <TabsContent value="goals" className="space-y-4">
