@@ -23,7 +23,6 @@ import {
   AlertDialogTrigger 
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import ReCAPTCHA from "react-google-recaptcha";
 import { Save, Trash2, RefreshCw, AlertCircle } from "lucide-react";
 import type { ServiceSectionsData } from "@/types/types";
 import { getDefaultSectionsData } from "@/data/exampleServiceData";
@@ -41,9 +40,6 @@ export default function AddServicePage() {
   const [metaDescription, setMetaDescription] = useState("");
   const [published, setPublished] = useState(false);
 
-  // reCAPTCHA verification state
-  const [captchaVerified, setCaptchaVerified] = useState(false);
-  const [captchaValue, setCaptchaValue] = useState<string | null>(null);
 
   // Sections data
   const [sectionsData, setSectionsData] = useState<ServiceSectionsData>(
@@ -572,11 +568,6 @@ export default function AddServicePage() {
     }
   };
 
-  function onCaptchaChange(value: string | null) {
-    console.log("Captcha value:", value);
-    setCaptchaValue(value);
-    setCaptchaVerified(!!value); // Set to true if value exists, false otherwise
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -657,11 +648,6 @@ export default function AddServicePage() {
       return;
     }
 
-    // Check if reCAPTCHA is verified
-    if (!captchaVerified || !captchaValue) {
-      toast.error("Please complete the reCAPTCHA verification.");
-      return;
-    }
 
     try {
       // Create FormData object
@@ -747,7 +733,7 @@ export default function AddServicePage() {
 
       // Add image alt texts
       if (imageAltTexts.length > 0) {
-        formData.append("image_alt_text", JSON.stringify(imageAltTexts));
+        formData.append("image_alt_texts", JSON.stringify(imageAltTexts));
       }
 
       // Add section alt texts
@@ -1143,42 +1129,49 @@ export default function AddServicePage() {
               </Button>
             </div>
             <div className="space-y-2">
-              {(subSection.points || [""]).map((point: string, pointIndex: number) => (
-
-                <>
+              {(subSection.points || []).map((point: string, pointIndex: number, arr: any) => {
+                // Show the point if it has content OR if it's the last point in the array
+                const isLastPoint = pointIndex === arr.length - 1;
+                const hasContent = point.trim() !== "";
                 
-                <div key={pointIndex} className="flex gap-2">
-                  <Input
-                    value={point}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (value.length <= 200) {
-                        updatePoint(sectionKey, index, pointIndex, value);
-                      }
-                    }}
-                    placeholder={`Point ${pointIndex + 1}`}
-                    maxLength={200}
-                  />
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => removePoint(sectionKey, index, pointIndex)}
-                    disabled={(subSection.points || []).length <= 1}
-                  >
-                    Remove
-                  </Button>
-                </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {200 - (point?.length || 0)} characters remaining
-                  </p>
-                
-                </>
-              ))}
+                if (hasContent || isLastPoint) {
+                  return (
+                    <div key={pointIndex}>
+                      <div className="flex gap-2 items-center">
+                        <Input
+                          value={point}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (value.length <= 200) {
+                              updatePoint(sectionKey, index, pointIndex, value);
+                            }
+                          }}
+                          placeholder={`Point ${pointIndex + 1}`}
+                          maxLength={200}
+                          className="flex-1"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => removePoint(sectionKey, index, pointIndex)}
+                          disabled={(subSection.points || []).length <= 1}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {200 - (point?.length || 0)} characters remaining
+                      </p>
+                    </div>
+                  );
+                }
+                return null;
+              })}
             </div>
           </div>
 
-          {/* Sub-section Icon Upload */}
+          {/* Sub-section Icon Upload (hidden for design_section) */}
            <div className="space-y-2">
               <Label>Sub-section Icon Alt Text</Label>
               <Input
@@ -1276,6 +1269,7 @@ export default function AddServicePage() {
         </div>
 
         {/* Sub-section Icon Upload - Only for non-hero sections */}
+          {sectionKey !== 'design_section' && (
           <div className="space-y-2">
             <Label>Sub-section Icon Alt Text</Label>
             <Input
@@ -1323,7 +1317,7 @@ export default function AddServicePage() {
               </div>
             )}
           </div>
-
+          )}
         <Button
           type="button"
           variant="destructive"
@@ -1789,14 +1783,10 @@ export default function AddServicePage() {
 
         {/* Submit Button */}
         <div className="flex flex-col items-start gap-4">
-          <ReCAPTCHA
-            sitekey={process.env.NEXT_PUBLIC_CAPTCHA_SITE_URL || ""}
-            onChange={onCaptchaChange}
-          />
           <Button
             variant={"blue"}
             type="submit"
-            disabled={addService.isPending || !captchaVerified}
+            disabled={addService.isPending}
             size="lg"
             className="w-fit"
           >

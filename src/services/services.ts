@@ -23,7 +23,7 @@ export const servicesDataService = {
       meta_title: raw.meta_title || "",
       meta_description: raw.meta_description || "",
       images: Array.isArray(raw.images) ? raw.images : [],
-      image_alt_text: raw.image_alt_text || [],
+      image_alt_texts: raw.image_alt_texts || [],
       is_active: !!raw.is_active,
       created_at: raw.created_at || new Date().toISOString(),
       updated_at: raw.updated_at || new Date().toISOString(),

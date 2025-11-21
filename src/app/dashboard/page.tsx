@@ -103,7 +103,7 @@ export default function DashboardOverviewPage() {
       <div className={`grid gap-4 md:gap-8 ${user?.userType === "admin" ? "md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5" : "md:grid-cols-2 lg:grid-cols-4"}`}>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Blogs</CardTitle>
+            <CardTitle className="text-sm font-medium text-nowrap">Total Blogs</CardTitle>
             <BookOpen className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -115,7 +115,7 @@ export default function DashboardOverviewPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-sm font-medium text-nowrap">
               Total Services
             </CardTitle>
             <Briefcase className="h-4 w-4 text-muted-foreground" />
@@ -129,7 +129,7 @@ export default function DashboardOverviewPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-sm font-medium text-nowrap">
               Total Projects
             </CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
@@ -143,7 +143,7 @@ export default function DashboardOverviewPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-sm font-medium text-nowrap">
               Total Industries
             </CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
@@ -158,7 +158,7 @@ export default function DashboardOverviewPage() {
         {user?.userType === "admin" && (
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Editors</CardTitle>
+              <CardTitle className="text-sm font-medium text-nowrap">Total Editors</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -178,7 +178,7 @@ export default function DashboardOverviewPage() {
           {/* Recent Blogs */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Recent Blogs</CardTitle>
+              <CardTitle className="text-lg text-nowrap">Recent Blogs</CardTitle>
               <Button 
                 variant="outline" 
                 size="sm"
@@ -192,14 +192,14 @@ export default function DashboardOverviewPage() {
               <div className="space-y-4">
                 {recentBlogs.length > 0 ? (
                   recentBlogs.map((blog) => (
-                    <div key={blog.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors">
-                      <div className="flex-1">
+                    <div key={blog.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors gap-2">
+                      <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-sm truncate">{blog.title}</h4>
-                        <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
-                          <span className={`px-2 py-1 rounded-full ${getStatusColor(blog.published)}`}>
+                        <div className="flex items-center gap-2 sm:gap-4 mt-1 text-xs text-muted-foreground flex-wrap">
+                          <span className={`px-2 py-1 rounded-full whitespace-nowrap ${getStatusColor(blog.published)}`}>
                             {getStatusText(blog.published)}
                           </span>
-                          <span className="flex items-center gap-1">
+                          <span className="flex items-center gap-1 whitespace-nowrap">
                             <Calendar className="h-3 w-3" />
                             {formatDate(blog.created_at)}
                           </span>
@@ -208,6 +208,7 @@ export default function DashboardOverviewPage() {
                       <Button 
                         variant="ghost" 
                         size="sm"
+                        className="flex-shrink-0"
                         onClick={() => router.push(`/dashboard/blogs/${blog.slug}/edit`)}
                       >
                         <Eye className="h-4 w-4" />
@@ -236,7 +237,7 @@ export default function DashboardOverviewPage() {
           {/* Recent Services */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Recent Services</CardTitle>
+              <CardTitle className="text-lg text-nowrap">Recent Services</CardTitle>
               <Button 
                 variant="outline" 
                 size="sm"
@@ -250,14 +251,14 @@ export default function DashboardOverviewPage() {
               <div className="space-y-4">
                 {recentServices.length > 0 ? (
                   recentServices.map((service) => (
-                    <div key={service.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors">
-                      <div className="flex-1">
+                    <div key={service.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors gap-2">
+                      <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-sm truncate">{service.title}</h4>
-                        <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
-                          <span className={`px-2 py-1 rounded-full ${getStatusColor(service.is_active)}`}>
+                        <div className="flex items-center gap-2 sm:gap-4 mt-1 text-xs text-muted-foreground flex-wrap">
+                          <span className={`px-2 py-1 rounded-full whitespace-nowrap ${getStatusColor(service.is_active)}`}>
                             {getServiceStatusText(service.is_active)}
                           </span>
-                          <span className="flex items-center gap-1">
+                          <span className="flex items-center gap-1 whitespace-nowrap">
                             <Calendar className="h-3 w-3" />
                             {formatDate(service.created_at)}
                           </span>
@@ -266,6 +267,7 @@ export default function DashboardOverviewPage() {
                       <Button 
                         variant="ghost" 
                         size="sm"
+                        className="flex-shrink-0"
                         onClick={() => router.push(`/dashboard/services/${service.slug}/edit`)}
                       >
                         <Eye className="h-4 w-4" />
@@ -294,7 +296,7 @@ export default function DashboardOverviewPage() {
           {/* Recent Projects */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Recent Projects</CardTitle>
+              <CardTitle className="text-lg text-nowrap">Recent Projects</CardTitle>
               <Button 
                 variant="outline" 
                 size="sm"
@@ -308,14 +310,14 @@ export default function DashboardOverviewPage() {
               <div className="space-y-4">
                 {recentProjects.length > 0 ? (
                   recentProjects.map((project) => (
-                    <div key={project.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors">
-                      <div className="flex-1">
+                    <div key={project.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors gap-2">
+                      <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-sm truncate">{project.name}</h4>
-                        <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
-                          <span className={`px-2 py-1 rounded-full ${getStatusColor(project.published)}`}>
+                        <div className="flex items-center gap-2 sm:gap-4 mt-1 text-xs text-muted-foreground flex-wrap">
+                          <span className={`px-2 py-1 rounded-full whitespace-nowrap ${getStatusColor(project.published)}`}>
                             {getStatusText(project.published)}
                           </span>
-                          <span className="flex items-center gap-1">
+                          <span className="flex items-center gap-1 whitespace-nowrap">
                             <Calendar className="h-3 w-3" />
                             {formatDate(project.created_at)}
                           </span>
@@ -324,6 +326,7 @@ export default function DashboardOverviewPage() {
                       <Button 
                         variant="ghost" 
                         size="sm"
+                        className="flex-shrink-0"
                         onClick={() => router.push(`/dashboard/projects/${project.slug}/edit`)}
                       >
                         <Eye className="h-4 w-4" />
@@ -433,11 +436,11 @@ export default function DashboardOverviewPage() {
               <div className="space-y-3">
                 {recentPages.length > 0 ? (
                   recentPages.map((page) => (
-                    <div key={page.id} className="flex items-center justify-between p-2 border rounded hover:bg-gray-50 transition-colors">
+                    <div key={page.id} className="flex items-center justify-between p-2 border rounded hover:bg-gray-50 transition-colors gap-2">
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-sm truncate">{page.title}</h4>
-                        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                          <span className={`px-2 py-1 rounded-full ${getStatusColor(page.is_published)}`}>
+                        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground flex-wrap">
+                          <span className={`px-2 py-1 rounded-full whitespace-nowrap ${getStatusColor(page.is_published)}`}>
                             {getStatusText(page.is_published)}
                           </span>
                           <span className="truncate">{page.template}</span>
@@ -446,6 +449,7 @@ export default function DashboardOverviewPage() {
                       <Button 
                         variant="ghost" 
                         size="sm"
+                        className="flex-shrink-0"
                         onClick={() => router.push(`/dashboard/pages`)}
                       >
                         <Eye className="h-4 w-4" />

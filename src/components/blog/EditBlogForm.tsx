@@ -41,6 +41,10 @@ export function EditBlogForm({ blog, onCancel, onSaved }: EditBlogFormProps) {
   const [previews, setPreviews] = useState<string[]>([]);
   const [ogImagePreview, setOgImagePreview] = useState<string | null>(null);
 
+  // Alt text for images
+  const [imageAltTexts, setImageAltTexts] = useState<string[]>([]);
+  const [ogImageAltText, setOgImageAltText] = useState<string>("");
+
   // Section data
   const [sectionsData, setSectionsData] = useState<BlogSectionsData>(
     getDefaultBlogSectionsData()
@@ -144,6 +148,8 @@ export function EditBlogForm({ blog, onCancel, onSaved }: EditBlogFormProps) {
       const files = Array.from(e.target.files);
       setImageFiles(files);
       setPreviews(files.map((file) => URL.createObjectURL(file)));
+      // Initialize alt text array for new images
+      setImageAltTexts(new Array(files.length).fill(""));
     }
   };
 
@@ -152,6 +158,8 @@ export function EditBlogForm({ blog, onCancel, onSaved }: EditBlogFormProps) {
       const file = e.target.files[0];
       setOgImageFile(file);
       setOgImagePreview(URL.createObjectURL(file));
+      // Reset OG image alt text when new image is selected
+      setOgImageAltText("");
     }
   };
 
@@ -908,6 +916,10 @@ export function EditBlogForm({ blog, onCancel, onSaved }: EditBlogFormProps) {
             handleOgImageChange={handleOgImageChange}
             ogImagePreview={ogImagePreview}
             ogImageFile={ogImageFile}
+            imageAltTexts={imageAltTexts}
+            setImageAltTexts={setImageAltTexts}
+            ogImageAltText={ogImageAltText}
+            setOgImageAltText={setOgImageAltText}
           />
         </TabsContent>
 

@@ -25,7 +25,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import ReCAPTCHA from "react-google-recaptcha";
 import { Save, Trash2, RefreshCw, AlertCircle } from "lucide-react";
 import { Tag } from "@/types/types";
 import { getDefaultBlogSectionsData } from "@/data/exampleBlogData";
@@ -52,15 +51,16 @@ export default function AddBlogPage() {
     [key: string]: string | { [key: string]: string | { [key: string]: string } | undefined } | undefined;
   }>({});
 
-  // reCAPTCHA verification state
-  const [captchaVerified, setCaptchaVerified] = useState(false);
-  const [captchaValue, setCaptchaValue] = useState<string | null>(null);
 
   // File uploads
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [ogImageFile, setOgImageFile] = useState<File | null>(null);
   const [previews, setPreviews] = useState<string[]>([]);
   const [ogImagePreview, setOgImagePreview] = useState<string | null>(null);
+
+  // Alt text for images
+  const [imageAltTexts, setImageAltTexts] = useState<string[]>([]);
+  const [ogImageAltText, setOgImageAltText] = useState<string>("");
 
   // Section data
   const [sectionsData, setSectionsData] = useState(
@@ -237,6 +237,8 @@ export default function AddBlogPage() {
       const files = Array.from(e.target.files);
       setImageFiles(files);
       setPreviews(files.map((file) => URL.createObjectURL(file)));
+      // Initialize alt text array for new images
+      setImageAltTexts(new Array(files.length).fill(""));
     }
   };
 
@@ -245,6 +247,8 @@ export default function AddBlogPage() {
       const file = e.target.files[0];
       setOgImageFile(file);
       setOgImagePreview(URL.createObjectURL(file));
+      // Reset OG image alt text when new image is selected
+      setOgImageAltText("");
     }
   };
 
@@ -757,12 +761,6 @@ export default function AddBlogPage() {
       });
     }
 
-    // Validate reCAPTCHA
-    if (!captchaVerified || !captchaValue) {
-      setError('captcha', 'Please complete the reCAPTCHA verification');
-      if (!firstInvalidField) firstInvalidField = 'captcha';
-      isValid = false;
-    }
 
     // Focus first invalid field
     if (!isValid && firstInvalidField) {
@@ -791,15 +789,6 @@ export default function AddBlogPage() {
     return isValid;
   };
 
-  function onCaptchaChange(value: string | null) {
-    console.log("Captcha value:", value);
-    setCaptchaValue(value);
-    setCaptchaVerified(!!value); // Set to true if value exists, false otherwise
-    // Clear captcha error when user completes it
-    if (value) {
-      clearError('captcha');
-    }
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -819,8 +808,6 @@ export default function AddBlogPage() {
       formData.append("meta_title", metaTitle);
       formData.append("meta_description", metaDescription);
 
-      // Add reCAPTCHA token to form data
-      // formData.append("captcha_token", captchaValue);
 
       // Add tag_ids as JSON string
       if (selectedTagIds.length > 0) {
@@ -832,9 +819,19 @@ export default function AddBlogPage() {
         formData.append("image_files", file);
       });
 
+      // Add image alt texts
+      if (imageAltTexts.length > 0) {
+        formData.append("image_alt_text", JSON.stringify(imageAltTexts));
+      }
+
       // Add OG image if exists
       if (ogImageFile) {
         formData.append("og_image_file", ogImageFile);
+      }
+
+      // Add OG image alt text
+      if (ogImageAltText) {
+        formData.append("og_image_alt_text", ogImageAltText);
       }
 
       // Add sections data if exists
@@ -1052,12 +1049,31 @@ export default function AddBlogPage() {
               />
               {hero.image &&
                 (hero.image as any)?.constructor?.name === "File" && (
-                  <div className="mt-3">
+                  <div className="mt-3 space-y-2">
                     <img
                       src={URL.createObjectURL(hero.image)}
                       alt="Hero Image Preview"
                       className="h-40 w-auto rounded border object-cover"
                     />
+                    <div>
+                      <Label htmlFor="heroImageAlt">Hero Image Alt Text</Label>
+                      <Input
+                        id="heroImageAlt"
+                        value={(hero as any).image_alt_text || ""}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value.length <= 255) {
+                            updateSection("hero_section", "image_alt_text", value);
+                          }
+                        }}
+                        placeholder="Alt text for hero image"
+                        maxLength={255}
+                        className="w-full"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {255 - ((hero as any).image_alt_text?.length || 0)} characters remaining
+                      </p>
+                    </div>
                   </div>
                 )}
             </div>
@@ -1432,12 +1448,31 @@ export default function AddBlogPage() {
               />
               {info.image &&
                 (info.image as any)?.constructor?.name === "File" && (
-                  <div className="mt-3">
+                  <div className="mt-3 space-y-2">
                     <img
                       src={URL.createObjectURL(info.image)}
                       alt="Info Image Preview"
                       className="h-40 w-auto rounded border object-cover"
                     />
+                    <div>
+                      <Label htmlFor="infoImageAlt">Info Image Alt Text</Label>
+                      <Input
+                        id="infoImageAlt"
+                        value={(info as any).image_alt_text || ""}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value.length <= 255) {
+                            updateSection("info_section", "image_alt_text", value);
+                          }
+                        }}
+                        placeholder="Alt text for info banner image"
+                        maxLength={255}
+                        className="w-full"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {255 - ((info as any).image_alt_text?.length || 0)} characters remaining
+                      </p>
+                    </div>
                   </div>
                 )}
             </div>
@@ -1790,14 +1825,36 @@ export default function AddBlogPage() {
                       />
                       <ErrorMessage message={getErrorMessage('images')} />
                       {previews.length > 0 && (
-                        <div className="mt-3 flex flex-wrap gap-2">
+                        <div className="mt-3 space-y-4">
                           {previews.map((src, idx) => (
-                            <img
-                              key={idx}
-                              src={src}
-                              alt={`Preview ${idx + 1}`}
-                              className="h-40 w-auto rounded border object-cover"
-                            />
+                            <div key={idx} className="space-y-2 p-4 border rounded-lg">
+                              <img
+                                src={src}
+                                alt={`Preview ${idx + 1}`}
+                                className="h-40 w-auto rounded border object-cover"
+                              />
+                              <div>
+                                <Label htmlFor={`blogImageAlt${idx}`}>Image Alt Text {idx + 1}</Label>
+                                <Input
+                                  id={`blogImageAlt${idx}`}
+                                  value={imageAltTexts[idx] || ""}
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    if (value.length <= 255) {
+                                      const newAltTexts = [...imageAltTexts];
+                                      newAltTexts[idx] = value;
+                                      setImageAltTexts(newAltTexts);
+                                    }
+                                  }}
+                                  placeholder={`Alt text for blog image ${idx + 1}`}
+                                  maxLength={255}
+                                  className="w-full"
+                                />
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {255 - (imageAltTexts[idx]?.length || 0)} characters remaining
+                                </p>
+                              </div>
+                            </div>
                           ))}
                         </div>
                       )}
@@ -1813,12 +1870,31 @@ export default function AddBlogPage() {
                         onChange={handleOgImageChange}
                       />
                       {ogImagePreview && (
-                        <div className="mt-3">
+                        <div className="mt-3 space-y-2">
                           <img
                             src={ogImagePreview}
                             alt="OG Image Preview"
                             className="h-40 w-auto rounded border object-cover"
                           />
+                          <div>
+                            <Label htmlFor="ogImageAlt">OG Image Alt Text</Label>
+                            <Input
+                              id="ogImageAlt"
+                              value={ogImageAltText}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                if (value.length <= 255) {
+                                  setOgImageAltText(value);
+                                }
+                              }}
+                              placeholder="Alt text for OG image"
+                              maxLength={255}
+                              className="w-full"
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {255 - ogImageAltText.length} characters remaining
+                            </p>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1892,17 +1968,10 @@ export default function AddBlogPage() {
 
         {/* Submit Button */}
         <div className="flex flex-col items-start gap-4">
-          <div>
-            <ReCAPTCHA
-              sitekey={process.env.NEXT_PUBLIC_CAPTCHA_SITE_URL || ""}
-              onChange={onCaptchaChange}
-            />
-            <ErrorMessage message={getErrorMessage('captcha')} />
-          </div>
           <Button
             variant={"blue"}
             type="submit"
-            disabled={addBlog.isPending || !captchaVerified}
+            disabled={addBlog.isPending}
             size="lg"
             className="w-fit"
           >

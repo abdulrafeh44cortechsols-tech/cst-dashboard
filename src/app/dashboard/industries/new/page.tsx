@@ -26,7 +26,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { X, Plus, Trash2, Save, RefreshCw, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
-import ReCAPTCHA from "react-google-recaptcha";
 
 interface HeroSubSection {
   title: string;
@@ -103,9 +102,6 @@ export default function AddIndustryPage() {
   const [expertiseSectionImagesAltTexts, setExpertiseSectionImagesAltTexts] = useState<string[]>([]);
   const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltTexts] = useState<string[]>([]);
 
-  // reCAPTCHA verification state
-  const [captchaVerified, setCaptchaVerified] = useState(false);
-  const [captchaValue, setCaptchaValue] = useState<string | null>(null);
 
   // Error handling state
   const [errors, setErrors] = useState<{
@@ -138,7 +134,6 @@ export default function AddIndustryPage() {
       description?: string;
       sub_sections?: string;
     };
-    captcha?: string;
     general?: string;
   }>({});
 
@@ -488,10 +483,6 @@ export default function AddIndustryPage() {
     }
   };
 
-  function onCaptchaChange(value: string | null) {
-    setCaptchaValue(value);
-    setCaptchaVerified(!!value);
-  }
 
   const generateSlug = (title: string) => {
     return title
@@ -516,10 +507,6 @@ export default function AddIndustryPage() {
       return;
     }
 
-    if (!captchaVerified) {
-      toast.error("Please complete the reCAPTCHA verification.");
-      return;
-    }
 
     try {
       const formData = new FormData();
@@ -1697,15 +1684,10 @@ export default function AddIndustryPage() {
           </TabsContent>
         </Tabs>
 
-        {/* reCAPTCHA and Submit */}
+        {/* Submit */}
         <Card>
           <CardContent className="pt-6">
             <div className="flex flex-col items-center space-y-4">
-              <ReCAPTCHA
-                sitekey={process.env.NEXT_PUBLIC_CAPTCHA_SITE_URL  || ""}
-                onChange={onCaptchaChange}
-              />
-              
               <div className="flex gap-4">
                 <Button
                   type="button"
@@ -1716,7 +1698,7 @@ export default function AddIndustryPage() {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={addIndustry.isPending || !captchaVerified}
+                  disabled={addIndustry.isPending}
                   className="min-w-[120px]"
                 >
                   {addIndustry.isPending ? (

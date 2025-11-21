@@ -22,6 +22,8 @@ export default function EditServicePage() {
     enabled: !!slugParam,
   });
 
+  console.log(service,"SERVICE DATA");
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">

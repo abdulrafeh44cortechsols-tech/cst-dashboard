@@ -27,7 +27,6 @@ import Image from "next/image";
 import { useState } from "react";
 import { BlogPost } from "@/types/types";
 import { DeleteBlogModal } from "@/components/blog/DeleteBlogModal";
-import { EditBlogModal } from "@/components/blog/EditBlogModal";
 import { getImageUrl } from "@/lib/utils";
 
 export default function BlogsPage() {
@@ -238,13 +237,7 @@ export default function BlogsPage() {
         </>
       )}
 
-      {editingBlog && (
-        <EditBlogModal
-          blog={editingBlog}
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-        />
-      )}
+ 
 
       {deletingBlog && (
         <DeleteBlogModal

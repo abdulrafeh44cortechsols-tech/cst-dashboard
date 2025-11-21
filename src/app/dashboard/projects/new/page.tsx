@@ -26,7 +26,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { X, Plus, Trash2, Save, RefreshCw, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
-import ReCAPTCHA from "react-google-recaptcha";
 
 interface ProjectGoalSubSection {
   title: string;
@@ -116,9 +115,6 @@ export default function AddProjectPage() {
     Record<number, string[]>
   >({});
 
-  // reCAPTCHA verification state
-  const [captchaVerified, setCaptchaVerified] = useState(false);
-  const [captchaValue, setCaptchaValue] = useState<string | null>(null);
 
   // Sections data
   const [sectionsData, setSectionsData] = useState<ProjectSectionsData>({
@@ -164,13 +160,6 @@ export default function AddProjectPage() {
   const DRAFT_KEY = "project_draft_data";
   const DRAFT_SAVE_INTERVAL = 30000; // 30 seconds
 
-  function onCaptchaChange(value: string | null) {
-    console.log("Captcha value:", value);
-    setCaptchaValue(value);
-    setCaptchaVerified(!!value);
-  }
-
-  // Auto-generate slug from name
   const handleNameChange = (value: string) => {
     setName(value);
     const generatedSlug = value
@@ -729,11 +718,6 @@ export default function AddProjectPage() {
       return;
     }
 
-    // Check if reCAPTCHA is verified
-    if (!captchaVerified || !captchaValue) {
-      toast.error("Please complete the reCAPTCHA verification.");
-      return;
-    }
 
     // Validate project section descriptions
     // Hero section
@@ -2071,10 +2055,6 @@ export default function AddProjectPage() {
 
         {/* Submit Button */}
         <div className="flex flex-col items-start gap-4">
-          <ReCAPTCHA
-            sitekey={process.env.NEXT_PUBLIC_CAPTCHA_SITE_URL || ""}
-            onChange={onCaptchaChange}
-          />
           <div className="flex justify-end gap-4 w-full">
             <Button
               type="button"
@@ -2085,7 +2065,7 @@ export default function AddProjectPage() {
             </Button>
             <Button
               type="submit"
-              disabled={addProject.isPending || !captchaVerified}
+              disabled={addProject.isPending}
               variant="blue"
             >
               {addProject.isPending ? "Creating..." : "Create Project"}

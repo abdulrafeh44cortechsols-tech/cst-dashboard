@@ -112,10 +112,6 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
     general?: string;
   }>({});
 
-  // reCAPTCHA verification state
-  const [captchaVerified, setCaptchaVerified] = useState(false);
-  const [captchaValue, setCaptchaValue] = useState<string | null>(null);
-
   // Validation functions (same as create form)
   const validateName = (value: string): string | null => {
     if (!value.trim()) return "Industry name is required";
@@ -346,10 +342,6 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
     }
   }, [industry]);
 
-  function onCaptchaChange(value: string | null) {
-    setCaptchaValue(value);
-    setCaptchaVerified(!!value);
-  }
 
   // Helper functions for different sections
   const updateSection = (sectionKey: keyof IndustrySectionsData, field: string, value: string) => {
@@ -588,11 +580,6 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
       toast.error("Please fill in all required fields.");
       return;
     }
-
-    // if (!captchaVerified) {
-    //   toast.error("Please complete the reCAPTCHA verification.");
-    //   return;
-    // }
 
     try {
       const formData = new FormData();
@@ -866,7 +853,7 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
                 }}
                 placeholder="SEO meta title"
                 maxLength={60}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                   errors.metaTitle ? 'border-red-500 focus:border-red-500' : 'border-gray-300'
                 }`}
               />
@@ -905,7 +892,7 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
                 placeholder="SEO meta description"
                 maxLength={160}
                 rows={2}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                   errors.metaDescription ? 'border-red-500 focus:border-red-500' : 'border-gray-300'
                 }`}
               />
@@ -962,27 +949,6 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
                           {255 - (existingImagesAltTexts[index]?.length || 0)} characters remaining
                         </p>
                       </div>
-                      {/* <div>
-                        <label className="text-xs font-medium">Alt Text</label>
-                        <input
-                          type="text"
-                          value={existingImagesAltTexts[index] || ""}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            if (value.length <= 255) {
-                              const newAltTexts = [...existingImagesAltTexts];
-                              newAltTexts[index] = value;
-                              setExistingImagesAltTexts(newAltTexts);
-                            }
-                          }}
-                          placeholder={`Alt text for image ${index + 1}`}
-                          maxLength={255}
-                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                          {255 - (existingImagesAltTexts[index]?.length || 0)} characters remaining
-                        </p>
-                      </div> */}
                     </div>
                   ))}
                 </div>
@@ -1022,27 +988,6 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
                           {255 - (imagesAltTexts[index]?.length || 0)} characters remaining
                         </p>
                       </div>
-                      {/* <div>
-                        <label className="text-xs font-medium">Alt Text</label>
-                        <input
-                          type="text"
-                          value={imagesAltTexts[index] || ""}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            if (value.length <= 255) {
-                              const newAltTexts = [...imagesAltTexts];
-                              newAltTexts[index] = value;
-                              setImagesAltTexts(newAltTexts);
-                            }
-                          }}
-                          placeholder={`Alt text for new image ${index + 1}`}
-                          maxLength={255}
-                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                          {255 - (imagesAltTexts[index]?.length || 0)} characters remaining
-                        </p>
-                      </div> */}
                     </div>
                   ))}
                 </div>
@@ -1314,27 +1259,6 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
                           {255 - (existingExpertiseImagesAltTexts[index]?.length || 0)} characters remaining
                         </p>
                       </div>
-                      {/* <div>
-                        <label className="text-xs font-medium">Alt Text</label>
-                        <input
-                          type="text"
-                          value={existingExpertiseImagesAltTexts[index] || ""}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            if (value.length <= 255) {
-                              const newAltTexts = [...existingExpertiseImagesAltTexts];
-                              newAltTexts[index] = value;
-                              setExistingExpertiseImagesAltTexts(newAltTexts);
-                            }
-                          }}
-                          placeholder={`Alt text for current image ${index + 1}`}
-                          maxLength={255}
-                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                          {255 - (existingExpertiseImagesAltTexts[index]?.length || 0)} characters remaining
-                        </p>
-                      </div> */}
                     </div>
                   ))}
                 </div>
@@ -1374,27 +1298,6 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
                           {255 - (expertiseSectionImagesAltTexts[index]?.length || 0)} characters remaining
                         </p>
                       </div>
-                      {/* <div>
-                        <label className="text-xs font-medium">Alt Text</label>
-                        <input
-                          type="text"
-                          value={expertiseSectionImagesAltTexts[index] || ""}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            if (value.length <= 255) {
-                              const newAltTexts = [...expertiseSectionImagesAltTexts];
-                              newAltTexts[index] = value;
-                              setExpertiseSectionImagesAltTexts(newAltTexts);
-                            }
-                          }}
-                          placeholder={`Alt text for new image ${index + 1}`}
-                          maxLength={255}
-                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                          {255 - (expertiseSectionImagesAltTexts[index]?.length || 0)} characters remaining
-                        </p>
-                      </div> */}
                     </div>
                   ))}
                 </div>
@@ -1566,27 +1469,6 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
                           {255 - (existingWhatSetsUsApartImagesAltTexts[index]?.length || 0)} characters remaining
                         </p>
                       </div>
-                      {/* <div>
-                        <label className="text-xs font-medium">Alt Text</label>
-                        <input
-                          type="text"
-                          value={existingWhatSetsUsApartImagesAltTexts[index] || ""}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            if (value.length <= 255) {
-                              const newAltTexts = [...existingWhatSetsUsApartImagesAltTexts];
-                              newAltTexts[index] = value;
-                              setExistingWhatSetsUsApartImagesAltTexts(newAltTexts);
-                            }
-                          }}
-                          placeholder={`Alt text for current image ${index + 1}`}
-                          maxLength={255}
-                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                          {255 - (existingWhatSetsUsApartImagesAltTexts[index]?.length || 0)} characters remaining
-                        </p>
-                      </div> */}
                     </div>
                   ))}
                 </div>
@@ -1626,27 +1508,6 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
                           {255 - (whatSetsUsApartSectionImagesAltTexts[index]?.length || 0)} characters remaining
                         </p>
                       </div>
-                      {/* <div>
-                        <label className="text-xs font-medium">Alt Text</label>
-                        <input
-                          type="text"
-                          value={whatSetsUsApartSectionImagesAltTexts[index] || ""}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            if (value.length <= 255) {
-                              const newAltTexts = [...whatSetsUsApartSectionImagesAltTexts];
-                              newAltTexts[index] = value;
-                              setWhatSetsUsApartSectionImagesAltTexts(newAltTexts);
-                            }
-                          }}
-                          placeholder={`Alt text for new image ${index + 1}`}
-                          maxLength={255}
-                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                          {255 - (whatSetsUsApartSectionImagesAltTexts[index]?.length || 0)} characters remaining
-                        </p>
-                      </div> */}
                     </div>
                   ))}
                 </div>

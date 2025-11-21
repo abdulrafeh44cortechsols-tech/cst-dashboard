@@ -94,7 +94,7 @@ export interface BlogPost {
     meta_title: string;
     meta_description: string;
     images: string[] | null;
-    image_alt_text?: string[]; // Add alt text for main service images
+    image_alt_texts?: string[]; // Add alt text for main service images
     is_active: boolean;
     created_at: string;
     updated_at: string;

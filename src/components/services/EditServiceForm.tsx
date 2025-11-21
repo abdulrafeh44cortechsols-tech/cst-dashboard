@@ -25,8 +25,11 @@ interface EditServiceFormProps {
 export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormProps) {
   const { editService } = useServices();
 
+  console.log(service,"MAIN SERVIVE DATA");
+
   // Basic service fields
   const [title, setTitle] = useState("");
+  const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
   const [isActive, setIsActive] = useState(false);
   const [metaTitle, setMetaTitle] = useState("");
@@ -96,6 +99,9 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
   useEffect(() => {
     if (service) {
       setTitle(service.title);
+      if ((service as any).slug) {
+        setSlug((service as any).slug);
+      }
       setDescription(service.description);
       setMetaTitle(service.meta_title);
       setMetaDescription(service.meta_description);
@@ -107,8 +113,8 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
       }
 
       // Load existing alt texts if available
-      if ((service as any).image_alt_text && (service as any).image_alt_text.length > 0) {
-        setImageAltTexts((service as any).image_alt_text);
+      if ((service as any).image_alt_texts && (service as any).image_alt_texts.length > 0) {
+        setImageAltTexts((service as any).image_alt_texts);
       }
     }
   }, [service]);
@@ -270,7 +276,8 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
 
   const handleFileChange = (sectionKey: string, files: FileList | null) => {
     if (files) {
-      const filesArray = Array.from(files);
+      // For service general images in edit mode, allow only a single image to replace existing
+      const filesArray = sectionKey === 'image_files' ? (files.length ? [files[0]] : []) : Array.from(files);
       setSectionFiles(prev => ({
         ...prev,
         [sectionKey]: filesArray
@@ -278,8 +285,8 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
 
       // Initialize alt text arrays for the files
       if (sectionKey === 'image_files') {
-        // For main service images
-        setImageAltTexts(new Array(filesArray.length).fill(""));
+        // Only one alt text for the single replacement image
+        setImageAltTexts(filesArray.length ? [""] : []);
       } else {
         // For section images
         setSectionAltTexts((prev) => ({
@@ -462,6 +469,17 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
       return;
     }
 
+    // Validate slug format if provided
+    if (slug) {
+      const slugPattern = /^[a-z0-9-]+$/;
+      if (!slugPattern.test(slug)) {
+        toast.error("Slug can only contain lowercase letters, numbers, and hyphens.");
+        scrollToTab('basic');
+        scrollToElement('service-slug');
+        return;
+      }
+    }
+
     // No section validation - sections are optional
     // Backend will handle any required validations
 
@@ -471,6 +489,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
 
       // Add basic fields (only if they have values)
       if (title.trim()) formData.append("title", title);
+      if (slug.trim()) formData.append("slug", slug);
       if (description.trim()) formData.append("description", description);
       formData.append("is_active", isActive.toString());
       if (metaTitle.trim()) formData.append("meta_title", metaTitle);
@@ -577,14 +596,24 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
 
       // Only add general images if they exist
       if (sectionFiles.image_files && sectionFiles.image_files.length > 0) {
-        sectionFiles.image_files.forEach(file => {
+        console.log("📸 IMAGE FILES TO UPLOAD:");
+        console.log("Total images count:", sectionFiles.image_files.length);
+        sectionFiles.image_files.forEach((file, index) => {
+          console.log(`Image ${index + 1}:`, {
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            lastModified: file.lastModified,
+            objectUrl: URL.createObjectURL(file)
+          });
           formData.append('image_files', file);
         });
+        console.log("✅ Added", sectionFiles.image_files.length, "image(s) to FormData");
       }
 
       // Add image alt texts
       if (imageAltTexts.length > 0) {
-        formData.append("image_alt_text", JSON.stringify(imageAltTexts));
+        formData.append("image_alt_texts", JSON.stringify(imageAltTexts));
       }
 
       // Add section alt texts
@@ -615,6 +644,22 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
       const clientFeedbackAltTexts = Object.values(clientFeedbackImageAltTexts).flat().filter(text => text);
       if (clientFeedbackAltTexts.length > 0) {
         formData.append("client_feedback_section_image_files_alt_text", JSON.stringify(clientFeedbackAltTexts));
+      }
+
+      // Log final FormData before sending to API
+      console.log("📋 FINAL FORMDATA BEING SENT:");
+      console.log("FormData entries:");
+      for (let [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          console.log(`  ${key}:`, {
+            fileName: value.name,
+            fileSize: value.size,
+            fileType: value.type,
+            objectUrl: URL.createObjectURL(value)
+          });
+        } else {
+          console.log(`  ${key}:`, value);
+        }
       }
 
       await editService.mutateAsync({ id: service.id.toString(), data: formData });
@@ -785,6 +830,16 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
             <p className="text-sm text-gray-500 mt-1">
               Upload a photo for this team member
             </p>
+            {(teamMemberImages[index]?.length || 0) > 0 && (
+              <div className="mt-2">
+                <Label className="text-sm font-medium">New Photo to Upload</Label>
+                <img
+                  src={URL.createObjectURL(teamMemberImages[index][0])}
+                  alt={`New photo preview for ${subSection.name}`}
+                  className="h-32 w-32 rounded-full border object-cover mt-2"
+                />
+              </div>
+            )}
           </div>
 
           <Button
@@ -926,7 +981,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
 
     if (sectionKey === 'what_we_offer_section') {
       return (
-        <div key={index} className="grid gap-4 p-4 border rounded-lg">
+        <div key={index} className="space-y-4 p-4 border rounded-lg">
           <div className="space-y-2">
             <Label>Title</Label>
             <Input
@@ -953,24 +1008,34 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
               </Button>
             </div>
             <div className="space-y-2">
-              {(subSection.points || [""]).map((point: string, pointIndex: number) => (
-                <div key={pointIndex} className="flex gap-2">
-                  <Input
-                    value={point}
-                    onChange={(e) => updatePoint(sectionKey, index, pointIndex, e.target.value)}
-                    placeholder={`Point ${pointIndex + 1}`}
-                  />
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => removePoint(sectionKey, index, pointIndex)}
-                    disabled={(subSection.points || []).length <= 1}
-                  >
-                    Remove
-                  </Button>
-                </div>
-              ))}
+              {(subSection.points || []).map((point: string, pointIndex: number, arr : any) => {
+                // Show the point if it has content OR if it's the last point in the array
+                const isLastPoint = pointIndex === arr.length - 1;
+                const hasContent = point.trim() !== "";
+                
+                if (hasContent || isLastPoint) {
+                  return (
+                    <div key={pointIndex} className="flex gap-2 items-center">
+                      <Input
+                        value={point}
+                        onChange={(e) => updatePoint(sectionKey, index, pointIndex, e.target.value)}
+                        placeholder={`Point ${pointIndex + 1}`}
+                        className="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => removePoint(sectionKey, index, pointIndex)}
+                        disabled={(subSection.points || []).length <= 1}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  );
+                }
+                return null;
+              })}
             </div>
           </div>
 
@@ -1018,6 +1083,16 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
             <p className="text-sm text-gray-500 mt-1">
               Upload an icon for this sub-section
             </p>
+            {(subSectionIcons[sectionKey]?.[index]?.length || 0) > 0 && (
+              <div className="mt-2">
+                <Label className="text-sm font-medium">New Icon to Upload</Label>
+                <img
+                  src={URL.createObjectURL(subSectionIcons[sectionKey][index][0])}
+                  alt="New Sub-section Icon Preview"
+                  className="h-24 w-24 rounded border object-cover mt-2"
+                />
+              </div>
+            )}
           </div>
 
           <Button
@@ -1062,8 +1137,8 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
           </div>
         </div>
 
-        {/* Sub-section Icon Upload - Only for non-hero sections */}
-        {sectionKey !== 'hero_section' && (
+        {/* Sub-section Icon Upload - Only for non-hero sections and not for design_section */}
+        {sectionKey !== 'hero_section' && sectionKey !== 'design_section' && (
           <div className="space-y-2">
             <Label>Sub-section Icon Alt Text</Label>
             <Input
@@ -1107,6 +1182,16 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
             <p className="text-sm text-gray-500 mt-1">
               Upload an icon for this sub-section
             </p>
+            {(subSectionIcons[sectionKey]?.[index]?.length || 0) > 0 && (
+              <div className="mt-2">
+                <Label className="text-sm font-medium">New Icon to Upload</Label>
+                <img
+                  src={URL.createObjectURL(subSectionIcons[sectionKey][index][0])}
+                  alt="New Sub-section Icon Preview"
+                  className="h-24 w-24 rounded border object-cover mt-2"
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -1288,6 +1373,24 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
                 {100 - (title?.length || 0)} characters remaining
               </p>
             </div>
+            <div className="grid gap-2">
+              <Label htmlFor="service-slug">Slug</Label>
+              <Input
+                id="service-slug"
+                value={slug}
+                onChange={(e) => {
+                  const value = e.target.value.toLowerCase();
+                  if (value.length <= 100 && /^[a-z0-9-]*$/.test(value)) {
+                    setSlug(value);
+                  }
+                }}
+                placeholder="url-friendly-slug"
+                maxLength={100}
+              />
+              <p className="text-sm text-muted-foreground mt-1">
+                Use lowercase letters, numbers, and hyphens only
+              </p>
+            </div>
 
             <div className="grid gap-2">
               <Label htmlFor="service-description">Description</Label>
@@ -1373,70 +1476,67 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
         <TabsContent value="images" className="space-y-4">
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Service Icon</Label>
+              <Label>Service Image</Label>
               <Input
                 type="file"
-                multiple
                 accept="image/*"
                 onChange={(e) => handleFileChange('image_files', e.target.files)}
                 className="cursor-pointer"
               />
               <p className="text-sm text-gray-500 mt-1">
-                Upload general images for this service
+                Select a new image to replace the current one
               </p>
 
-              {/* Existing Images from Service */}
+              {/* Current Image from Service */}
               {service?.images && service.images.length > 0 && (
                 <div className="mt-4 space-y-4">
-                  <Label className="text-sm font-medium">Existing Service Images</Label>
-                  {service.images.map((imageUrl, idx) => (
-                    <div key={`existing-${idx}`} className="space-y-2 p-4 border rounded-lg bg-muted/50">
-                      <img
-                        src={getImageUrl(imageUrl)}
-                        alt={`Existing Service Image ${idx + 1}`}
-                        className="h-40 w-auto rounded border object-cover"
-                      />
-                      <p className="text-sm text-muted-foreground">
-                        Existing image {idx + 1}
-                      </p>
-                    </div>
-                  ))}
+                  <Label className="text-sm font-medium">Current Service Image</Label>
+                  <div className="space-y-2 p-4 border rounded-lg bg-muted/50">
+                    <img
+                      src={getImageUrl(service.images[service.images.length - 1])}
+                      alt={`Current Service Image`}
+                      className="h-40 w-auto rounded border object-cover"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Current alt text: {service?.image_alt_texts?.[0] || "No alt text"}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      This is the current image. Uploading a new one will replace it.
+                    </p>
+                  </div>
                 </div>
               )}
 
-              {/* New Image Previews and Alt Text */}
+              {/* New Image Preview and Alt Text */}
               {sectionFiles.image_files.length > 0 && (
                 <div className="mt-4 space-y-4">
-                  <Label className="text-sm font-medium">New Images to Upload</Label>
-                  {sectionFiles.image_files.map((file, idx) => (
-                    <div key={idx} className="space-y-2 p-4 border rounded-lg">
-                      <img
-                        src={URL.createObjectURL(file)}
-                        alt={`Service Image ${idx + 1}`}
-                        className="h-40 w-auto rounded border object-cover"
+                  <Label className="text-sm font-medium">New Image to Upload</Label>
+                  <div className="space-y-2 p-4 border rounded-lg">
+                    <img
+                      src={URL.createObjectURL(sectionFiles.image_files[0])}
+                      alt={`Service Image Preview`}
+                      className="h-40 w-auto rounded border object-cover"
+                    />
+                    <div>
+                      <Label htmlFor={`serviceImageAlt0`}>Alt Text for New Image</Label>
+                      <Input
+                        id={`serviceImageAlt0`}
+                        value={imageAltTexts[0] || ""}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value.length <= 255) {
+                            const newAltTexts = [value];
+                            setImageAltTexts(newAltTexts);
+                          }
+                        }}
+                        placeholder={`Enter alt text for the new service image`}
+                        maxLength={255}
                       />
-                      <div>
-                        <Label htmlFor={`serviceImageAlt${idx}`}>Alt Text for Image {idx + 1}</Label>
-                        <Input
-                          id={`serviceImageAlt${idx}`}
-                          value={imageAltTexts[idx] || ""}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            if (value.length <= 255) {
-                              const newAltTexts = [...imageAltTexts];
-                              newAltTexts[idx] = value;
-                              setImageAltTexts(newAltTexts);
-                            }
-                          }}
-                          placeholder={`Enter alt text for service image ${idx + 1}`}
-                          maxLength={255}
-                        />
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {255 - (imageAltTexts[idx]?.length || 0)} characters remaining
-                        </p>
-                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {255 - (imageAltTexts[0]?.length || 0)} characters remaining
+                      </p>
                     </div>
-                  ))}
+                  </div>
                 </div>
               )}
             </div>

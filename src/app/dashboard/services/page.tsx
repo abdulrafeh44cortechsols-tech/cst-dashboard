@@ -14,7 +14,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useServices } from "@/hooks/useServices";
-import { EditServiceModal } from "@/components/services/EditServiceModal";
 import { DeleteServiceModal } from "@/components/services/DeleteServiceModal";
 import { useState } from "react";
 import { Service } from "@/types/types";
@@ -25,8 +24,6 @@ export default function ServicesPage() {
   const router = useRouter();
   const { getServicesList } = useServices();
   const { data: services, isLoading, isError } = getServicesList;
-  const [editingService, setEditingService] = useState<Service | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [deletingService, setDeletingService] = useState<Service | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
@@ -65,7 +62,7 @@ export default function ServicesPage() {
                 <Card key={service.id} className="w-full max-w-sm flex flex-col h-full">
                   <div className="relative overflow-hidden group aspect-[400/360] flex-shrink-0">
                     <Image
-                      src={parseImageUrl(service.images?.[0]) || "/placeholer.svg"}
+                      src={parseImageUrl(service.images?.[service.images?.length - 1]) || "/placeholer.svg"}
                       alt={service.title}
                       fill
                       className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -129,13 +126,6 @@ export default function ServicesPage() {
             )}
           </div>
 
-          {editingService && (
-            <EditServiceModal
-              service={editingService}
-              isOpen={isModalOpen}
-              onClose={() => setIsModalOpen(false)}
-            />
-          )}
           {deletingService && (
             <DeleteServiceModal
               service={deletingService}
