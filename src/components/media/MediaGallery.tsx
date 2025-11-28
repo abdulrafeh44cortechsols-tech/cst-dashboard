@@ -5,13 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
-import { ImageIcon, Video, Trash2, Calendar, FileText, BookOpen, Briefcase } from "lucide-react"
+import { ImageIcon, Video, Trash2, Calendar, FileText, ChevronLeft, ChevronRight } from "lucide-react"
 import { useMedia } from "@/hooks/useMedia"
 import { useMediaStore } from "@/stores"
 import { getImageUrl } from "@/lib/utils"
 
 export function MediaGallery() {
-  const { getMediaList } = useMedia()
+  const [currentPage, setCurrentPage] = useState(1)
+  const pageSize = 10
+  
+  const { getMediaList } = useMedia(currentPage, pageSize)
   const { media } = useMediaStore()
 
   if (getMediaList.isLoading) {
@@ -50,7 +53,7 @@ export function MediaGallery() {
     )
   }
 
-  if (!media || (!media.data.blogs && !media.data.services)) {
+  if (!media || !media.results || media.results.length === 0) {
     return (
       <Card className="w-full">
         <CardContent className="p-8 text-center">
@@ -60,7 +63,7 @@ export function MediaGallery() {
             </div>
             <div>
               <h3 className="text-lg font-medium text-slate-900">No media files yet</h3>
-              <p className="text-sm text-slate-500 mt-1">No media files found in blogs or services</p>
+              <p className="text-sm text-slate-500 mt-1">Upload some images to get started</p>
             </div>
           </div>
         </CardContent>
@@ -68,111 +71,118 @@ export function MediaGallery() {
     )
   }
 
-  // Calculate total media count
-  const totalBlogImages = Object.values(media.data.blogs || {}).flat().length
-  const totalServiceImages = Object.values(media.data.services || {}).flat().length
-  const totalImages = totalBlogImages + totalServiceImages
+  const totalPages = Math.ceil(media.count / pageSize)
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header with pagination info */}
       <Card className="w-full">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 ">
-          <CardTitle className="text-xl font-semibold">Media Gallery ({totalImages} files)</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-xl font-semibold">
+            Media Gallery ({media.count} files)
+          </CardTitle>
+          <div className="text-sm text-slate-500">
+            Page {currentPage} of {totalPages}
+          </div>
         </CardHeader>
       </Card>
 
-      {/* Blogs Section */}
-      {media.data.blogs && Object.keys(media.data.blogs).length > 0 && (
-        <Card className="w-full">
-          <CardHeader className="flex flex-row items-center space-y-0 pb-4">
-            <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-blue-600" />
-              Blog Images ({totalBlogImages})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="space-y-6">
-              {Object.entries(media.data.blogs).map(([blogId, images]) => (
-                <div key={blogId} className="space-y-3">
-                  <h3 className="text-md font-medium text-slate-700">Blog ID: {blogId}</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {images.map((imageUrl, index) => (
-                      <Card key={`${blogId}-${index}`} className="overflow-hidden">
-                        <div className="aspect-video relative bg-slate-100">
-                          <img
-                            src={getImageUrl(imageUrl)}
-                            alt={`Blog ${blogId} image ${index + 1}`}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.src = "/placeholder.svg"
-                            }}
-                          />
-                          <div className="absolute top-2 left-2">
-                            <Badge variant="secondary" className="text-xs">
-                              <ImageIcon className="w-3 h-3 mr-1" />
-                              Image
-                            </Badge>
-                          </div>
-                        </div>
-                        <CardContent className="p-3">
-                          <div className="text-sm text-slate-600">
-                            Blog {blogId} - Image {index + 1}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+      {/* Media Grid */}
+      <Card className="w-full">
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {media.results.map((mediaItem) => (
+              <Card key={mediaItem.id} className="overflow-hidden">
+                <div className="aspect-video relative bg-slate-100">
+                  <img
+                    src={getImageUrl(mediaItem.image)}
+                    alt={mediaItem.alt_text || `Media ${mediaItem.id}`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = "/placeholder.svg"
+                    }}
+                  />
+                  <div className="absolute top-2 left-2">
+                    <Badge variant="secondary" className="text-xs">
+                      <ImageIcon className="w-3 h-3 mr-1" />
+                      Image
+                    </Badge>
                   </div>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                <CardContent className="p-3">
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium text-slate-900 truncate">
+                      ID: {mediaItem.id}
+                    </div>
+                    {mediaItem.alt_text && (
+                      <div className="text-xs text-slate-600 line-clamp-2">
+                        {mediaItem.alt_text}
+                      </div>
+                    )}
+                    <div className="text-xs text-slate-400">
+                      {new Date(mediaItem.created_at).toLocaleDateString()}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Services Section */}
-      {media.data.services && Object.keys(media.data.services).length > 0 && (
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
         <Card className="w-full">
-          <CardHeader className="flex flex-row items-center space-y-0 pb-4">
-            <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <Briefcase className="w-5 h-5 text-green-600" />
-              Service Images ({totalServiceImages})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="space-y-6">
-              {Object.entries(media.data.services).map(([serviceId, images]) => (
-                <div key={serviceId} className="space-y-3">
-                  <h3 className="text-md font-medium text-slate-700">Service ID: {serviceId}</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {images.map((imageUrl, index) => (
-                      <Card key={`${serviceId}-${index}`} className="overflow-hidden">
-                        <div className="aspect-video relative bg-slate-100">
-                          <img
-                            src={getImageUrl(imageUrl)}
-                            alt={`Service ${serviceId} image ${index + 1}`}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.src = "/placeholder.svg"
-                            }}
-                          />
-                          <div className="absolute top-2 left-2">
-                            <Badge variant="secondary" className="text-xs">
-                              <ImageIcon className="w-3 h-3 mr-1" />
-                              Image
-                            </Badge>
-                          </div>
-                        </div>
-                        <CardContent className="p-3">
-                          <div className="text-sm text-slate-600">
-                            Service {serviceId} - Image {index + 1}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              ))}
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="flex items-center gap-2"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Previous
+              </Button>
+              
+              <div className="flex items-center gap-2">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={currentPage === pageNum ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(pageNum)}
+                      className="w-8 h-8 p-0"
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="flex items-center gap-2"
+              >
+                Next
+                <ChevronRight className="w-4 h-4" />
+              </Button>
             </div>
           </CardContent>
         </Card>

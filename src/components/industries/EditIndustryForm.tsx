@@ -205,8 +205,8 @@ const [whatSetsUsApartSectionImagesAltTexts, setWhatSetsUsApartSectionImagesAltT
     return `${apiBase}${u.startsWith("/") ? u : `/${u}`}`;
   };
 
-  // Get tags data safely
-  const tags = getTags.data?.data;
+  // Get tags data safely from new API structure
+  const tags = getTags.data?.results;
 
   useEffect(() => {
     if (industry) {

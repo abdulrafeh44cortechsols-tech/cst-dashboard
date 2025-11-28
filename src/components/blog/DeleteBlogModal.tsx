@@ -20,7 +20,7 @@ interface DeleteBlogModalProps {
 }
 
 export function DeleteBlogModal({ blog, isOpen, onClose }: DeleteBlogModalProps) {
-  const { removeBlog } = useBlogs(1,6);
+  const { removeBlog } = useBlogs(1, 6, false); // Don't fetch list - only need mutation
 
   const handleDelete = () => {
     if (!blog) return;

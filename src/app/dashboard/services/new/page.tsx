@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useServices } from "@/hooks/useServices";
+import { useMedia } from "@/hooks/useMedia";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,7 +31,9 @@ import { getImageUrl } from "@/lib/utils";
 
 export default function AddServicePage() {
   const router = useRouter();
-  const { addService } = useServices();
+  const { addService } = useServices(1, 10, false); // Don't fetch list - only need mutation
+  // Disable media list fetch - we only need upload mutation
+  const { uploadMedia } = useMedia(1, 10, false);
 
   // Basic service fields
   const [title, setTitle] = useState("");
@@ -39,6 +42,20 @@ export default function AddServicePage() {
   const [metaTitle, setMetaTitle] = useState("");
   const [metaDescription, setMetaDescription] = useState("");
   const [published, setPublished] = useState(false);
+  const [projectsDelivered, setProjectsDelivered] = useState<number>(0);
+  const [clientsSatisfaction, setClientsSatisfaction] = useState<number>(0);
+  
+  // Media state for uploaded images
+  const [serviceMainImageId, setServiceMainImageId] = useState<number | null>(null);
+  const [serviceMainImageUrl, setServiceMainImageUrl] = useState<string>("");
+  const [iconId, setIconId] = useState<number | null>(null);
+  const [iconUrl, setIconUrl] = useState<string>("");
+  const [heroImageId, setHeroImageId] = useState<number | null>(null);
+  const [uploadedMediaUrls, setUploadedMediaUrls] = useState<Record<string, string>>({});
+  
+  // Alt text for icon and service main image
+  const [iconAltText, setIconAltText] = useState<string>("");
+  const [serviceMainImageAltText, setServiceMainImageAltText] = useState<string>("");
 
 
   // Sections data
@@ -661,14 +678,14 @@ export default function AddServicePage() {
       formData.append("meta_description", metaDescription);
       formData.append("is_active", published.toString()); // Backend expects is_active, not published
 
-      // Process sections data - convert points to description for what_we_offer_section
-      const processedSectionsData = { ...sectionsData };
+      // Process sections data - convert points to description for what_we_offer_section (for old FormData API)
+      const processedSectionsData = JSON.parse(JSON.stringify(sectionsData)); // Deep copy to avoid mutating original state
       Object.keys(processedSectionsData).forEach(sectionKey => {
         if (sectionKey === 'what_we_offer_section') {
-          processedSectionsData[sectionKey].sub_sections = processedSectionsData[sectionKey].sub_sections.map(sub => ({
+          processedSectionsData[sectionKey].sub_sections = processedSectionsData[sectionKey].sub_sections.map((sub : any) => ({
             ...sub,
-            description: sub.points ? sub.points.filter(point => point.trim() !== '').join(', ') : '',
-            points: undefined // Remove points from final data
+            description: sub.points ? sub.points.filter((point : any) => point.trim() !== '').join(', ') : '',
+            points: undefined // Remove points from processed copy only
           }));
         }
       });
@@ -766,11 +783,137 @@ export default function AddServicePage() {
         formData.append("client_feedback_section_image_files_alt_text", JSON.stringify(clientFeedbackAltTexts));
       }
 
-      await addService.mutateAsync(formData);
+      // NEW API: Build JSON payload for sols-services endpoint
+      // Extract bullet points from tools_used_section subsections
+      const bulletPoints = sectionsData.tools_used_section?.sub_sections
+        ?.map(sub => sub.title)
+        ?.filter(title => title?.trim()) || [];
       
-      // Clear draft after successful submission
+      const servicePayload = {
+        name: title,
+        description: description,
+        slug: slug,
+        meta_title: metaTitle,
+        meta_description: metaDescription,
+        projects_delivered: projectsDelivered,
+        clients_satisfaction: clientsSatisfaction,
+        icon: iconId, // Image ID from media upload
+        icon_alt_text: iconAltText || "", // Alt text for service post icon
+        hero_image: serviceMainImageId || heroImageId, // Use service main image as hero_image
+        hero_image_alt_text: serviceMainImageAltText || "", // Alt text for hero image
+        bullet_points: bulletPoints, // From tools_used_section subsections
+        
+        // Section data - map from sectionsData to flat structure
+        about_title: sectionsData.about_section?.title || "",
+        about_description: sectionsData.about_section?.description || "",
+        about_subsections: sectionsData.about_section?.sub_sections?.map(sub => ({
+          title: sub.title,
+          icon: sub.icon,
+          alt_text: sub.iconAltText || sub.alt_text || "",
+          description: sub.description
+        })) || [],
+        
+        why_choose_title: sectionsData.why_choose_us_section?.title || "",
+        why_choose_description: sectionsData.why_choose_us_section?.description || "",
+        why_choose_subsections: sectionsData.why_choose_us_section?.sub_sections?.map(sub => ({
+          title: sub.title,
+          icon: sub.icon,
+          alt_text: sub.iconAltText || sub.alt_text || "",
+          description: sub.description
+        })) || [],
+        
+        what_we_offer_title: sectionsData.what_we_offer_section?.title || "",
+        what_we_offer_description: sectionsData.what_we_offer_section?.description || "",
+        what_we_offer_subsections: sectionsData.what_we_offer_section?.sub_sections?.map(sub => ({
+          title: sub.title,
+          icon: sub.icon,
+          alt_text: sub.iconAltText || sub.alt_text || "",
+          points: sub.points ? sub.points.filter(point => point.trim() !== '') : []
+        })) || [],
+        
+        business_title: sectionsData.perfect_business_section?.title || "",
+        business_description: sectionsData.perfect_business_section?.description || "",
+        business_subsections: sectionsData.perfect_business_section?.sub_sections?.map(sub => ({
+          title: sub.title,
+          icon: sub.icon,
+          alt_text: sub.iconAltText || sub.alt_text || "",
+          description: sub.description
+        })) || [],
+        
+        design_process_title: sectionsData.design_section?.title || "",
+        design_process_description: sectionsData.design_section?.description || "",
+        design_process_subsections: sectionsData.design_section?.sub_sections || [],
+        
+        design_team_title: sectionsData.team_section?.title || "",
+        design_team_description: sectionsData.team_section?.description || "",
+        design_team_subsections: sectionsData.team_section?.sub_sections?.map(sub => ({
+          name: sub.name,
+          image: sub.image,
+          alt_text: sub.imageAltText || sub.alt_text || "",
+          summary: sub.summary,
+          experience: sub.experience,
+          designation: sub.designation
+        })) || [],
+        
+        meet_design_team_title: sectionsData.team_section?.title || "",
+        meet_design_team_description: sectionsData.team_section?.description || "",
+        meet_design_team_subsections: sectionsData.team_section?.sub_sections?.map(sub => ({
+          name: sub.name,
+          image: sub.image,
+          alt_text: sub.imageAltText || sub.alt_text || "",
+          summary: sub.summary,
+          experience: sub.experience,
+          designation: sub.designation
+        })) || [],
+        
+        tools_title: sectionsData.tools_used_section?.title || "",
+        tools_description: sectionsData.tools_used_section?.description || "",
+        tools_subsections: sectionsData.tools_used_section?.sub_sections?.map(sub => ({
+          title: sub.title,
+          icon: sub.icon,
+          alt_text: sub.iconAltText || sub.alt_text || "",
+          points: sub.points ? sub.points.filter(point => point.trim() !== '') : []
+        })) || [],
+        
+        testimonials: sectionsData.client_feedback_section?.sub_sections?.map(sub => ({
+          name: sub.name,
+          image: sub.image,
+          alt_text: sub.imageAltText || sub.alt_text || "",
+          stars: sub.stars,
+          comment: sub.comment,
+          designation: sub.designation
+        })) || [],
+        
+        is_published: published,
+      };
+
+      // ========================================
+      // TEST MODE: Log payload instead of calling API
+      // ========================================
+      console.log("============================================");
+      console.log("🔍 SERVICE PAYLOAD (Test Mode - Not Submitted)");
+      console.log("============================================");
+      console.log(JSON.stringify(servicePayload, null, 2));
+      console.log("============================================");
+      console.log("📊 Payload Summary:");
+      console.log("- Name:", servicePayload.name);
+      console.log("- Slug:", servicePayload.slug);
+      console.log("- Icon ID:", servicePayload.icon);
+      console.log("- Icon Alt Text:", servicePayload.icon_alt_text);
+      console.log("- Hero Image ID:", servicePayload.hero_image);
+      console.log("- Hero Image Alt Text:", servicePayload.hero_image_alt_text);
+      console.log("- Projects Delivered:", servicePayload.projects_delivered);
+      console.log("- Clients Satisfaction:", servicePayload.clients_satisfaction);
+      console.log("- Bullet Points Count:", servicePayload.bullet_points.length);
+      console.log("- Is Published:", servicePayload.is_published);
+      console.log("============================================");
+      
+      toast.success("✅ Test Mode: Payload logged to console! Check console for data.");
+      
+      // TODO: Uncomment below lines when ready to actually submit
+      const { servicesDataService } = await import("@/services/services");
+      await servicesDataService.createServiceV2(servicePayload);
       clearDraft();
-      
       toast.success("Service created successfully!");
       router.push("/dashboard/services");
     } catch (error: any) {
@@ -944,15 +1087,55 @@ export default function AddServicePage() {
             <p className="text-sm text-muted-foreground mt-1">
               {255 - (teamMemberImageAltTexts[index]?.[0]?.length || 0)} characters remaining
             </p>
+            
             <Label>Team Member Photo</Label>
+            {subSection.image && (
+              <div className="mt-2 mb-2">
+                <img
+                  src={getImageUrl(subSection.image)}
+                  alt="Team Member Photo"
+                  className="h-24 w-24 rounded-full border object-cover"
+                />
+                <p className="text-xs text-green-600 mt-1">✓ Uploaded</p>
+              </div>
+            )}
             <Input
               type="file"
               accept="image/*"
-              onChange={(e) => handleTeamMemberImageChange(index, e.target.files)}
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  const altText = teamMemberImageAltTexts[index]?.[0] || "";
+                  if (!altText.trim()) {
+                    toast.error("Please enter alt text first");
+                    e.target.value = "";
+                    return;
+                  }
+                  
+                  try {
+                    const result = await uploadMedia.mutateAsync({
+                      image: file,
+                      alt_text: altText
+                    });
+                    
+                    // Update subsection with full image URL
+                    updateSubSection(sectionKey, index, "image", result.image);
+                    // Capture alt_text from response
+                    if (result.alt_text) {
+                      updateSubSection(sectionKey, index, "imageAltText", result.alt_text);
+                    }
+                    toast.success("Team member photo uploaded!");
+                  } catch (error) {
+                    console.error("Error uploading photo:", error);
+                    toast.error("Failed to upload photo");
+                    e.target.value = "";
+                  }
+                }
+              }}
               className="cursor-pointer"
             />
             <p className="text-sm text-gray-500 mt-1">
-              Upload a photo for this team member
+              Upload a photo for this team member (stores full URL)
             </p>
           </div>
           
@@ -1071,15 +1254,55 @@ export default function AddServicePage() {
             <p className="text-sm text-muted-foreground mt-1">
               {255 - (clientFeedbackImageAltTexts[index]?.[0]?.length || 0)} characters remaining
             </p>
+            
             <Label>Client Photo</Label>
+            {subSection.image && (
+              <div className="mt-2 mb-2">
+                <img
+                  src={getImageUrl(subSection.image)}
+                  alt="Client Photo"
+                  className="h-24 w-24 rounded-full border object-cover"
+                />
+                <p className="text-xs text-green-600 mt-1">✓ Uploaded</p>
+              </div>
+            )}
             <Input
               type="file"
               accept="image/*"
-              onChange={(e) => handleClientFeedbackImageChange(index, e.target.files)}
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  const altText = clientFeedbackImageAltTexts[index]?.[0] || "";
+                  if (!altText.trim()) {
+                    toast.error("Please enter alt text first");
+                    e.target.value = "";
+                    return;
+                  }
+                  
+                  try {
+                    const result = await uploadMedia.mutateAsync({
+                      image: file,
+                      alt_text: altText
+                    });
+                    
+                    // Update subsection with full image URL
+                    updateSubSection(sectionKey, index, "image", result.image);
+                    // Capture alt_text from response
+                    if (result.alt_text) {
+                      updateSubSection(sectionKey, index, "imageAltText", result.alt_text);
+                    }
+                    toast.success("Client photo uploaded!");
+                  } catch (error) {
+                    console.error("Error uploading photo:", error);
+                    toast.error("Failed to upload photo");
+                    e.target.value = "";
+                  }
+                }
+              }}
               className="cursor-pointer"
             />
             <p className="text-sm text-gray-500 mt-1">
-              Upload a photo for this client
+              Upload a photo for this client (stores full URL)
             </p>
           </div>
           
@@ -1090,6 +1313,95 @@ export default function AddServicePage() {
             onClick={() => removeSubSection(sectionKey, index)}
           >
             Remove Feedback
+          </Button>
+        </div>
+      );
+    }
+
+    // Special simplified UI for tools_used_section - only title and points
+    if (sectionKey === 'tools_used_section') {
+      return (
+        <div key={index} className="grid gap-4 p-4 border rounded-lg">
+          <div className="space-y-2">
+            <Label>Title - h2</Label>
+            <Input
+              value={subSection.title}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value.length <= 70) {
+                  updateSubSection(sectionKey, index, 'title', value);
+                }
+              }}
+              placeholder="Tool or service title"
+              maxLength={70}
+            />
+            <p className="text-sm text-muted-foreground mt-1">
+              {70 - (subSection.title?.length || 0)} characters remaining
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <Label>Add Points</Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => addPoint(sectionKey, index)}
+              >
+                Add Point
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {(subSection.points || []).map((point: string, pointIndex: number, arr: any) => {
+                // Show the point if it has content OR if it's the last point in the array
+                const isLastPoint = pointIndex === arr.length - 1;
+                const hasContent = point.trim() !== "";
+                
+                if (hasContent || isLastPoint) {
+                  return (
+                    <div key={pointIndex}>
+                      <div className="flex gap-2 items-center">
+                        <Input
+                          value={point}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (value.length <= 200) {
+                              updatePoint(sectionKey, index, pointIndex, value);
+                            }
+                          }}
+                          placeholder={`Point ${pointIndex + 1}`}
+                          maxLength={200}
+                          className="flex-1"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => removePoint(sectionKey, index, pointIndex)}
+                          disabled={(subSection.points || []).length <= 1}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {200 - (point?.length || 0)} characters remaining
+                      </p>
+                    </div>
+                  );
+                }
+                return null;
+              })}
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            onClick={() => removeSubSection(sectionKey, index)}
+          >
+            Remove
           </Button>
         </div>
       );
@@ -1196,24 +1508,54 @@ export default function AddServicePage() {
               </p>
 
               <Label>Sub-section Icon</Label>
-              {subSection.image && (
+              {subSection.icon && (
                 <div className="mt-2">
                   <Label className="text-sm font-medium">Current Icon</Label>
                   <img
-                    src={getImageUrl(subSection.image)}
+                    src={getImageUrl(subSection.icon)}
                     alt="Current Sub-section Icon"
                     className="h-24 w-24 rounded border object-cover mt-2 bg-muted/50 p-2"
                   />
+                  <p className="text-xs text-green-600 mt-1">✓ Uploaded</p>
                 </div>
               )}
               <Input
                 type="file"
                 accept="image/*"
-                onChange={(e) => handleSubSectionIconChange(sectionKey, index, e.target.files)}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const altText = subSectionIconAltTexts[sectionKey]?.[index]?.[0] || "";
+                    if (!altText.trim()) {
+                      toast.error("Please enter alt text first");
+                      e.target.value = "";
+                      return;
+                    }
+                    
+                    try {
+                      const result = await uploadMedia.mutateAsync({
+                        image: file,
+                        alt_text: altText
+                      });
+                      
+                      // Update subsection with full image URL
+                      updateSubSection(sectionKey, index, "icon", result.image);
+                      // Capture alt_text from response
+                      if (result.alt_text) {
+                        updateSubSection(sectionKey, index, "iconAltText", result.alt_text);
+                      }
+                      toast.success("Icon uploaded successfully!");
+                    } catch (error) {
+                      console.error("Error uploading icon:", error);
+                      toast.error("Failed to upload icon");
+                      e.target.value = "";
+                    }
+                  }
+                }}
                 className="cursor-pointer"
               />
               <p className="text-sm text-gray-500 mt-1">
-                Upload an icon for this sub-section
+                Upload an icon for this sub-section (stores full URL)
               </p>
             </div>
 
@@ -1294,28 +1636,54 @@ export default function AddServicePage() {
             </p>
 
             <Label>Sub-section Icon</Label>
+            {subSection.icon && (
+              <div className="mt-2 mb-2">
+                <img
+                  src={getImageUrl(subSection.icon)}
+                  alt="Sub-section Icon"
+                  className="h-20 w-20 rounded border object-cover"
+                />
+                <p className="text-xs text-green-600 mt-1">✓ Uploaded</p>
+              </div>
+            )}
             <Input
               type="file"
               accept="image/*"
-              onChange={(e) =>
-                handleSubSectionIconChange(sectionKey, index, e.target.files)
-              }
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  const altText = subSectionIconAltTexts[sectionKey]?.[index]?.[0] || "";
+                  if (!altText.trim()) {
+                    toast.error("Please enter alt text first");
+                    e.target.value = "";
+                    return;
+                  }
+                  
+                  try {
+                    const result = await uploadMedia.mutateAsync({
+                      image: file,
+                      alt_text: altText
+                    });
+                    
+                    // Update subsection with full image URL
+                    updateSubSection(sectionKey, index, "icon", result.image);
+                    // Capture alt_text from response
+                    if (result.alt_text) {
+                      updateSubSection(sectionKey, index, "iconAltText", result.alt_text);
+                    }
+                    toast.success("Icon uploaded successfully!");
+                  } catch (error) {
+                    console.error("Error uploading icon:", error);
+                    toast.error("Failed to upload icon");
+                    e.target.value = "";
+                  }
+                }
+              }}
               className="cursor-pointer"
             />
             <p className="text-sm text-gray-500 mt-1">
-              Upload an icon for this sub-section
+              Upload an icon for this sub-section (stores full URL)
             </p>
-
-            {/* Icon Preview */}
-            {subSectionIcons[sectionKey]?.[index]?.length > 0 && (
-              <div className="mt-2">
-                <img
-                  src={URL.createObjectURL(subSectionIcons[sectionKey][index][0])}
-                  alt="Sub-section Icon Preview"
-                  className="h-20 w-20 rounded border object-cover"
-                />
-              </div>
-            )}
           </div>
           )}
         <Button
@@ -1338,6 +1706,40 @@ export default function AddServicePage() {
         if (sectionKey === 'hero_section') {
       return null;
     }
+
+    // Special handling for client_feedback_section - only show subsections
+    if (sectionKey === 'client_feedback_section') {
+      return (
+        <Card key={sectionKey} className="mb-6">
+          <CardHeader>
+            <CardTitle className="capitalize">
+              Client Feedback Section
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <Label>Client Testimonials</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => addSubSection(sectionKey)}
+                >
+                  Add Testimonial
+                </Button>
+              </div>
+              <div className="space-y-4">
+                {section.sub_sections.map((subSection: any, index: number) =>
+                  renderSubSection(sectionKey, subSection, index)
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+    
     // Get the corresponding file upload key for this section
       const fileUploadKey = `${sectionKey}_image_files`;
 
@@ -1411,17 +1813,50 @@ export default function AddServicePage() {
                   {255 - (sectionAltTexts[fileUploadKey]?.[0]?.length || 0)} characters remaining
                 </p>
                 
-                <Label>Section Image</Label>
+                <Label>Section Image (Hero Image)</Label>
                 <Input
                   type="file"
                   accept="image/*"
-                  onChange={(e) =>
-                    handleFileChange(fileUploadKey, e.target.files)
-                  }
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      try {
+                        const altText = sectionAltTexts[fileUploadKey]?.[0] || "";
+                        if (!altText) {
+                          toast.error("Please enter alt text first");
+                          e.target.value = "";
+                          return;
+                        }
+                        
+                        const result = await uploadMedia.mutateAsync({
+                          image: file,
+                          alt_text: altText
+                        });
+                        
+                        // Store the image ID for hero_image field
+                        setHeroImageId(result.id);
+                        // Capture alt_text from response
+                        if (result.alt_text) {
+                          setSectionAltTexts((prev) => ({
+                            ...prev,
+                            [fileUploadKey]: [result.alt_text],
+                          }));
+                        }
+                        toast.success("Hero image uploaded successfully!");
+                        
+                        // Also store file for preview
+                        handleFileChange(fileUploadKey, e.target.files);
+                      } catch (error) {
+                        console.error("Error uploading hero image:", error);
+                        toast.error("Failed to upload hero image");
+                        e.target.value = "";
+                      }
+                    }
+                  }}
                   className="cursor-pointer"
                 />
                 <p className="text-sm text-gray-500 mt-1">
-                  Upload an image for this section
+                  Upload hero image (will store image ID for API)
                 </p>
                 
                 {/* Hero Section Image Preview */}
@@ -1432,6 +1867,9 @@ export default function AddServicePage() {
                       alt="Hero Section Preview"
                       className="h-40 w-auto rounded border object-cover"
                     />
+                    {heroImageId && (
+                      <p className="text-xs text-green-600 mt-1">✓ Uploaded (ID: {heroImageId})</p>
+                    )}
                   </div>
                 )}
               </div>
@@ -1701,6 +2139,42 @@ export default function AddServicePage() {
                 </div>
               </div>
 
+              {/* Projects Delivered and Clients Satisfaction */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="projects-delivered">Projects Delivered</Label>
+                  <Input
+                    id="projects-delivered"
+                    type="number"
+                    min="0"
+                    value={projectsDelivered}
+                    onChange={(e) => setProjectsDelivered(parseInt(e.target.value) || 0)}
+                    placeholder="127"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Number of projects successfully delivered
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="clients-satisfaction">Clients Satisfaction (%)</Label>
+                  <Input
+                    id="clients-satisfaction"
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={clientsSatisfaction}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value) || 0;
+                      setClientsSatisfaction(Math.min(100, Math.max(0, val)));
+                    }}
+                    placeholder="98"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Client satisfaction percentage (0-100)
+                  </p>
+                </div>
+              </div>
+
               {/* Published Field */}
               <div className="space-y-2">
                 <div className="flex items-center space-x-2">
@@ -1719,55 +2193,147 @@ export default function AddServicePage() {
                 </p>
               </div>
 
-              {/* General Service Images */}
-              <div className="space-y-2">
-                <Label htmlFor="serviceImages">Service Post Icon</Label>
-                <Input
-                  id="serviceImages"
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={(e) => handleFileChange('image_files', e.target.files)}
-                  className="cursor-pointer"
-                />
-                <p className="text-sm text-gray-500 mt-1">
-                  Upload general images for this service
-                </p>
-                
-                {/* Image Previews and Alt Text */}
-                {sectionFiles.image_files.length > 0 && (
-                  <div className="mt-4 space-y-4">
-                    {sectionFiles.image_files.map((file, idx) => (
-                      <div key={idx} className="space-y-2 p-4 border rounded-lg">
-                        <img
-                          src={URL.createObjectURL(file)}
-                          alt={`Service Image ${idx + 1}`}
-                          className="h-40 w-auto rounded border object-cover"
-                        />
-                        <div>
-                          <Label htmlFor={`serviceImageAlt${idx}`}>Alt Text for Image {idx + 1}</Label>
-                          <Input
-                            id={`serviceImageAlt${idx}`}
-                            value={imageAltTexts[idx] || ""}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              if (value.length <= 255) {
-                                const newAltTexts = [...imageAltTexts];
-                                newAltTexts[idx] = value;
-                                setImageAltTexts(newAltTexts);
-                              }
-                            }}
-                            placeholder={`Enter alt text for service image ${idx + 1}`}
-                            maxLength={255}
-                          />
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {255 - (imageAltTexts[idx]?.length || 0)} characters remaining
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+              {/* Service Post Icon and Service Main Image - Side by Side */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* General Service Images (Service Post Icon) */}
+                <div className="space-y-2">
+                  <Label htmlFor="iconAltText">Service Post Icon Alt Text</Label>
+                  <Input
+                    id="iconAltText"
+                    value={iconAltText}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value.length <= 255) {
+                        setIconAltText(value);
+                      }
+                    }}
+                    placeholder="Enter alt text for icon"
+                    maxLength={255}
+                  />
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {255 - iconAltText.length} characters remaining
+                  </p>
+                  
+                  <Label htmlFor="serviceImages">Service Post Icon</Label>
+                  <Input
+                    id="serviceImages"
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        if (!iconAltText.trim()) {
+                          toast.error("Please enter alt text first");
+                          e.target.value = "";
+                          return;
+                        }
+                        
+                        try {
+                          const result = await uploadMedia.mutateAsync({
+                            image: file,
+                            alt_text: iconAltText
+                          });
+                          
+                          setIconId(result.id);
+                          setIconUrl(result.image);
+                          // Capture alt_text from response
+                          if (result.alt_text) {
+                            setIconAltText(result.alt_text);
+                          }
+                          toast.success("Service icon uploaded successfully!");
+                        } catch (error) {
+                          console.error("Error uploading icon:", error);
+                          toast.error("Failed to upload icon");
+                          e.target.value = "";
+                        }
+                      }
+                    }}
+                    className="cursor-pointer"
+                  />
+                  <p className="text-sm text-gray-500 mt-1">
+                    Upload icon for this service
+                  </p>
+                  {iconUrl && (
+                    <div className="mt-2">
+                      <img
+                        src={getImageUrl(iconUrl)}
+                        alt="Service Icon"
+                        className="h-40 w-auto rounded border object-cover"
+                      />
+                      <p className="text-xs text-green-600 mt-1">✓ Uploaded (ID: {iconId})</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Service Main Image */}
+                <div className="space-y-2">
+                  <Label htmlFor="serviceMainImageAltText">Service Main Image Alt Text</Label>
+                  <Input
+                    id="serviceMainImageAltText"
+                    value={serviceMainImageAltText}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value.length <= 255) {
+                        setServiceMainImageAltText(value);
+                      }
+                    }}
+                    placeholder="Enter alt text for main image"
+                    maxLength={255}
+                  />
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {255 - serviceMainImageAltText.length} characters remaining
+                  </p>
+                  
+                  <Label htmlFor="serviceMainImage">Service Main Image</Label>
+                  <Input
+                    id="serviceMainImage"
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        if (!serviceMainImageAltText.trim()) {
+                          toast.error("Please enter alt text first");
+                          e.target.value = "";
+                          return;
+                        }
+                        
+                        try {
+                          const result = await uploadMedia.mutateAsync({
+                            image: file,
+                            alt_text: serviceMainImageAltText
+                          });
+                          
+                          setServiceMainImageId(result.id);
+                          setServiceMainImageUrl(result.image);
+                          // Capture alt_text from response
+                          if (result.alt_text) {
+                            setServiceMainImageAltText(result.alt_text);
+                          }
+                          toast.success("Service main image uploaded successfully!");
+                        } catch (error) {
+                          console.error("Error uploading image:", error);
+                          toast.error("Failed to upload image");
+                          e.target.value = "";
+                        }
+                      }
+                    }}
+                    className="cursor-pointer"
+                  />
+                  <p className="text-sm text-gray-500 mt-1">
+                    Upload the main service image
+                  </p>
+                  {serviceMainImageUrl && (
+                    <div className="mt-2">
+                      <img
+                        src={getImageUrl(serviceMainImageUrl)}
+                        alt="Service Main"
+                        className="h-40 w-auto rounded border object-cover"
+                      />
+                      <p className="text-xs text-green-600 mt-1">✓ Uploaded (ID: {serviceMainImageId})</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </CardContent>

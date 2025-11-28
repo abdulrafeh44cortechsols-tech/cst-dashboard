@@ -38,9 +38,7 @@ export default function BlogsPage() {
   const { getBlogsList } = useBlogs(currentPage, postsPerPage);
 
   const { data, isLoading } = getBlogsList;
-  console.log(data,"here is blog data")
   const blogPosts = data?.posts || [];
-  console.log("blogPosts", blogPosts);
   const totalPages = data?.totalPages || 1;
 
   const [editingBlog, setEditingBlog] = useState<BlogPost | null>(null);
@@ -106,7 +104,6 @@ export default function BlogsPage() {
 
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
     const parsedUrl = fullUrl.replace(/^http:\/\/localhost:7000/, baseUrl);
-    console.log("parsedUrl:", parsedUrl);
     return parsedUrl;
   }
 
@@ -136,8 +133,8 @@ export default function BlogsPage() {
                 <Card key={post.id} className="w-full max-w-sm flex flex-col h-full">
                   <div className="relative overflow-hidden group aspect-[400/360] flex-shrink-0">
                     <Image
-                      src={parseImageUrl(post.images?.[0]) || "/placeholer.svg"}
-                      alt={post.title}
+                      src={parseImageUrl(post.featured_image?.image) || "/placeholer.svg"}
+                      alt={post.featured_image?.alt_text || post.title}
                       fill
                       className="object-cover transition-transform duration-300 group-hover:scale-105"
                     />
@@ -151,19 +148,26 @@ export default function BlogsPage() {
                             ? `${post.title.slice(0, 30)}...`
                             : post.title}
                         </span>
-                        <Badge variant={post.published ? "default" : "outline"} className="mb-2">
-                          {post.published ? "Published" : "Draft"}
+                        <Badge variant={post.is_published ? "default" : "outline"} className="mb-2">
+                          {post.is_published ? "Published" : "Draft"}
                         </Badge>
                       </CardTitle>
                       <CardDescription className="line-clamp-3 min-h-[60px]">
-                        {post.content ? post.content.slice(0, 100) + (post.content.length > 100 ? "..." : "") : "No description available."}
+                        {post.excerpt ? post.excerpt.slice(0, 100) + (post.excerpt.length > 100 ? "..." : "") : "No description available."}
                       </CardDescription>
                     </CardHeader>
 
                     <div className="mt-auto pt-4">
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Published: {new Date(post.created_at).toLocaleDateString()}
-                      </p>
+                      <div className="mb-4 space-y-1">
+                        <p className="text-sm text-muted-foreground">
+                          Published: {new Date(post.created_at).toLocaleDateString()}
+                        </p>
+                        {post.created_by && (
+                          <p className="text-sm text-muted-foreground">
+                            Author: <span className="font-medium">{post.created_by}</span>
+                          </p>
+                        )}
+                      </div>
                       <div className="flex justify-end gap-2">
                         <Button
                           variant="outline"

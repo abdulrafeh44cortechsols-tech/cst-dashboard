@@ -1,0 +1,62 @@
+/* Custom styles for CKEditor lists to make bullets and numbers visible */
+
+.ck-content ul,
+.ck-content ol {
+  padding-left: 40px !important;
+  margin: 1em 0 !important;
+}
+
+.ck-content ul li {
+  list-style-type: disc !important;
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+}
+
+.ck-content ol li {
+  list-style-type: decimal !important;
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+}
+
+.ck-content ul li::marker {
+  font-size: 1.2em !important;
+  color: currentColor !important;
+}
+
+.ck-content ol li::marker {
+  font-size: 1em !important;
+  font-weight: 600 !important;
+  color: currentColor !important;
+}
+
+/* Nested lists */
+.ck-content ul ul li {
+  list-style-type: circle !important;
+}
+
+.ck-content ul ul ul li {
+  list-style-type: square !important;
+}
+
+.ck-content ol ol li {
+  list-style-type: lower-alpha !important;
+}
+
+.ck-content ol ol ol li {
+  list-style-type: lower-roman !important;
+}
+
+/* Ensure list items have proper spacing */
+.ck-content li {
+  margin-bottom: 0.5em;
+  line-height: 1.6;
+}
+
+.ck-content li:last-child {
+  margin-bottom: 0;
+}
+
+/* Fix for list items with paragraphs */
+.ck-content li > p {
+  margin: 0;
+}

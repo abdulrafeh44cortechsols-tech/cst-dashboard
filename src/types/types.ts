@@ -1,24 +1,33 @@
+export interface FeaturedImage {
+  id: number;
+  image: string;
+  alt_text: string;
+}
+
 export interface BlogPost {
     id: number;
     title: string;
-    images: string[] | null;
-    image_files: File[] | null; 
-    published: boolean;
-    created_at: string;
-    updated_at: string;
-    tags: {
-      id: number;
-      name: string;
-    }[];
-    summary: string;
-    author_email: string;
     slug: string;
-    tag_ids: number[];
-    meta_title: string;
-    meta_description: string;
-    og_image_file: string | null;
-    og_image: string | null; // URL of existing OG image from backend
-    content: string;
+    excerpt: string;
+    featured_image: FeaturedImage | null;
+    tags: string[]; // Changed to array of strings
+    is_published: boolean; // Changed from 'published' to 'is_published'
+    created_at: string;
+    created_by: string | null;
+    
+    // Legacy fields for backward compatibility with forms
+    images?: string[] | null;
+    image_files?: File[] | null; 
+    published?: boolean; // Keep for form compatibility
+    updated_at?: string;
+    summary?: string;
+    author_email?: string;
+    tag_ids?: number[];
+    meta_title?: string;
+    meta_description?: string;
+    og_image_file?: string | null;
+    og_image?: string | null;
+    content?: string;
     sections_data?: BlogSectionsData;
     info_section?: BlogSection;
     hero_section?: BlogSection;
@@ -72,34 +81,40 @@ export interface BlogPost {
   export interface CreateBlogData {
     title: string;
     slug: string;
+    excerpt: string;
     content: string;
-    published: boolean;
-    tag_ids: number[];
-    image_files: File[];
-    meta_title: string;
-    meta_description: string;
-    og_image_file?: File;
-    sections_data?: BlogSectionsData;
-    hero_section?: HeroSection;
-    quote_section?: QuoteSection;
-    info_section?: InfoSection;
+    featured_image: number | null; // Image ID from media API
+    tags: number[]; // Tag IDs
+    is_published: boolean;
+    meta_title?: string;
+    meta_description?: string;
   }
   
 
   export interface Service {
     id: string;
-    title: string;
+    name: string; // API uses 'name' not 'title'
+    title?: string; // Keep for backward compatibility
     slug: string;
     description: string;
-    meta_title: string;
-    meta_description: string;
-    images: string[] | null;
+    meta_title?: string;
+    meta_description?: string;
+    images?: string[] | null;
     image_alt_texts?: string[]; // Add alt text for main service images
-    is_active: boolean;
+    is_published: boolean;
+    hero_image: {
+      id: number;
+      image: string;
+      alt_text: string;
+    } | null;
+    projects_delivered?: number;
+    clients_satisfaction?: number;
+    bullet_points?: string[];
     created_at: string;
     updated_at: string;
-    author_name: string;
-    author_email: string;
+    created_by?: string; // Author username from API
+    author_name?: string; // Legacy field
+    author_email?: string;
     sections_data?: ServiceSectionsData;
   }
 
@@ -124,9 +139,12 @@ export interface BlogPost {
 
   export interface SubSection {
     title: string;
-    description: string;
+    description?: string; // Optional - some sections use points instead
     points?: string[];
+    icon?: string; // URL of sub-section icon image
     image_alt_text?: string; // Add alt text for sub-section images/icons
+    alt_text?: string; // Alternative property name for alt text
+    iconAltText?: string; // Alternative property name for icon alt text
   }
 
   export interface TeamSection {
@@ -142,7 +160,10 @@ export interface BlogPost {
     experience: string;
     summary: string;
     points?: string[];
+    image?: string; // Team member image URL
     image_alt_text?: string; // Add alt text for team member images
+    alt_text?: string; // Alternative property name for alt text
+    imageAltText?: string; // Alternative property name for image alt text
   }
 
   export interface ClientFeedbackSection {
@@ -158,7 +179,10 @@ export interface BlogPost {
     comment: string;
     stars: number;
     points?: string[];
+    image?: string; // Client feedback image URL
     image_alt_text?: string; // Add alt text for client feedback images
+    alt_text?: string; // Alternative property name for alt text
+    imageAltText?: string; // Alternative property name for image alt text
   }
 
   export interface CreateServiceData {

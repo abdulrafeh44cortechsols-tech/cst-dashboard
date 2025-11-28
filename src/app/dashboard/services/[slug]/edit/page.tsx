@@ -17,12 +17,15 @@ export default function EditServicePage() {
     queryKey: ["service", "slug", slugParam],
     queryFn: async () => {
       if (!slugParam) throw new Error("Missing service slug");
-      return servicesDataService.getServiceBySlug(slugParam);
+      return servicesDataService.getServiceBySlugV2(slugParam);
     },
     enabled: !!slugParam,
+    staleTime: 0, // Always consider data stale - refetch every time
+    gcTime: 0, // Don't keep in cache - always fetch fresh
+    refetchOnWindowFocus: true, // Refetch when user comes back
+    refetchOnMount: true, // Always refetch when component mounts
   });
 
-  console.log(service,"SERVICE DATA");
 
   return (
     <div className="flex flex-col gap-4">

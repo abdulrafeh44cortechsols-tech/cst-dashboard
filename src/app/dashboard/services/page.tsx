@@ -17,27 +17,17 @@ import { useServices } from "@/hooks/useServices";
 import { DeleteServiceModal } from "@/components/services/DeleteServiceModal";
 import { useState } from "react";
 import { Service } from "@/types/types";
-import Image from "next/image";
 import { getImageUrl } from "@/lib/utils";
 
 export default function ServicesPage() {
   const router = useRouter();
-  const { getServicesList } = useServices();
+  // Use pagination - page 1, page_size 100 to get all services (adjust as needed)
+  const { getServicesList } = useServices(1, 10);
   const { data: services, isLoading, isError } = getServicesList;
   const [deletingService, setDeletingService] = useState<Service | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
-  console.log("services", services);
-
-  function parseImageUrl(fullUrl: string | undefined) {
-    if (!fullUrl || typeof fullUrl !== "string") return "/placeholer.svg";
-
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
-    const parsedUrl = fullUrl.replace(/^http:\/\/localhost:7000/, baseUrl);
-    console.log("parsedUrl:", parsedUrl);
-    return parsedUrl;
-  }
-
+  console.log(services,"all data")
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
@@ -58,14 +48,37 @@ export default function ServicesPage() {
         <>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 justify-items-center items-stretch">
             {services && services.length > 0 ? (
-              services.map((service) => (
+              services.map((service) => {
+                // DEBUG LOGS
+                console.log('=== SERVICE CARD DEBUG ===');
+                console.log('Service ID:', service.id);
+                console.log('Service Name:', service.name);
+                console.log('Hero Image Object:', service.hero_image);
+                console.log('Hero Image URL:', service.hero_image?.image);
+                console.log('Hero Image Alt:', service.hero_image?.alt_text);
+                console.log('Images Array:', service.images);
+                console.log('Alt Texts Array:', service.image_alt_texts);
+                console.log('Created By (Author):', service.created_by);
+                console.log('Author Name (Legacy):', service.author_name);
+                console.log('Author Email:', service.author_email);
+                console.log('Created At:', service.created_at);
+                console.log('========================');
+                
+                return (
                 <Card key={service.id} className="w-full max-w-sm flex flex-col h-full">
                   <div className="relative overflow-hidden group aspect-[400/360] flex-shrink-0">
-                    <Image
-                      src={parseImageUrl(service.images?.[service.images?.length - 1]) || "/placeholer.svg"}
-                      alt={service.title}
-                      fill
-                      className="object-cover transition-transform duration-300 group-hover:scale-105"
+                    <img
+                      src={service.hero_image?.image || service.images?.[0] || "/placeholder.svg"}
+                      alt={service.hero_image?.alt_text || service.image_alt_texts?.[0] || service.name || service.title || "Service"}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      onError={(e) => {
+                        console.error('❌ IMAGE LOAD ERROR for service:', service.id);
+                        console.error('Failed URL:', e.currentTarget.src);
+                        e.currentTarget.src = '/placeholder.svg';
+                      }}
+                      onLoad={() => {
+                        console.log('✅ IMAGE LOADED for service:', service.id, service.hero_image?.image);
+                      }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   </div>
@@ -73,12 +86,12 @@ export default function ServicesPage() {
                     <CardHeader className="p-0 pb-4">
                       <CardTitle className="flex flex-col-reverse items-start gap-2 w-full">
                         <span className="line-clamp-2 w-full break-words text-lg">
-                          {service.title.length > 30
-                            ? `${service.title.slice(0, 30)}...`
-                            : service.title}
+                          {(service.name || service.title || "").length > 30
+                            ? `${(service.name || service.title || "").slice(0, 30)}...`
+                            : (service.name || service.title || "")}
                         </span>
-                        <Badge variant={service.is_active ? "default" : "outline"} className="mb-2">
-                          {service.is_active ? "Active" : "Inactive"}
+                        <Badge variant={service.is_published ? "default" : "outline"} className="mb-2">
+                          {service.is_published ? "Published" : "Draft"}
                         </Badge>
                       </CardTitle>
                       <CardDescription className="line-clamp-3 min-h-[60px]">
@@ -87,9 +100,16 @@ export default function ServicesPage() {
                     </CardHeader>
 
                     <div className="mt-auto pt-4">
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Created: {new Date(service.created_at).toLocaleDateString()}
-                      </p>
+                      <div className="mb-4 space-y-1">
+                        <p className="text-sm text-muted-foreground">
+                          Created: {new Date(service.created_at).toLocaleDateString()}
+                        </p>
+                        {service.created_by && (
+                          <p className="text-sm text-muted-foreground">
+                            Author: <span className="font-medium">{service.created_by}</span>
+                          </p>
+                        )}
+                      </div>
                       <div className="flex justify-end gap-2">
                         <Button
                           variant="outline"
@@ -118,7 +138,8 @@ export default function ServicesPage() {
                     </div>
                   </div>
                 </Card>
-              ))
+                );
+              })
             ) : (
               <div className="col-span-full text-center text-muted-foreground">
                 No services found.

@@ -24,7 +24,7 @@ export function DeleteServiceModal({
   isOpen,
   onClose,
 }: DeleteServiceModalProps) {
-  const { removeService } = useServices();
+  const { removeService } = useServices(1, 10, false); // Don't fetch list - only need mutation
 
   const handleDelete = () => {
     if (!service) return;

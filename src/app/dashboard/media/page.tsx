@@ -11,12 +11,10 @@ import {
 } from "@/components/ui/dialog";
 import { PlusCircle } from "lucide-react";
 import { useState } from "react";
-import { useMedia } from "@/hooks/useMedia";
 import { AdminOnlyRoute } from "@/components/RouteGuard";
 
 export default function MediaPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { getMediaList } = useMedia();
 
   return (
     <AdminOnlyRoute>

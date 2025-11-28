@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Upload, X, ImageIcon, Video, FileText } from "lucide-react";
+import { Upload, X, ImageIcon, Video, FileText, Loader2 } from "lucide-react";
+import { useMedia } from "@/hooks/useMedia";
 
 interface MediaFile {
   file: File;
@@ -33,6 +34,8 @@ export function MediaUploadForm() {
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const { uploadMultipleMedia } = useMedia();
 
 
   const createPreview = useCallback((file: File): Promise<string> => {
@@ -131,9 +134,8 @@ export function MediaUploadForm() {
     );
   }, []);
 
-  const handleSubmit = 
-  useCallback(
-    (e: React.FormEvent) => {
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
       e.preventDefault();
 
       if (mediaFiles.length === 0) {
@@ -150,34 +152,29 @@ export function MediaUploadForm() {
         return;
       }
 
-      const storedFiles: StoredMediaFile[] = mediaFiles.map((file) => ({
-        id: file.id,
-        name: file.file.name,
-        type: file.type,
-        size: file.file.size,
-        altText: file.altText,
-        preview: file.preview,
-        uploadDate: new Date().toISOString(),
-      }));
+      try {
+        // Prepare upload data
+        const uploadData = mediaFiles.map((mediaFile) => ({
+          image: mediaFile.file,
+          alt_text: mediaFile.altText,
+        }));
 
-      // Get existing stored files and add new ones
-      const existingFiles = JSON.parse(
-        localStorage.getItem("uploadedMedia") || "[]"
-      );
-      const updatedFiles = [...existingFiles, ...storedFiles];
-      localStorage.setItem("uploadedMedia", JSON.stringify(updatedFiles));
+        // Upload to API
+        await uploadMultipleMedia.mutateAsync(uploadData);
 
-      toast.success("Media files uploaded successfully!");
+        toast.success(`${mediaFiles.length} media file(s) uploaded successfully!`);
 
-      // Reset form
-      setMediaFiles([]);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+        // Reset form
+        setMediaFiles([]);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+      } catch (error: any) {
+        console.error("Upload error:", error);
+        toast.error(error?.message || "Failed to upload media files. Please try again.");
       }
-
-      window.dispatchEvent(new CustomEvent("mediaUploaded"));
     },
-    [mediaFiles, toast]
+    [mediaFiles, uploadMultipleMedia]
   );
 
   const formatFileSize = (bytes: number) => {
@@ -335,10 +332,17 @@ export function MediaUploadForm() {
             <Button
               variant={"blue"}
               type="submit"
-              disabled={mediaFiles.length === 0}
+              disabled={mediaFiles.length === 0 || uploadMultipleMedia.isPending}
               className="px-8"
             >
-              Upload Media ({mediaFiles.length})
+              {uploadMultipleMedia.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                `Upload Media (${mediaFiles.length})`
+              )}
             </Button>
           </div>
         </form>

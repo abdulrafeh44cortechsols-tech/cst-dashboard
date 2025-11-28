@@ -79,7 +79,7 @@ export const authService = {
   // Check if token is valid
   validateToken: async (): Promise<boolean> => {
     try {
-      const response = await api.get('/api/v1/blogs/');
+      const response = await api.get('/api/v1/sols-blogs/');
       return response.status === 200;
     } catch (error: any) {
       if (error.response?.status === 401 || error.response?.status === 403) {

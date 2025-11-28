@@ -4,7 +4,7 @@ import { blogService } from "@/services/blogs";
 import { BlogPost, CreateBlogData } from "@/types/types";
 import { useBlogStore } from "@/stores";
 
-export const useBlogs = (page: number = 1, limit: number = 6) => {
+export const useBlogs = (page: number = 1, limit: number = 6, enableFetch: boolean = true) => {
   const queryClient = useQueryClient();
   const { setBlogs } = useBlogStore();
 
@@ -14,7 +14,6 @@ export const useBlogs = (page: number = 1, limit: number = 6) => {
       try {
         // Fetch paginated data from backend
         const paginated = await blogService.getBlogs(page, limit);
-        console.log("response for get blogs list:", paginated);
 
         const blogs: BlogPost[] = Array.isArray(paginated?.results)
           ? paginated.results
@@ -49,8 +48,12 @@ export const useBlogs = (page: number = 1, limit: number = 6) => {
         };
       }
     },
-    staleTime: 1000 * 60 * 5, // cache for 5 minutes
+    enabled: enableFetch, // Only fetch if explicitly enabled
+    staleTime: 0, // Always consider data stale to refetch after invalidation
+    gcTime: 1000 * 60 * 15, // 15 minutes - keep in cache longer
     retry: 0,
+    refetchOnWindowFocus: false, // Don't refetch when switching tabs
+    refetchOnMount: true, // Refetch when component mounts if data is stale
   });
   
   // Store blogs in Zustand store when data is fetched
@@ -61,17 +64,19 @@ export const useBlogs = (page: number = 1, limit: number = 6) => {
   }, [getBlogsList.data, setBlogs]);
 
   const addBlog = useMutation({
-    mutationFn: (data: FormData | CreateBlogData) => blogService.createBlog(data),
+    mutationFn: (data: CreateBlogData) => blogService.createBlog(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["blogs"] });
+      queryClient.invalidateQueries({ queryKey: ["blog"] });
     },
   });
 
   const editBlog = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: FormData | CreateBlogData }) =>
+    mutationFn: ({ id, data }: { id: string | number; data: CreateBlogData }) =>
       blogService.updateBlog(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["blogs"] });
+      queryClient.invalidateQueries({ queryKey: ["blog"] });
     },
   });
 

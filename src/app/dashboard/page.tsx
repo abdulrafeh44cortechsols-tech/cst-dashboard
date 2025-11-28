@@ -20,13 +20,7 @@ import {
   ArrowRight
 } from "lucide-react";
 import { useBlogStore, useServiceStore, useEditorStore, usePageStore, useMediaStore, useProjectStore, useIndustryStore } from "@/stores";
-import { useBlogs } from "@/hooks/useBlogs";
-import { useServices } from "@/hooks/useServices";
 import { useEditors } from "@/hooks/useEditors";
-import { usePages } from "@/hooks/usePages";
-import { useMedia } from "@/hooks/useMedia";
-import { useProjects } from "@/hooks/useProjects";
-import { useIndustries } from "@/hooks/useIndustries";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -41,14 +35,10 @@ export default function DashboardOverviewPage() {
   const { industries } = useIndustryStore();
   const { user } = useAuth();
   
-  // Fetch all data when dashboard loads
-  useBlogs(1, 1000);
-  useServices();
+  // Don't fetch data here - let individual pages handle their own data fetching
+  // The Zustand stores are populated when users visit individual pages
+  // This prevents unnecessary API calls and improves performance
   const editorsHook = useEditors(user?.userType === "admin");
-  usePages();
-  useMedia();
-  useProjects();
-  useIndustries();
 
   // Get recent items (last 5)
   const recentBlogs = blogs.slice(0, 5);
@@ -58,7 +48,7 @@ export default function DashboardOverviewPage() {
 
   // Calculate stats
   const publishedBlogs = blogs.filter(blog => blog.published).length;
-  const publishedServices = services.filter(service => service.is_active).length;
+  const publishedServices = services.filter(service => service.is_published).length;
   const publishedPages = pages.filter(page => page.is_published).length;
   const publishedProjects = projects.filter(project => project.published).length;
   const publishedIndustries = industries.filter(industry => industry.is_active).length;
@@ -86,7 +76,7 @@ export default function DashboardOverviewPage() {
   };
 
   const getServiceStatusText = (status: boolean) => {
-    return status ? 'Active' : 'Inactive';
+    return status ? 'Published' : 'Draft';
   };
 
   const formatDate = (dateString: string) => {
@@ -253,10 +243,10 @@ export default function DashboardOverviewPage() {
                   recentServices.map((service) => (
                     <div key={service.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors gap-2">
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-sm truncate">{service.title}</h4>
+                        <h4 className="font-medium text-sm truncate">{service.name || service.title}</h4>
                         <div className="flex items-center gap-2 sm:gap-4 mt-1 text-xs text-muted-foreground flex-wrap">
-                          <span className={`px-2 py-1 rounded-full whitespace-nowrap ${getStatusColor(service.is_active)}`}>
-                            {getServiceStatusText(service.is_active)}
+                          <span className={`px-2 py-1 rounded-full whitespace-nowrap ${getStatusColor(service.is_published)}`}>
+                            {getServiceStatusText(service.is_published)}
                           </span>
                           <span className="flex items-center gap-1 whitespace-nowrap">
                             <Calendar className="h-3 w-3" />

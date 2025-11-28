@@ -41,10 +41,10 @@ export const exampleServiceData: CreateServiceData = {
       "title": "What We Offer",
       "description": "Complete coverage for product design.",
       "sub_sections": [
-        { "title": "Research & Strategy", "description": "Interviews, IA, journeys" },
-        { "title": "Design & Prototyping", "description": "Wireframes, hi‑fi, systems" },
-        { "title": "Testing & Optimization", "description": "Usability, A/B, accessibility" },
-        { "title": "Dev Collaboration", "description": "Specs, handoff, QA" }
+        { "title": "Research & Strategy", "points": ["User Research", "Competitive Analysis", "Information Architecture", "User Journey Mapping"] },
+        { "title": "Design & Prototyping", "points": ["Wireframing", "Visual Design", "Interactive Prototypes", "Design Systems"] },
+        { "title": "Testing & Optimization", "points": ["Usability Testing", "A/B Testing", "Accessibility Audits"] },
+        { "title": "Dev Collaboration", "points": ["Design Specifications", "Handoff Documentation", "Quality Assurance"] }
       ]
     },
     "perfect_business_section": {
@@ -134,7 +134,7 @@ export const getDefaultSectionsData = () => ({
   what_we_offer_section: {
     title: "",
     description: "",
-    sub_sections: [{ title: "", description: "" }]
+    sub_sections: [{ title: "", points: [""] }]
   },
   perfect_business_section: {
     title: "",

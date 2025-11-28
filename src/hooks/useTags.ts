@@ -3,10 +3,10 @@ import { tagService } from "@/services/tags";
 import { Tag } from "@/types/types";
 
 interface TagsResponse {
-  status: string;
-  message: string;
-  data: Tag[];
   count: number;
+  next: string | null;
+  previous: string | null;
+  results: Tag[];
 }
 
 interface CreateTagRequest {

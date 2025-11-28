@@ -23,8 +23,20 @@ const nextConfig: NextConfig = {
         port: '8000',
       },
       {
+        protocol: 'http',
+        hostname: '127.0.0.1',
+      },
+      {
+        protocol: 'https',
+        hostname: '127.0.0.1',
+      },
+      {
         protocol: 'https',
         hostname: 'solsbackend.cortechsocial.com',
+      },
+      {
+        protocol: 'http',
+        hostname: '192.168.18.199',
       },
     ],
     domains: [
@@ -32,7 +44,8 @@ const nextConfig: NextConfig = {
       "localhost",
       "marlin-welcome-goat.ngrok-free.app",
       "*.devtunnels.ms",
-      "solsbackend.cortechsocial.com"
+      "solsbackend.cortechsocial.com",
+      "192.168.18.199"
     ],
   },
 };
