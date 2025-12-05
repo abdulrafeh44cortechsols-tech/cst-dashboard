@@ -43,9 +43,29 @@ export const mediaService = {
     return response.data;
   },
 
-  // Upload multiple media files
+  // Upload multiple media files (sequential)
   uploadMultipleMedia: async (files: UploadMediaData[]): Promise<MediaItem[]> => {
     const uploadPromises = files.map(file => mediaService.uploadMedia(file));
     return Promise.all(uploadPromises);
+  },
+
+  // Bulk upload media files (single request for 1-4 images)
+  bulkUploadMedia: async (files: File[], altTexts: string[]): Promise<MediaItem[]> => {
+    const formData = new FormData();
+    
+    // Append all images
+    files.forEach((file) => {
+      formData.append('image', file);
+    });
+    
+    // Append alt_text as JSON array
+    formData.append('alt_text', JSON.stringify(altTexts));
+
+    const response = await api.post("/api/v1/sols-media/bulk-upload/", formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
   },
 }

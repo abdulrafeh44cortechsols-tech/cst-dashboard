@@ -19,18 +19,18 @@ interface EditTagModalProps {
   tag: Tag | null;
   isOpen: boolean;
   onClose: () => void;
-  onEdit: (id: number, tagData: { name: string; slug: string }) => void;
+  onEdit: (id: number, tagData: { name: string }) => void;
 }
 
 export function EditTagModal({ tag, isOpen, onClose, onEdit }: EditTagModalProps) {
   const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
+  // const [slug, setSlug] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (tag) {
       setName(tag.name);
-      setSlug(tag.slug);
+      // setSlug(tag.slug);
     }
   }, [tag]);
 
@@ -39,21 +39,21 @@ export function EditTagModal({ tag, isOpen, onClose, onEdit }: EditTagModalProps
     setName(value);
     
     // Only auto-generate if slug is empty or matches the previous auto-generated slug
-    if (!slug || slug === generateSlugFromName(tag?.name || "")) {
-      const generatedSlug = generateSlugFromName(value);
-      setSlug(generatedSlug);
-    }
+    // if (!slug || slug === generateSlugFromName(tag?.name || "")) {
+    //   const generatedSlug = generateSlugFromName(value);
+    //   setSlug(generatedSlug);
+    // }
   };
 
-  const generateSlugFromName = (name: string) => {
-    return name
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '');
-  };
+  // const generateSlugFromName = (name: string) => {
+  //   return name
+  //     .toLowerCase()
+  //     .trim()
+  //     .replace(/[^a-z0-9\s-]/g, '')
+  //     .replace(/\s+/g, '-')
+  //     .replace(/-+/g, '-')
+  //     .replace(/^-|-$/g, '');
+  // };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,18 +65,14 @@ export function EditTagModal({ tag, isOpen, onClose, onEdit }: EditTagModalProps
       return;
     }
 
-    if (!slug.trim()) {
-      toast.error("Please enter a slug.");
-      return;
-    }
-
     setIsSubmitting(true);
     
     try {
-      await onEdit(tag.id, { name: name.trim(), slug: slug.trim() });
+      await onEdit(tag.id, { name: name.trim() });
       onClose();
       toast.success("Tag updated successfully!");
     } catch (error) {
+      console.log(error,"here is the error")
       toast.error("Failed to update tag. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -86,7 +82,7 @@ export function EditTagModal({ tag, isOpen, onClose, onEdit }: EditTagModalProps
   const handleClose = () => {
     if (tag) {
       setName(tag.name);
-      setSlug(tag.slug);
+      // setSlug(tag.slug);
     }
     onClose();
   };
@@ -114,7 +110,7 @@ export function EditTagModal({ tag, isOpen, onClose, onEdit }: EditTagModalProps
               />
             </div>
 
-            <div className="grid gap-2">
+            {/* <div className="grid gap-2">
               <Label htmlFor="edit-tag-slug">Slug *</Label>
               <Input
                 id="edit-tag-slug"
@@ -126,7 +122,7 @@ export function EditTagModal({ tag, isOpen, onClose, onEdit }: EditTagModalProps
               <p className="text-sm text-muted-foreground">
                 URL-friendly version of the name. Be careful changing this as it affects URLs.
               </p>
-            </div>
+            </div> */}
 
             {tag && (
               <div className="grid gap-2">

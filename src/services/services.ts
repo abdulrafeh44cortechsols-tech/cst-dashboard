@@ -51,8 +51,8 @@ export const servicesDataService = {
 
     const normalized: Service = {
       id: raw.id?.toString() || "",
-      name: raw.name || "",
-      title: raw.name || raw.title || "",
+      title: raw.title || raw.name || "",
+      name: raw.name || raw.title || "",
       slug: raw.slug || "",
       description: raw.description || "",
       meta_title: raw.meta_title || "",
@@ -78,14 +78,14 @@ export const servicesDataService = {
   getServiceBySlug: async (slug: string): Promise<Service> => {
     // First, get all services to find the one with matching slug
     const servicesResponse = await api.get("/api/v1/services/");
-    
+
     const services = servicesResponse.data.data || [];
     const serviceWithSlug = services.find((service: any) => service.slug === slug);
-    
+
     if (!serviceWithSlug) {
       throw new Error(`Service with slug "${slug}" not found`);
     }
-    
+
     // Now fetch the full service data using the ID with existing endpoint
     return await servicesDataService.getService(serviceWithSlug.id);
   },
@@ -127,11 +127,11 @@ export const servicesDataService = {
       params: { page: 1, page_size: 10 }
     });
     const service = response.data.results.find((s: any) => s.slug === slug);
-    
+
     if (!service) {
       throw new Error(`Service with slug "${slug}" not found`);
     }
-    
+
     // Then fetch the full service data
     return await servicesDataService.getServiceByIdV2(service.id);
   },
@@ -162,5 +162,13 @@ export const servicesDataService = {
 
   deleteService: async (id: string): Promise<void> => {
     await api.delete(`/api/v1/sols-services/${id}/`);
+  },
+
+  // Check if slug is available
+  checkSlugAvailability: async (slug: string, type: string = 'service'): Promise<{ message: string }> => {
+    const response = await api.get('/api/v1/sols-slug-check/', {
+      params: { slug, type }
+    })
+    return response.data
   },
 };

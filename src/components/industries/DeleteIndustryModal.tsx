@@ -44,7 +44,7 @@ export function DeleteIndustryModal({
         <DialogHeader>
           <DialogTitle>Delete Industry</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete <strong>{industry?.name}</strong>?
+            Are you sure you want to delete <strong>{industry?.title}</strong>?
             This action cannot be undone.
           </DialogDescription>
         </DialogHeader>

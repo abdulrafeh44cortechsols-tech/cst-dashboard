@@ -13,7 +13,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { RefreshCw, Loader2 } from "lucide-react";
+import { RefreshCw, Loader2, Upload, ImageIcon, CheckCircle2, XCircle } from "lucide-react";
+import { MediaGalleryModal } from "@/components/media/MediaGalleryModal";
+import type { MediaItem } from "@/services/media";
 import { Tag } from "@/types/types";
 import QuillEditor from "@/components/blog/QuillEditor";
 import Link from "next/link";
@@ -30,6 +32,10 @@ export default function EditBlogPage() {
     queryKey: ["blog", "slug", slugParam],
     queryFn: async () => {
       if (!slugParam) throw new Error("Missing blog slug");
+      // Check if slugParam is numeric (ID)
+      if (/^\d+$/.test(slugParam)) {
+        return blogService.getBlog(slugParam);
+      }
       return blogService.getBlogBySlug(slugParam);
     },
     enabled: !!slugParam,
@@ -44,9 +50,15 @@ export default function EditBlogPage() {
   const [metaDescription, setMetaDescription] = useState("");
   const [published, setPublished] = useState(false);
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
-  
+
   // Error handling state
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  // Slug validation state
+  const [originalSlug, setOriginalSlug] = useState<string>("");
+  const [slugCheckMessage, setSlugCheckMessage] = useState<string>("");
+  const [isCheckingSlug, setIsCheckingSlug] = useState(false);
+  const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
 
   // File uploads - only featured image
   const [featuredImageFile, setFeaturedImageFile] = useState<File | null>(null);
@@ -55,6 +67,8 @@ export default function EditBlogPage() {
   const [featuredImageId, setFeaturedImageId] = useState<number | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageChanged, setImageChanged] = useState(false);
+  const [showMediaGallery, setShowMediaGallery] = useState(false);
+  const [selectedFromGallery, setSelectedFromGallery] = useState(false);
 
   // Get tags data safely from new API structure
   const tagsData = getTags.data?.results || [];
@@ -62,21 +76,27 @@ export default function EditBlogPage() {
   // Populate form when blog data is loaded
   useEffect(() => {
     if (existingBlog) {
+      // If we loaded by ID, update URL to use slug
+      if (slugParam && /^\d+$/.test(slugParam) && existingBlog.slug) {
+        window.history.replaceState(null, "", `/dashboard/blogs/${existingBlog.slug}/edit`);
+      }
+
       setTitle(existingBlog.title || "");
       setSlug(existingBlog.slug || "");
+      setOriginalSlug(existingBlog.slug || ""); // Store original slug
       setExcerpt(existingBlog.excerpt || "");
       setContent(existingBlog.content || "");
       setMetaTitle(existingBlog.meta_title || "");
       setMetaDescription(existingBlog.meta_description || "");
       setPublished(existingBlog.is_published || false);
-      
+
       // Set featured image
       if (existingBlog.featured_image) {
         setFeaturedImagePreview(existingBlog.featured_image.image);
         setFeaturedImageAltText(existingBlog.featured_image.alt_text || "");
         setFeaturedImageId(existingBlog.featured_image.id);
       }
-      
+
       // Set tags - convert tag names to IDs
       if (existingBlog.tags && Array.isArray(existingBlog.tags) && tagsData.length > 0) {
         const tagIds = existingBlog.tags
@@ -88,7 +108,7 @@ export default function EditBlogPage() {
         setSelectedTagIds(tagIds);
       }
     }
-  }, [existingBlog, tagsData]);
+  }, [existingBlog, tagsData, slugParam]);
 
   const generateSlug = (text: string) => {
     return text
@@ -99,6 +119,36 @@ export default function EditBlogPage() {
       .trim();
   };
 
+  // Debounced slug validation (only check if slug changed from original)
+  useEffect(() => {
+    // Don't check if slug is the same as original or too short
+    if (!slug || slug.length < 3 || slug === originalSlug) {
+      setSlugCheckMessage("");
+      setSlugAvailable(null);
+      return;
+    }
+
+    setIsCheckingSlug(true);
+    setSlugCheckMessage("");
+    setSlugAvailable(null);
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        const response = await blogService.checkSlugAvailability(slug, 'blog');
+        setSlugCheckMessage(response.message);
+        setSlugAvailable(response.message === "You can use this slug.");
+      } catch (error: any) {
+        console.error("Error checking slug:", error);
+        setSlugCheckMessage("This slug already exists.");
+        setSlugAvailable(null);
+      } finally {
+        setIsCheckingSlug(false);
+      }
+    }, 5000); // 5 seconds delay
+
+    return () => clearTimeout(timeoutId);
+  }, [slug, originalSlug]);
+
   const handleTitleChange = (value: string) => {
     setTitle(value);
     if (errors.title) clearError('title');
@@ -108,7 +158,7 @@ export default function EditBlogPage() {
   const handleFeaturedImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      
+
       // Validate file type
       if (!file.type.startsWith('image/')) {
         toast.error('Please select a valid image file');
@@ -126,7 +176,7 @@ export default function EditBlogPage() {
       setFeaturedImageAltText("");
       setFeaturedImageId(null); // Reset image ID until uploaded
       setImageChanged(true);
-      
+
       // Prompt user to add alt text
       toast.info('Please add alt text for the image before uploading', {
         duration: 4000,
@@ -151,7 +201,7 @@ export default function EditBlogPage() {
         image: featuredImageFile,
         alt_text: featuredImageAltText,
       });
-      
+
       setFeaturedImageId(uploadedMedia.id);
       toast.success("Image uploaded successfully!");
     } catch (error: any) {
@@ -296,7 +346,7 @@ export default function EditBlogPage() {
       console.error("Error updating blog post:", error.response?.data);
       toast.error(
         "Failed to update blog post: " +
-          (error.response?.data?.detail || error.message || "Unknown error")
+        (error.response?.data?.detail || error.message || "Unknown error")
       );
     }
   };
@@ -363,7 +413,7 @@ export default function EditBlogPage() {
             {/* Basic Blog Information */}
             <div className="space-y-4">
               <h2 className="text-xl font-semibold">Basic Information</h2>
-              
+
               {/* Title */}
               <div>
                 <Label htmlFor="title" className="mb-2 block">
@@ -386,19 +436,39 @@ export default function EditBlogPage() {
                 <Label htmlFor="slug" className="mb-2 block">
                   URL Slug *
                 </Label>
-                <Input
-                  id="slug"
-                  value={slug}
-                  onChange={(e) => {
-                    setSlug(e.target.value.toLowerCase());
-                    if (errors.slug) clearError('slug');
-                  }}
-                  placeholder="your-blog-url-slug"
-                  className={errors.slug ? 'border-red-500' : ''}
-                />
+                <div className="relative">
+                  <Input
+                    id="slug"
+                    value={slug}
+                    onChange={(e) => {
+                      setSlug(generateSlug(e.target.value));
+                      if (errors.slug) clearError('slug');
+                      setSlugCheckMessage("");
+                      setSlugAvailable(null);
+                    }}
+                    placeholder="your-blog-url-slug"
+                    className={errors.slug ? 'border-red-500' : ''}
+                  />
+                  {isCheckingSlug && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   Lowercase letters, numbers, and hyphens only
                 </p>
+                {slugCheckMessage && (
+                  <div className={`flex items-center gap-1 mt-2 text-sm ${slugAvailable ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                    {slugAvailable ? (
+                      <CheckCircle2 className="h-4 w-4" />
+                    ) : (
+                      <XCircle className="h-4 w-4" />
+                    )}
+                    <span>{slugCheckMessage}</span>
+                  </div>
+                )}
                 {errors.slug && <ErrorMessage message={errors.slug} />}
               </div>
 
@@ -482,19 +552,50 @@ export default function EditBlogPage() {
                 Featured Image *
               </Label>
               <div className="space-y-3">
-                <Input
-                  id="featuredImage"
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    handleFeaturedImageChange(e);
-                    if (errors.featuredImage) clearError('featuredImage');
-                  }}
-                  disabled={uploadingImage}
-                  className={errors.featuredImage ? 'border-red-500' : ''}
-                />
+                {/* Image Upload Options */}
+                <div className="flex flex-wrap gap-2">
+                  <label className="cursor-pointer">
+                    <Input
+                      id="featuredImage"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        handleFeaturedImageChange(e);
+                        setSelectedFromGallery(false);
+                        if (errors.featuredImage) clearError('featuredImage');
+                      }}
+                      disabled={uploadingImage}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={uploadingImage}
+                      asChild
+                    >
+                      <span className="flex items-center gap-2">
+                        <Upload className="h-4 w-4" />
+                        Upload from Computer
+                      </span>
+                    </Button>
+                  </label>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowMediaGallery(true)}
+                    disabled={uploadingImage}
+                    className="flex items-center gap-2"
+                  >
+                    <ImageIcon className="h-4 w-4" />
+                    Select from Gallery
+                  </Button>
+                </div>
+
                 {errors.featuredImage && <ErrorMessage message={errors.featuredImage} />}
-                
+
                 {/* Image Preview */}
                 {featuredImagePreview && (
                   <div className="relative w-full h-[350px] border rounded-md overflow-hidden">
@@ -503,11 +604,16 @@ export default function EditBlogPage() {
                       alt="Featured preview"
                       className="w-full h-full object-cover"
                     />
+                    {selectedFromGallery && (
+                      <div className="absolute bottom-0 left-0 right-0 bg-green-600 text-white text-sm text-center py-1">
+                        Selected from Gallery
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {/* Alt Text and Upload */}
-                {featuredImagePreview && (
+                {/* Alt Text and Upload - only for file uploads */}
+                {featuredImagePreview && !selectedFromGallery && (
                   <div className="space-y-3">
                     <div>
                       <Label htmlFor="featuredImageAlt">Image Alt Text *</Label>
@@ -529,7 +635,7 @@ export default function EditBlogPage() {
                         {255 - featuredImageAltText.length} characters remaining
                       </p>
                     </div>
-                    
+
                     {/* Upload Button - only show if image changed */}
                     {imageChanged && !featuredImageId && featuredImageFile ? (
                       <Button
@@ -558,6 +664,38 @@ export default function EditBlogPage() {
                     ) : null}
                   </div>
                 )}
+
+                {/* Success message for gallery selections */}
+                {selectedFromGallery && featuredImageId && (
+                  <div className="flex items-center gap-2 text-sm text-green-600">
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Image selected from gallery (Alt: {featuredImageAltText || 'No alt text'})
+                  </div>
+                )}
+
+                {/* Media Gallery Modal */}
+                <MediaGalleryModal
+                  open={showMediaGallery}
+                  onOpenChange={setShowMediaGallery}
+                  onSelect={(media: MediaItem[]) => {
+                    if (media.length > 0) {
+                      const selected = media[0];
+                      setFeaturedImagePreview(selected.image);
+                      setFeaturedImageId(selected.id);
+                      setFeaturedImageAltText(selected.alt_text || '');
+                      setFeaturedImageFile(null);
+                      setSelectedFromGallery(true);
+                      setImageChanged(true);
+                      if (errors.featuredImage) clearError('featuredImage');
+                      toast.success('Image selected from gallery!');
+                    }
+                  }}
+                  maxSelection={1}
+                  minSelection={1}
+                  title="Select Featured Image"
+                />
               </div>
             </div>
 

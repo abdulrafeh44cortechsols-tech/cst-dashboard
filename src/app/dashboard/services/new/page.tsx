@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useServices } from "@/hooks/useServices";
 import { useMedia } from "@/hooks/useMedia";
+import { servicesDataService } from "@/services/services";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,19 +13,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { 
-  AlertDialog, 
-  AlertDialogAction, 
-  AlertDialogCancel, 
-  AlertDialogContent, 
-  AlertDialogDescription, 
-  AlertDialogFooter, 
-  AlertDialogHeader, 
-  AlertDialogTitle, 
-  AlertDialogTrigger 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Save, Trash2, RefreshCw, AlertCircle } from "lucide-react";
+import { Save, Trash2, RefreshCw, AlertCircle, Upload, ImageIcon, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { MediaGalleryModal } from "@/components/media/MediaGalleryModal";
+import type { MediaItem } from "@/services/media";
 import type { ServiceSectionsData } from "@/types/types";
 import { getDefaultSectionsData } from "@/data/exampleServiceData";
 import { getImageUrl } from "@/lib/utils";
@@ -44,7 +47,12 @@ export default function AddServicePage() {
   const [published, setPublished] = useState(false);
   const [projectsDelivered, setProjectsDelivered] = useState<number>(0);
   const [clientsSatisfaction, setClientsSatisfaction] = useState<number>(0);
-  
+
+  // Slug validation state
+  const [slugCheckMessage, setSlugCheckMessage] = useState<string>("");
+  const [isCheckingSlug, setIsCheckingSlug] = useState(false);
+  const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
+
   // Media state for uploaded images
   const [serviceMainImageId, setServiceMainImageId] = useState<number | null>(null);
   const [serviceMainImageUrl, setServiceMainImageUrl] = useState<string>("");
@@ -52,7 +60,7 @@ export default function AddServicePage() {
   const [iconUrl, setIconUrl] = useState<string>("");
   const [heroImageId, setHeroImageId] = useState<number | null>(null);
   const [uploadedMediaUrls, setUploadedMediaUrls] = useState<Record<string, string>>({});
-  
+
   // Alt text for icon and service main image
   const [iconAltText, setIconAltText] = useState<string>("");
   const [serviceMainImageAltText, setServiceMainImageAltText] = useState<string>("");
@@ -62,7 +70,7 @@ export default function AddServicePage() {
   const [sectionsData, setSectionsData] = useState<ServiceSectionsData>(
     getDefaultSectionsData()
   );
-    const SECTIONS_WITHOUT_IMAGES = [
+  const SECTIONS_WITHOUT_IMAGES = [
     'about_section',
     'why_choose_us_section',
     'what_we_offer_section',
@@ -115,6 +123,18 @@ export default function AddServicePage() {
   // Team member images state
   const [teamMemberImages, setTeamMemberImages] = useState<Record<number, File[]>>({});
 
+  // Media gallery modal states
+  const [showIconGallery, setShowIconGallery] = useState(false);
+  const [showMainImageGallery, setShowMainImageGallery] = useState(false);
+  const [showHeroGallery, setShowHeroGallery] = useState(false);
+  const [iconFromGallery, setIconFromGallery] = useState(false);
+  const [mainImageFromGallery, setMainImageFromGallery] = useState(false);
+  const [heroFromGallery, setHeroFromGallery] = useState(false);
+  // Sub-section gallery modal states (keyed by sectionKey and index)
+  const [showSubSectionGallery, setShowSubSectionGallery] = useState<{ sectionKey: string; index: number } | null>(null);
+  const [showClientFeedbackGallery, setShowClientFeedbackGallery] = useState<number | null>(null);
+  const [showTeamMemberGallery, setShowTeamMemberGallery] = useState<number | null>(null);
+
   // Team member image alt texts state
   const [teamMemberImageAltTexts, setTeamMemberImageAltTexts] = useState<Record<number, string[]>>({});
 
@@ -145,6 +165,35 @@ export default function AddServicePage() {
       .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
       .trim();
   };
+
+  // Debounced slug validation
+  useEffect(() => {
+    if (!slug || slug.length < 3) {
+      setSlugCheckMessage("");
+      setSlugAvailable(null);
+      return;
+    }
+
+    setIsCheckingSlug(true);
+    setSlugCheckMessage("");
+    setSlugAvailable(null);
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        const response = await servicesDataService.checkSlugAvailability(slug, 'service');
+        setSlugCheckMessage(response.message);
+        setSlugAvailable(response.message === "You can use this slug.");
+      } catch (error: any) {
+        console.error("Error checking slug:", error);
+        setSlugCheckMessage("This slug already exists.");
+        setSlugAvailable(null);
+      } finally {
+        setIsCheckingSlug(false);
+      }
+    }, 5000); // 5 seconds delay
+
+    return () => clearTimeout(timeoutId);
+  }, [slug]);
 
   // Real-time validation functions
   const validateField = (fieldName: string, value: string) => {
@@ -376,10 +425,10 @@ export default function AddServicePage() {
           sectionKey === "team_section"
             ? { name: "", designation: "", experience: "", summary: "" }
             : sectionKey === "client_feedback_section"
-            ? { name: "", designation: "", comment: "", stars: 5 }
-            : sectionKey === "what_we_offer_section"
-            ? { title: "", points: [""] }
-            : { title: "", description: "" },
+              ? { name: "", designation: "", comment: "", stars: 5 }
+              : sectionKey === "what_we_offer_section"
+                ? { title: "", points: [""] }
+                : { title: "", description: "" },
         ],
       },
     }));
@@ -463,8 +512,8 @@ export default function AddServicePage() {
       ...prev,
       [sectionKey]: {
         ...prev[sectionKey],
-        sub_sections: prev[sectionKey].sub_sections.map((sub, i) => 
-          i === subSectionIndex 
+        sub_sections: prev[sectionKey].sub_sections.map((sub, i) =>
+          i === subSectionIndex
             ? { ...sub, points: [...(sub.points || []), ""] }
             : sub
         )
@@ -477,8 +526,8 @@ export default function AddServicePage() {
       ...prev,
       [sectionKey]: {
         ...prev[sectionKey],
-        sub_sections: prev[sectionKey].sub_sections.map((sub, i) => 
-          i === subSectionIndex 
+        sub_sections: prev[sectionKey].sub_sections.map((sub, i) =>
+          i === subSectionIndex
             ? { ...sub, points: sub.points?.filter((_, idx) => idx !== pointIndex) || [] }
             : sub
         )
@@ -491,14 +540,14 @@ export default function AddServicePage() {
       ...prev,
       [sectionKey]: {
         ...prev[sectionKey],
-        sub_sections: prev[sectionKey].sub_sections.map((sub, i) => 
-          i === subSectionIndex 
-            ? { 
-                ...sub, 
-                points: sub.points?.map((point, idx) => 
-                  idx === pointIndex ? value : point
-                ) || []
-              }
+        sub_sections: prev[sectionKey].sub_sections.map((sub, i) =>
+          i === subSectionIndex
+            ? {
+              ...sub,
+              points: sub.points?.map((point, idx) =>
+                idx === pointIndex ? value : point
+              ) || []
+            }
             : sub
         )
       }
@@ -682,9 +731,9 @@ export default function AddServicePage() {
       const processedSectionsData = JSON.parse(JSON.stringify(sectionsData)); // Deep copy to avoid mutating original state
       Object.keys(processedSectionsData).forEach(sectionKey => {
         if (sectionKey === 'what_we_offer_section') {
-          processedSectionsData[sectionKey].sub_sections = processedSectionsData[sectionKey].sub_sections.map((sub : any) => ({
+          processedSectionsData[sectionKey].sub_sections = processedSectionsData[sectionKey].sub_sections.map((sub: any) => ({
             ...sub,
-            description: sub.points ? sub.points.filter((point : any) => point.trim() !== '').join(', ') : '',
+            description: sub.points ? sub.points.filter((point: any) => point.trim() !== '').join(', ') : '',
             points: undefined // Remove points from processed copy only
           }));
         }
@@ -697,7 +746,7 @@ export default function AddServicePage() {
       // Exclude 'image_files' as it's handled separately below
       Object.entries(sectionFiles).forEach(([key, files]) => {
         if (key === 'image_files') return; // Skip image_files here, handled separately
-        
+
         if (files && files.length > 0) {
           if (key === "hero_section_image_file") {
             // Hero section expects a single file
@@ -740,7 +789,7 @@ export default function AddServicePage() {
           formData.append('client_feedback_section_image_files', file);
         });
       });
-      
+
       // Only add image_files if they exist (don't send empty placeholder)
       if (sectionFiles.image_files.length > 0) {
         sectionFiles.image_files.forEach(file => {
@@ -764,8 +813,8 @@ export default function AddServicePage() {
       Object.entries(subSectionIconAltTexts).forEach(([sectionKey, subSectionAltTexts]) => {
         const altTextsArray = Object.values(subSectionAltTexts).flat().filter(text => text);
         if (altTextsArray.length > 0) {
-          const sectionFileKey = sectionKey === "hero_section" 
-            ? "hero_section_image_file" 
+          const sectionFileKey = sectionKey === "hero_section"
+            ? "hero_section_image_file"
             : `${sectionKey}_image_files`;
           formData.append(`${sectionFileKey}_subsection_alt_text`, JSON.stringify(altTextsArray));
         }
@@ -788,7 +837,7 @@ export default function AddServicePage() {
       const bulletPoints = sectionsData.tools_used_section?.sub_sections
         ?.map(sub => sub.title)
         ?.filter(title => title?.trim()) || [];
-      
+
       const servicePayload = {
         name: title,
         description: description,
@@ -802,7 +851,7 @@ export default function AddServicePage() {
         hero_image: serviceMainImageId || heroImageId, // Use service main image as hero_image
         hero_image_alt_text: serviceMainImageAltText || "", // Alt text for hero image
         bullet_points: bulletPoints, // From tools_used_section subsections
-        
+
         // Section data - map from sectionsData to flat structure
         about_title: sectionsData.about_section?.title || "",
         about_description: sectionsData.about_section?.description || "",
@@ -812,7 +861,7 @@ export default function AddServicePage() {
           alt_text: sub.iconAltText || sub.alt_text || "",
           description: sub.description
         })) || [],
-        
+
         why_choose_title: sectionsData.why_choose_us_section?.title || "",
         why_choose_description: sectionsData.why_choose_us_section?.description || "",
         why_choose_subsections: sectionsData.why_choose_us_section?.sub_sections?.map(sub => ({
@@ -821,7 +870,7 @@ export default function AddServicePage() {
           alt_text: sub.iconAltText || sub.alt_text || "",
           description: sub.description
         })) || [],
-        
+
         what_we_offer_title: sectionsData.what_we_offer_section?.title || "",
         what_we_offer_description: sectionsData.what_we_offer_section?.description || "",
         what_we_offer_subsections: sectionsData.what_we_offer_section?.sub_sections?.map(sub => ({
@@ -830,7 +879,7 @@ export default function AddServicePage() {
           alt_text: sub.iconAltText || sub.alt_text || "",
           points: sub.points ? sub.points.filter(point => point.trim() !== '') : []
         })) || [],
-        
+
         business_title: sectionsData.perfect_business_section?.title || "",
         business_description: sectionsData.perfect_business_section?.description || "",
         business_subsections: sectionsData.perfect_business_section?.sub_sections?.map(sub => ({
@@ -839,11 +888,11 @@ export default function AddServicePage() {
           alt_text: sub.iconAltText || sub.alt_text || "",
           description: sub.description
         })) || [],
-        
+
         design_process_title: sectionsData.design_section?.title || "",
         design_process_description: sectionsData.design_section?.description || "",
         design_process_subsections: sectionsData.design_section?.sub_sections || [],
-        
+
         design_team_title: sectionsData.team_section?.title || "",
         design_team_description: sectionsData.team_section?.description || "",
         design_team_subsections: sectionsData.team_section?.sub_sections?.map(sub => ({
@@ -854,7 +903,7 @@ export default function AddServicePage() {
           experience: sub.experience,
           designation: sub.designation
         })) || [],
-        
+
         meet_design_team_title: sectionsData.team_section?.title || "",
         meet_design_team_description: sectionsData.team_section?.description || "",
         meet_design_team_subsections: sectionsData.team_section?.sub_sections?.map(sub => ({
@@ -865,7 +914,7 @@ export default function AddServicePage() {
           experience: sub.experience,
           designation: sub.designation
         })) || [],
-        
+
         tools_title: sectionsData.tools_used_section?.title || "",
         tools_description: sectionsData.tools_used_section?.description || "",
         tools_subsections: sectionsData.tools_used_section?.sub_sections?.map(sub => ({
@@ -874,7 +923,7 @@ export default function AddServicePage() {
           alt_text: sub.iconAltText || sub.alt_text || "",
           points: sub.points ? sub.points.filter(point => point.trim() !== '') : []
         })) || [],
-        
+
         testimonials: sectionsData.client_feedback_section?.sub_sections?.map(sub => ({
           name: sub.name,
           image: sub.image,
@@ -883,34 +932,11 @@ export default function AddServicePage() {
           comment: sub.comment,
           designation: sub.designation
         })) || [],
-        
+
         is_published: published,
       };
 
-      // ========================================
-      // TEST MODE: Log payload instead of calling API
-      // ========================================
-      console.log("============================================");
-      console.log("🔍 SERVICE PAYLOAD (Test Mode - Not Submitted)");
-      console.log("============================================");
-      console.log(JSON.stringify(servicePayload, null, 2));
-      console.log("============================================");
-      console.log("📊 Payload Summary:");
-      console.log("- Name:", servicePayload.name);
-      console.log("- Slug:", servicePayload.slug);
-      console.log("- Icon ID:", servicePayload.icon);
-      console.log("- Icon Alt Text:", servicePayload.icon_alt_text);
-      console.log("- Hero Image ID:", servicePayload.hero_image);
-      console.log("- Hero Image Alt Text:", servicePayload.hero_image_alt_text);
-      console.log("- Projects Delivered:", servicePayload.projects_delivered);
-      console.log("- Clients Satisfaction:", servicePayload.clients_satisfaction);
-      console.log("- Bullet Points Count:", servicePayload.bullet_points.length);
-      console.log("- Is Published:", servicePayload.is_published);
-      console.log("============================================");
-      
-      toast.success("✅ Test Mode: Payload logged to console! Check console for data.");
-      
-      // TODO: Uncomment below lines when ready to actually submit
+
       const { servicesDataService } = await import("@/services/services");
       await servicesDataService.createServiceV2(servicePayload);
       clearDraft();
@@ -918,67 +944,67 @@ export default function AddServicePage() {
       router.push("/dashboard/services");
     } catch (error: any) {
       console.error("Service creation error:", error);
-      
+
       // Check for field-specific validation errors
       const errorDetails = error.response?.data?.error_details;
       if (errorDetails) {
         console.log("Field validation errors:", errorDetails);
-        
+
         // Map backend field errors to frontend error state
         const newErrors: Record<string, string> = {};
-        
+
         if (errorDetails.title) {
-          newErrors.title = Array.isArray(errorDetails.title) 
-            ? errorDetails.title[0] 
+          newErrors.title = Array.isArray(errorDetails.title)
+            ? errorDetails.title[0]
             : errorDetails.title;
           scrollToElement('service-title');
         }
-        
+
         if (errorDetails.slug) {
-          newErrors.slug = Array.isArray(errorDetails.slug) 
-            ? errorDetails.slug[0] 
+          newErrors.slug = Array.isArray(errorDetails.slug)
+            ? errorDetails.slug[0]
             : errorDetails.slug;
           if (!newErrors.title) scrollToElement('service-slug');
         }
-        
+
         if (errorDetails.description) {
-          newErrors.description = Array.isArray(errorDetails.description) 
-            ? errorDetails.description[0] 
+          newErrors.description = Array.isArray(errorDetails.description)
+            ? errorDetails.description[0]
             : errorDetails.description;
           if (!newErrors.title && !newErrors.slug) scrollToElement('service-description');
         }
-        
+
         if (errorDetails.meta_title) {
-          newErrors.metaTitle = Array.isArray(errorDetails.meta_title) 
-            ? errorDetails.meta_title[0] 
+          newErrors.metaTitle = Array.isArray(errorDetails.meta_title)
+            ? errorDetails.meta_title[0]
             : errorDetails.meta_title;
           if (!newErrors.title && !newErrors.slug && !newErrors.description) scrollToElement('meta-title');
         }
-        
+
         if (errorDetails.meta_description) {
-          newErrors.metaDescription = Array.isArray(errorDetails.meta_description) 
-            ? errorDetails.meta_description[0] 
+          newErrors.metaDescription = Array.isArray(errorDetails.meta_description)
+            ? errorDetails.meta_description[0]
             : errorDetails.meta_description;
           if (!newErrors.title && !newErrors.slug && !newErrors.description && !newErrors.metaTitle) {
             scrollToElement('meta-description');
           }
         }
-        
+
         // Update error state to show under fields
         setErrors(newErrors);
-        
+
         // Show toast with first error
         const firstError = Object.values(newErrors)[0];
         toast.error(firstError || "Validation failed. Please check the form.");
       } else {
         // Generic error without field details
-        const errorMessage = error.response?.data?.message 
-          || error.response?.data?.error 
-          || error.message 
+        const errorMessage = error.response?.data?.message
+          || error.response?.data?.error
+          || error.message
           || "Failed to create service. Please try again.";
         toast.error(errorMessage);
       }
-      
+
       // Log detailed error for debugging
       if (error.response?.data) {
         console.error("Backend error details:", error.response.data);
@@ -1066,7 +1092,7 @@ export default function AddServicePage() {
               </p>
             </div>
           </div>
-          
+
           {/* Team Member Image Upload */}
           <div className="space-y-2">
             <Label>Team Member Photo Alt Text</Label>
@@ -1083,12 +1109,92 @@ export default function AddServicePage() {
               }}
               placeholder="Enter alt text for team member photo"
               maxLength={255}
-              />
+            />
             <p className="text-sm text-muted-foreground mt-1">
               {255 - (teamMemberImageAltTexts[index]?.[0]?.length || 0)} characters remaining
             </p>
-            
+
             <Label>Team Member Photo</Label>
+
+            {/* Image Upload Options */}
+            <div className="flex flex-wrap gap-2">
+              <label className="cursor-pointer">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const altText = teamMemberImageAltTexts[index]?.[0] || "";
+                      if (!altText.trim()) {
+                        toast.error("Please enter alt text first");
+                        e.target.value = "";
+                        return;
+                      }
+
+                      try {
+                        const result = await uploadMedia.mutateAsync({
+                          image: file,
+                          alt_text: altText
+                        });
+
+                        updateSubSection(sectionKey, index, "image", result.image);
+                        if (result.alt_text) {
+                          updateSubSection(sectionKey, index, "imageAltText", result.alt_text);
+                        }
+                        toast.success("Team member photo uploaded!");
+                      } catch (error) {
+                        console.error("Error uploading photo:", error);
+                        toast.error("Failed to upload photo");
+                        e.target.value = "";
+                      }
+                    }
+                  }}
+                  className="hidden"
+                />
+                <Button type="button" variant="outline" size="sm" asChild>
+                  <span className="flex items-center gap-2">
+                    <Upload className="h-4 w-4" />
+                    Upload from Computer
+                  </span>
+                </Button>
+              </label>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowTeamMemberGallery(index)}
+                className="flex items-center gap-2"
+              >
+                <ImageIcon className="h-4 w-4" />
+                Select from Gallery
+              </Button>
+            </div>
+
+            {/* Media Gallery Modal */}
+            <MediaGalleryModal
+              open={showTeamMemberGallery === index}
+              onOpenChange={(open) => setShowTeamMemberGallery(open ? index : null)}
+              onSelect={(media: MediaItem[]) => {
+                if (media.length > 0) {
+                  const selected = media[0];
+                  updateSubSection(sectionKey, index, "image", selected.image);
+                  if (selected.alt_text) {
+                    updateSubSection(sectionKey, index, "imageAltText", selected.alt_text);
+                    setTeamMemberImageAltTexts((prev) => ({
+                      ...prev,
+                      [index]: [selected.alt_text || ''],
+                    }));
+                  }
+                  toast.success('Team member photo selected from gallery!');
+                }
+              }}
+              maxSelection={1}
+              minSelection={1}
+              title="Select Team Member Photo"
+            />
+
             {subSection.image && (
               <div className="mt-2 mb-2">
                 <img
@@ -1096,49 +1202,14 @@ export default function AddServicePage() {
                   alt="Team Member Photo"
                   className="h-24 w-24 rounded-full border object-cover"
                 />
-                <p className="text-xs text-green-600 mt-1">✓ Uploaded</p>
+                <p className="text-xs text-green-600 mt-1">✓ Selected</p>
               </div>
             )}
-            <Input
-              type="file"
-              accept="image/*"
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  const altText = teamMemberImageAltTexts[index]?.[0] || "";
-                  if (!altText.trim()) {
-                    toast.error("Please enter alt text first");
-                    e.target.value = "";
-                    return;
-                  }
-                  
-                  try {
-                    const result = await uploadMedia.mutateAsync({
-                      image: file,
-                      alt_text: altText
-                    });
-                    
-                    // Update subsection with full image URL
-                    updateSubSection(sectionKey, index, "image", result.image);
-                    // Capture alt_text from response
-                    if (result.alt_text) {
-                      updateSubSection(sectionKey, index, "imageAltText", result.alt_text);
-                    }
-                    toast.success("Team member photo uploaded!");
-                  } catch (error) {
-                    console.error("Error uploading photo:", error);
-                    toast.error("Failed to upload photo");
-                    e.target.value = "";
-                  }
-                }
-              }}
-              className="cursor-pointer"
-            />
             <p className="text-sm text-gray-500 mt-1">
               Upload a photo for this team member (stores full URL)
             </p>
           </div>
-          
+
           <Button
             type="button"
             variant="destructive"
@@ -1233,7 +1304,7 @@ export default function AddServicePage() {
               Enter a rating between 1 and 5. Decimals allowed (e.g., 4.5).
             </p>
           </div>
-          
+
           {/* Client Photo Upload */}
           <div className="space-y-2">
             <Label>Client Photo Alt Text</Label>
@@ -1250,12 +1321,92 @@ export default function AddServicePage() {
               }}
               placeholder="Enter alt text for client photo"
               maxLength={255}
-              />
+            />
             <p className="text-sm text-muted-foreground mt-1">
               {255 - (clientFeedbackImageAltTexts[index]?.[0]?.length || 0)} characters remaining
             </p>
-            
+
             <Label>Client Photo</Label>
+
+            {/* Image Upload Options */}
+            <div className="flex flex-wrap gap-2">
+              <label className="cursor-pointer">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const altText = clientFeedbackImageAltTexts[index]?.[0] || "";
+                      if (!altText.trim()) {
+                        toast.error("Please enter alt text first");
+                        e.target.value = "";
+                        return;
+                      }
+
+                      try {
+                        const result = await uploadMedia.mutateAsync({
+                          image: file,
+                          alt_text: altText
+                        });
+
+                        updateSubSection(sectionKey, index, "image", result.image);
+                        if (result.alt_text) {
+                          updateSubSection(sectionKey, index, "imageAltText", result.alt_text);
+                        }
+                        toast.success("Client photo uploaded!");
+                      } catch (error) {
+                        console.error("Error uploading photo:", error);
+                        toast.error("Failed to upload photo");
+                        e.target.value = "";
+                      }
+                    }
+                  }}
+                  className="hidden"
+                />
+                <Button type="button" variant="outline" size="sm" asChild>
+                  <span className="flex items-center gap-2">
+                    <Upload className="h-4 w-4" />
+                    Upload from Computer
+                  </span>
+                </Button>
+              </label>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowClientFeedbackGallery(index)}
+                className="flex items-center gap-2"
+              >
+                <ImageIcon className="h-4 w-4" />
+                Select from Gallery
+              </Button>
+            </div>
+
+            {/* Media Gallery Modal */}
+            <MediaGalleryModal
+              open={showClientFeedbackGallery === index}
+              onOpenChange={(open) => setShowClientFeedbackGallery(open ? index : null)}
+              onSelect={(media: MediaItem[]) => {
+                if (media.length > 0) {
+                  const selected = media[0];
+                  updateSubSection(sectionKey, index, "image", selected.image);
+                  if (selected.alt_text) {
+                    updateSubSection(sectionKey, index, "imageAltText", selected.alt_text);
+                    setClientFeedbackImageAltTexts((prev) => ({
+                      ...prev,
+                      [index]: [selected.alt_text || ''],
+                    }));
+                  }
+                  toast.success('Client photo selected from gallery!');
+                }
+              }}
+              maxSelection={1}
+              minSelection={1}
+              title="Select Client Photo"
+            />
+
             {subSection.image && (
               <div className="mt-2 mb-2">
                 <img
@@ -1263,49 +1414,14 @@ export default function AddServicePage() {
                   alt="Client Photo"
                   className="h-24 w-24 rounded-full border object-cover"
                 />
-                <p className="text-xs text-green-600 mt-1">✓ Uploaded</p>
+                <p className="text-xs text-green-600 mt-1">✓ Selected</p>
               </div>
             )}
-            <Input
-              type="file"
-              accept="image/*"
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  const altText = clientFeedbackImageAltTexts[index]?.[0] || "";
-                  if (!altText.trim()) {
-                    toast.error("Please enter alt text first");
-                    e.target.value = "";
-                    return;
-                  }
-                  
-                  try {
-                    const result = await uploadMedia.mutateAsync({
-                      image: file,
-                      alt_text: altText
-                    });
-                    
-                    // Update subsection with full image URL
-                    updateSubSection(sectionKey, index, "image", result.image);
-                    // Capture alt_text from response
-                    if (result.alt_text) {
-                      updateSubSection(sectionKey, index, "imageAltText", result.alt_text);
-                    }
-                    toast.success("Client photo uploaded!");
-                  } catch (error) {
-                    console.error("Error uploading photo:", error);
-                    toast.error("Failed to upload photo");
-                    e.target.value = "";
-                  }
-                }
-              }}
-              className="cursor-pointer"
-            />
             <p className="text-sm text-gray-500 mt-1">
               Upload a photo for this client (stores full URL)
             </p>
           </div>
-          
+
           <Button
             type="button"
             variant="destructive"
@@ -1357,7 +1473,7 @@ export default function AddServicePage() {
                 // Show the point if it has content OR if it's the last point in the array
                 const isLastPoint = pointIndex === arr.length - 1;
                 const hasContent = point.trim() !== "";
-                
+
                 if (hasContent || isLastPoint) {
                   return (
                     <div key={pointIndex}>
@@ -1445,7 +1561,7 @@ export default function AddServicePage() {
                 // Show the point if it has content OR if it's the last point in the array
                 const isLastPoint = pointIndex === arr.length - 1;
                 const hasContent = point.trim() !== "";
-                
+
                 if (hasContent || isLastPoint) {
                   return (
                     <div key={pointIndex}>
@@ -1484,80 +1600,128 @@ export default function AddServicePage() {
           </div>
 
           {/* Sub-section Icon Upload (hidden for design_section) */}
-           <div className="space-y-2">
-              <Label>Sub-section Icon Alt Text</Label>
-              <Input
-                value={subSectionIconAltTexts[sectionKey]?.[index]?.[0] || ""}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (value.length <= 255) {
+          <div className="space-y-2">
+            <Label>Sub-section Icon Alt Text</Label>
+            <Input
+              value={subSectionIconAltTexts[sectionKey]?.[index]?.[0] || ""}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value.length <= 255) {
+                  setSubSectionIconAltTexts((prev) => ({
+                    ...prev,
+                    [sectionKey]: {
+                      ...prev[sectionKey],
+                      [index]: [value],
+                    },
+                  }));
+                }
+              }}
+              placeholder="Enter alt text for sub-section icon"
+              maxLength={255}
+            />
+            <p className="text-sm text-muted-foreground mt-1">
+              {255 - (subSectionIconAltTexts[sectionKey]?.[index]?.[0]?.length || 0)} characters remaining
+            </p>
+
+            <Label>Sub-section Icon</Label>
+
+            {/* Image Upload Options */}
+            <div className="flex flex-wrap gap-2">
+              <label className="cursor-pointer">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const altText = subSectionIconAltTexts[sectionKey]?.[index]?.[0] || "";
+                      if (!altText.trim()) {
+                        toast.error("Please enter alt text first");
+                        e.target.value = "";
+                        return;
+                      }
+
+                      try {
+                        const result = await uploadMedia.mutateAsync({
+                          image: file,
+                          alt_text: altText
+                        });
+
+                        updateSubSection(sectionKey, index, "icon", result.image);
+                        if (result.alt_text) {
+                          updateSubSection(sectionKey, index, "iconAltText", result.alt_text);
+                        }
+                        toast.success("Icon uploaded successfully!");
+                      } catch (error) {
+                        console.error("Error uploading icon:", error);
+                        toast.error("Failed to upload icon");
+                        e.target.value = "";
+                      }
+                    }
+                  }}
+                  className="hidden"
+                />
+                <Button type="button" variant="outline" size="sm" asChild>
+                  <span className="flex items-center gap-2">
+                    <Upload className="h-4 w-4" />
+                    Upload from Computer
+                  </span>
+                </Button>
+              </label>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowSubSectionGallery({ sectionKey, index })}
+                className="flex items-center gap-2"
+              >
+                <ImageIcon className="h-4 w-4" />
+                Select from Gallery
+              </Button>
+            </div>
+
+            {/* Media Gallery Modal */}
+            <MediaGalleryModal
+              open={showSubSectionGallery?.sectionKey === sectionKey && showSubSectionGallery?.index === index}
+              onOpenChange={(open) => setShowSubSectionGallery(open ? { sectionKey, index } : null)}
+              onSelect={(media: MediaItem[]) => {
+                if (media.length > 0) {
+                  const selected = media[0];
+                  updateSubSection(sectionKey, index, "icon", selected.image);
+                  if (selected.alt_text) {
+                    updateSubSection(sectionKey, index, "iconAltText", selected.alt_text);
                     setSubSectionIconAltTexts((prev) => ({
                       ...prev,
                       [sectionKey]: {
                         ...prev[sectionKey],
-                        [index]: [value],
+                        [index]: [selected.alt_text || ''],
                       },
                     }));
                   }
-                }}
-                placeholder="Enter alt text for sub-section icon"
-                maxLength={255}
-              />
-              <p className="text-sm text-muted-foreground mt-1">
-                {255 - (subSectionIconAltTexts[sectionKey]?.[index]?.[0]?.length || 0)} characters remaining
-              </p>
+                  toast.success('Sub-section icon selected from gallery!');
+                }
+              }}
+              maxSelection={1}
+              minSelection={1}
+              title="Select Sub-section Icon"
+            />
 
-              <Label>Sub-section Icon</Label>
-              {subSection.icon && (
-                <div className="mt-2">
-                  <Label className="text-sm font-medium">Current Icon</Label>
-                  <img
-                    src={getImageUrl(subSection.icon)}
-                    alt="Current Sub-section Icon"
-                    className="h-24 w-24 rounded border object-cover mt-2 bg-muted/50 p-2"
-                  />
-                  <p className="text-xs text-green-600 mt-1">✓ Uploaded</p>
-                </div>
-              )}
-              <Input
-                type="file"
-                accept="image/*"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    const altText = subSectionIconAltTexts[sectionKey]?.[index]?.[0] || "";
-                    if (!altText.trim()) {
-                      toast.error("Please enter alt text first");
-                      e.target.value = "";
-                      return;
-                    }
-                    
-                    try {
-                      const result = await uploadMedia.mutateAsync({
-                        image: file,
-                        alt_text: altText
-                      });
-                      
-                      // Update subsection with full image URL
-                      updateSubSection(sectionKey, index, "icon", result.image);
-                      // Capture alt_text from response
-                      if (result.alt_text) {
-                        updateSubSection(sectionKey, index, "iconAltText", result.alt_text);
-                      }
-                      toast.success("Icon uploaded successfully!");
-                    } catch (error) {
-                      console.error("Error uploading icon:", error);
-                      toast.error("Failed to upload icon");
-                      e.target.value = "";
-                    }
-                  }
-                }}
-                className="cursor-pointer"
-              />
-              <p className="text-sm text-gray-500 mt-1">
-                Upload an icon for this sub-section (stores full URL)
-              </p>
-            </div>
+            {subSection.icon && (
+              <div className="mt-2">
+                <Label className="text-sm font-medium">Current Icon</Label>
+                <img
+                  src={getImageUrl(subSection.icon)}
+                  alt="Current Sub-section Icon"
+                  className="h-24 w-24 rounded border object-cover mt-2 bg-muted/50 p-2"
+                />
+                <p className="text-xs text-green-600 mt-1">✓ Selected</p>
+              </div>
+            )}
+            <p className="text-sm text-gray-500 mt-1">
+              Upload an icon for this sub-section (stores full URL)
+            </p>
+          </div>
 
           <Button
             type="button"
@@ -1611,7 +1775,7 @@ export default function AddServicePage() {
         </div>
 
         {/* Sub-section Icon Upload - Only for non-hero sections */}
-          {sectionKey !== 'design_section' && (
+        {sectionKey !== 'design_section' && (
           <div className="space-y-2">
             <Label>Sub-section Icon Alt Text</Label>
             <Input
@@ -1636,6 +1800,89 @@ export default function AddServicePage() {
             </p>
 
             <Label>Sub-section Icon</Label>
+
+            {/* Image Upload Options */}
+            <div className="flex flex-wrap gap-2">
+              <label className="cursor-pointer">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const altText = subSectionIconAltTexts[sectionKey]?.[index]?.[0] || "";
+                      if (!altText.trim()) {
+                        toast.error("Please enter alt text first");
+                        e.target.value = "";
+                        return;
+                      }
+
+                      try {
+                        const result = await uploadMedia.mutateAsync({
+                          image: file,
+                          alt_text: altText
+                        });
+
+                        updateSubSection(sectionKey, index, "icon", result.image);
+                        if (result.alt_text) {
+                          updateSubSection(sectionKey, index, "iconAltText", result.alt_text);
+                        }
+                        toast.success("Icon uploaded successfully!");
+                      } catch (error) {
+                        console.error("Error uploading icon:", error);
+                        toast.error("Failed to upload icon");
+                        e.target.value = "";
+                      }
+                    }
+                  }}
+                  className="hidden"
+                />
+                <Button type="button" variant="outline" size="sm" asChild>
+                  <span className="flex items-center gap-2">
+                    <Upload className="h-4 w-4" />
+                    Upload from Computer
+                  </span>
+                </Button>
+              </label>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowSubSectionGallery({ sectionKey, index })}
+                className="flex items-center gap-2"
+              >
+                <ImageIcon className="h-4 w-4" />
+                Select from Gallery
+              </Button>
+            </div>
+
+            {/* Media Gallery Modal */}
+            <MediaGalleryModal
+              open={showSubSectionGallery?.sectionKey === sectionKey && showSubSectionGallery?.index === index}
+              onOpenChange={(open) => setShowSubSectionGallery(open ? { sectionKey, index } : null)}
+              onSelect={(media: MediaItem[]) => {
+                if (media.length > 0) {
+                  const selected = media[0];
+                  updateSubSection(sectionKey, index, "icon", selected.image);
+                  if (selected.alt_text) {
+                    updateSubSection(sectionKey, index, "iconAltText", selected.alt_text);
+                    setSubSectionIconAltTexts((prev) => ({
+                      ...prev,
+                      [sectionKey]: {
+                        ...prev[sectionKey],
+                        [index]: [selected.alt_text || ''],
+                      },
+                    }));
+                  }
+                  toast.success('Sub-section icon selected from gallery!');
+                }
+              }}
+              maxSelection={1}
+              minSelection={1}
+              title="Select Sub-section Icon"
+            />
+
             {subSection.icon && (
               <div className="mt-2 mb-2">
                 <img
@@ -1643,49 +1890,14 @@ export default function AddServicePage() {
                   alt="Sub-section Icon"
                   className="h-20 w-20 rounded border object-cover"
                 />
-                <p className="text-xs text-green-600 mt-1">✓ Uploaded</p>
+                <p className="text-xs text-green-600 mt-1">✓ Selected</p>
               </div>
             )}
-            <Input
-              type="file"
-              accept="image/*"
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  const altText = subSectionIconAltTexts[sectionKey]?.[index]?.[0] || "";
-                  if (!altText.trim()) {
-                    toast.error("Please enter alt text first");
-                    e.target.value = "";
-                    return;
-                  }
-                  
-                  try {
-                    const result = await uploadMedia.mutateAsync({
-                      image: file,
-                      alt_text: altText
-                    });
-                    
-                    // Update subsection with full image URL
-                    updateSubSection(sectionKey, index, "icon", result.image);
-                    // Capture alt_text from response
-                    if (result.alt_text) {
-                      updateSubSection(sectionKey, index, "iconAltText", result.alt_text);
-                    }
-                    toast.success("Icon uploaded successfully!");
-                  } catch (error) {
-                    console.error("Error uploading icon:", error);
-                    toast.error("Failed to upload icon");
-                    e.target.value = "";
-                  }
-                }
-              }}
-              className="cursor-pointer"
-            />
             <p className="text-sm text-gray-500 mt-1">
               Upload an icon for this sub-section (stores full URL)
             </p>
           </div>
-          )}
+        )}
         <Button
           type="button"
           variant="destructive"
@@ -1703,7 +1915,7 @@ export default function AddServicePage() {
     section: any
   ) => {
 
-        if (sectionKey === 'hero_section') {
+    if (sectionKey === 'hero_section') {
       return null;
     }
 
@@ -1739,9 +1951,9 @@ export default function AddServicePage() {
         </Card>
       );
     }
-    
+
     // Get the corresponding file upload key for this section
-      const fileUploadKey = `${sectionKey}_image_files`;
+    const fileUploadKey = `${sectionKey}_image_files`;
 
     return (
       <Card key={sectionKey} className="mb-6">
@@ -1792,7 +2004,7 @@ export default function AddServicePage() {
             </div>
 
             {/* File Upload - Only for hero section */}
-              {!SECTIONS_WITHOUT_IMAGES.includes(sectionKey) && (
+            {!SECTIONS_WITHOUT_IMAGES.includes(sectionKey) && (
               <div className="space-y-2">
                 <Label>Section Image Alt Text</Label>
                 <Input
@@ -1812,63 +2024,116 @@ export default function AddServicePage() {
                 <p className="text-sm text-muted-foreground mt-1">
                   {255 - (sectionAltTexts[fileUploadKey]?.[0]?.length || 0)} characters remaining
                 </p>
-                
+
                 <Label>Section Image (Hero Image)</Label>
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      try {
-                        const altText = sectionAltTexts[fileUploadKey]?.[0] || "";
-                        if (!altText) {
-                          toast.error("Please enter alt text first");
-                          e.target.value = "";
-                          return;
+
+                {/* Image Upload Options */}
+                <div className="flex flex-wrap gap-2">
+                  <label className="cursor-pointer">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          try {
+                            const altText = sectionAltTexts[fileUploadKey]?.[0] || "";
+                            if (!altText) {
+                              toast.error("Please enter alt text first");
+                              e.target.value = "";
+                              return;
+                            }
+
+                            const result = await uploadMedia.mutateAsync({
+                              image: file,
+                              alt_text: altText
+                            });
+
+                            setHeroImageId(result.id);
+                            setHeroFromGallery(false);
+                            if (result.alt_text) {
+                              setSectionAltTexts((prev) => ({
+                                ...prev,
+                                [fileUploadKey]: [result.alt_text],
+                              }));
+                            }
+                            toast.success("Hero image uploaded successfully!");
+                            handleFileChange(fileUploadKey, e.target.files);
+                          } catch (error) {
+                            console.error("Error uploading hero image:", error);
+                            toast.error("Failed to upload hero image");
+                            e.target.value = "";
+                          }
                         }
-                        
-                        const result = await uploadMedia.mutateAsync({
-                          image: file,
-                          alt_text: altText
-                        });
-                        
-                        // Store the image ID for hero_image field
-                        setHeroImageId(result.id);
-                        // Capture alt_text from response
-                        if (result.alt_text) {
-                          setSectionAltTexts((prev) => ({
-                            ...prev,
-                            [fileUploadKey]: [result.alt_text],
-                          }));
-                        }
-                        toast.success("Hero image uploaded successfully!");
-                        
-                        // Also store file for preview
-                        handleFileChange(fileUploadKey, e.target.files);
-                      } catch (error) {
-                        console.error("Error uploading hero image:", error);
-                        toast.error("Failed to upload hero image");
-                        e.target.value = "";
+                      }}
+                      className="hidden"
+                    />
+                    <Button type="button" variant="outline" size="sm" asChild>
+                      <span className="flex items-center gap-2">
+                        <Upload className="h-4 w-4" />
+                        Upload from Computer
+                      </span>
+                    </Button>
+                  </label>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowHeroGallery(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <ImageIcon className="h-4 w-4" />
+                    Select from Gallery
+                  </Button>
+                </div>
+
+                {/* Media Gallery Modal */}
+                <MediaGalleryModal
+                  open={showHeroGallery}
+                  onOpenChange={setShowHeroGallery}
+                  onSelect={(media: MediaItem[]) => {
+                    if (media.length > 0) {
+                      const selected = media[0];
+                      setHeroImageId(selected.id);
+                      setHeroFromGallery(true);
+                      if (selected.alt_text) {
+                        setSectionAltTexts((prev) => ({
+                          ...prev,
+                          [fileUploadKey]: [selected.alt_text || ''],
+                        }));
                       }
+                      // Store the URL for preview
+                      setUploadedMediaUrls((prev) => ({
+                        ...prev,
+                        [fileUploadKey]: selected.image,
+                      }));
+                      toast.success('Hero image selected from gallery!');
                     }
                   }}
-                  className="cursor-pointer"
+                  maxSelection={1}
+                  minSelection={1}
+                  title="Select Hero Image"
                 />
+
                 <p className="text-sm text-gray-500 mt-1">
                   Upload hero image (will store image ID for API)
                 </p>
-                
+
                 {/* Hero Section Image Preview */}
-                {sectionFiles[fileUploadKey]?.length > 0 && (
+                {(sectionFiles[fileUploadKey]?.length > 0 || uploadedMediaUrls[fileUploadKey]) && (
                   <div className="mt-2">
                     <img
-                      src={URL.createObjectURL(sectionFiles[fileUploadKey][0])}
+                      src={sectionFiles[fileUploadKey]?.length > 0
+                        ? URL.createObjectURL(sectionFiles[fileUploadKey][0])
+                        : uploadedMediaUrls[fileUploadKey]}
                       alt="Hero Section Preview"
                       className="h-40 w-auto rounded border object-cover"
                     />
                     {heroImageId && (
-                      <p className="text-xs text-green-600 mt-1">✓ Uploaded (ID: {heroImageId})</p>
+                      <p className="text-xs text-green-600 mt-1">
+                        ✓ {heroFromGallery ? 'Selected from gallery' : 'Uploaded'} (ID: {heroImageId})
+                      </p>
                     )}
                   </div>
                 )}
@@ -1916,7 +2181,7 @@ export default function AddServicePage() {
             />
             <Label className="text-sm">Auto-save</Label>
           </div>
-          
+
           {/* Draft status */}
           {draftExists && lastDraftSave && (
             <Badge variant="secondary" className="flex items-center gap-1">
@@ -1937,7 +2202,7 @@ export default function AddServicePage() {
               Draft Found
             </AlertDialogTitle>
             <AlertDialogDescription>
-              We found a saved draft from {lastDraftSave?.toLocaleString()}. 
+              We found a saved draft from {lastDraftSave?.toLocaleString()}.
               Would you like to restore it or start fresh?
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -1956,7 +2221,7 @@ export default function AddServicePage() {
       {draftExists && (
         <Card className="mb-6 bg-blue-50 border-blue-200">
           <CardContent className="">
-          <div className="flex flex-col md:flex-row gap-4 md:items-center items-start justify-between">
+            <div className="flex flex-col md:flex-row gap-4 md:items-center items-start justify-between">
 
               <div className="flex items-center gap-2">
                 <AlertCircle className="h-4 w-4 text-blue-600" />
@@ -2047,28 +2312,48 @@ export default function AddServicePage() {
                 </p>
               </div>
 
-                             <div className="space-y-2">
-                 <Label htmlFor="service-slug">URL Slug *</Label>
-                 <Input
-                   id="service-slug"
-                   value={slug}
-                   maxLength={40}
-                   onChange={(e) => {
-                    const value = e.target.value;
-                    if (value.length <= 40) {
-                      const newSlug = generateSlug(value);
-                      setSlug(newSlug);
-                      validateField('slug', newSlug);
-                    }
-                  }}
-                   placeholder="url-friendly-slug"
-                   required
-                   className={errors.slug ? 'border-red-500' : ''}
-                 />
-                 <p className={`text-sm ${errors.slug ? 'text-red-500' : 'text-muted-foreground'}`}>
-                   {errors.slug || 'This will be used in the URL. Only letters, numbers, and hyphens allowed.'}
-                 </p>
-               </div>
+              <div className="space-y-2">
+                <Label htmlFor="service-slug">URL Slug *</Label>
+                <div className="relative">
+                  <Input
+                    id="service-slug"
+                    value={slug}
+                    maxLength={40}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value.length <= 40) {
+                        const newSlug = generateSlug(value);
+                        setSlug(newSlug);
+                        setSlugCheckMessage("");
+                        setSlugAvailable(null);
+                        validateField('slug', newSlug);
+                      }
+                    }}
+                    placeholder="url-friendly-slug"
+                    required
+                    className={errors.slug ? 'border-red-500' : ''}
+                  />
+                  {isCheckingSlug && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
+                <p className={`text-sm ${errors.slug ? 'text-red-500' : 'text-muted-foreground'}`}>
+                  {errors.slug || 'This will be used in the URL. Only letters, numbers, and hyphens allowed.'}
+                </p>
+                {slugCheckMessage && (
+                  <div className={`flex items-center gap-1 mt-2 text-sm ${slugAvailable ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                    {slugAvailable ? (
+                      <CheckCircle2 className="h-4 w-4" />
+                    ) : (
+                      <XCircle className="h-4 w-4" />
+                    )}
+                    <span>{slugCheckMessage}</span>
+                  </div>
+                )}
+              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="service-description">Description * - p</Label>
@@ -2213,43 +2498,86 @@ export default function AddServicePage() {
                   <p className="text-sm text-muted-foreground mt-1">
                     {255 - iconAltText.length} characters remaining
                   </p>
-                  
-                  <Label htmlFor="serviceImages">Service Post Icon</Label>
-                  <Input
-                    id="serviceImages"
-                    type="file"
-                    accept="image/*"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        if (!iconAltText.trim()) {
-                          toast.error("Please enter alt text first");
-                          e.target.value = "";
-                          return;
-                        }
-                        
-                        try {
-                          const result = await uploadMedia.mutateAsync({
-                            image: file,
-                            alt_text: iconAltText
-                          });
-                          
-                          setIconId(result.id);
-                          setIconUrl(result.image);
-                          // Capture alt_text from response
-                          if (result.alt_text) {
-                            setIconAltText(result.alt_text);
+
+                  <Label>Service Post Icon</Label>
+
+                  {/* Image Upload Options */}
+                  <div className="flex flex-wrap gap-2">
+                    <label className="cursor-pointer">
+                      <Input
+                        id="serviceImages"
+                        type="file"
+                        accept="image/*"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            if (!iconAltText.trim()) {
+                              toast.error("Please enter alt text first");
+                              e.target.value = "";
+                              return;
+                            }
+
+                            try {
+                              const result = await uploadMedia.mutateAsync({
+                                image: file,
+                                alt_text: iconAltText
+                              });
+
+                              setIconId(result.id);
+                              setIconUrl(result.image);
+                              setIconFromGallery(false);
+                              if (result.alt_text) {
+                                setIconAltText(result.alt_text);
+                              }
+                              toast.success("Service icon uploaded successfully!");
+                            } catch (error) {
+                              console.error("Error uploading icon:", error);
+                              toast.error("Failed to upload icon");
+                              e.target.value = "";
+                            }
                           }
-                          toast.success("Service icon uploaded successfully!");
-                        } catch (error) {
-                          console.error("Error uploading icon:", error);
-                          toast.error("Failed to upload icon");
-                          e.target.value = "";
-                        }
+                        }}
+                        className="hidden"
+                      />
+                      <Button type="button" variant="outline" size="sm" asChild>
+                        <span className="flex items-center gap-2">
+                          <Upload className="h-4 w-4" />
+                          Upload from Computer
+                        </span>
+                      </Button>
+                    </label>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowIconGallery(true)}
+                      className="flex items-center gap-2"
+                    >
+                      <ImageIcon className="h-4 w-4" />
+                      Select from Gallery
+                    </Button>
+                  </div>
+
+                  {/* Media Gallery Modal */}
+                  <MediaGalleryModal
+                    open={showIconGallery}
+                    onOpenChange={setShowIconGallery}
+                    onSelect={(media: MediaItem[]) => {
+                      if (media.length > 0) {
+                        const selected = media[0];
+                        setIconId(selected.id);
+                        setIconUrl(selected.image);
+                        setIconAltText(selected.alt_text || '');
+                        setIconFromGallery(true);
+                        toast.success('Service icon selected from gallery!');
                       }
                     }}
-                    className="cursor-pointer"
+                    maxSelection={1}
+                    minSelection={1}
+                    title="Select Service Icon"
                   />
+
                   <p className="text-sm text-gray-500 mt-1">
                     Upload icon for this service
                   </p>
@@ -2260,7 +2588,9 @@ export default function AddServicePage() {
                         alt="Service Icon"
                         className="h-40 w-auto rounded border object-cover"
                       />
-                      <p className="text-xs text-green-600 mt-1">✓ Uploaded (ID: {iconId})</p>
+                      <p className="text-xs text-green-600 mt-1">
+                        ✓ {iconFromGallery ? 'Selected from gallery' : 'Uploaded'} (ID: {iconId})
+                      </p>
                     </div>
                   )}
                 </div>
@@ -2283,43 +2613,86 @@ export default function AddServicePage() {
                   <p className="text-sm text-muted-foreground mt-1">
                     {255 - serviceMainImageAltText.length} characters remaining
                   </p>
-                  
-                  <Label htmlFor="serviceMainImage">Service Main Image</Label>
-                  <Input
-                    id="serviceMainImage"
-                    type="file"
-                    accept="image/*"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        if (!serviceMainImageAltText.trim()) {
-                          toast.error("Please enter alt text first");
-                          e.target.value = "";
-                          return;
-                        }
-                        
-                        try {
-                          const result = await uploadMedia.mutateAsync({
-                            image: file,
-                            alt_text: serviceMainImageAltText
-                          });
-                          
-                          setServiceMainImageId(result.id);
-                          setServiceMainImageUrl(result.image);
-                          // Capture alt_text from response
-                          if (result.alt_text) {
-                            setServiceMainImageAltText(result.alt_text);
+
+                  <Label>Service Main Image</Label>
+
+                  {/* Image Upload Options */}
+                  <div className="flex flex-wrap gap-2">
+                    <label className="cursor-pointer">
+                      <Input
+                        id="serviceMainImage"
+                        type="file"
+                        accept="image/*"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            if (!serviceMainImageAltText.trim()) {
+                              toast.error("Please enter alt text first");
+                              e.target.value = "";
+                              return;
+                            }
+
+                            try {
+                              const result = await uploadMedia.mutateAsync({
+                                image: file,
+                                alt_text: serviceMainImageAltText
+                              });
+
+                              setServiceMainImageId(result.id);
+                              setServiceMainImageUrl(result.image);
+                              setMainImageFromGallery(false);
+                              if (result.alt_text) {
+                                setServiceMainImageAltText(result.alt_text);
+                              }
+                              toast.success("Service main image uploaded successfully!");
+                            } catch (error) {
+                              console.error("Error uploading image:", error);
+                              toast.error("Failed to upload image");
+                              e.target.value = "";
+                            }
                           }
-                          toast.success("Service main image uploaded successfully!");
-                        } catch (error) {
-                          console.error("Error uploading image:", error);
-                          toast.error("Failed to upload image");
-                          e.target.value = "";
-                        }
+                        }}
+                        className="hidden"
+                      />
+                      <Button type="button" variant="outline" size="sm" asChild>
+                        <span className="flex items-center gap-2">
+                          <Upload className="h-4 w-4" />
+                          Upload from Computer
+                        </span>
+                      </Button>
+                    </label>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowMainImageGallery(true)}
+                      className="flex items-center gap-2"
+                    >
+                      <ImageIcon className="h-4 w-4" />
+                      Select from Gallery
+                    </Button>
+                  </div>
+
+                  {/* Media Gallery Modal */}
+                  <MediaGalleryModal
+                    open={showMainImageGallery}
+                    onOpenChange={setShowMainImageGallery}
+                    onSelect={(media: MediaItem[]) => {
+                      if (media.length > 0) {
+                        const selected = media[0];
+                        setServiceMainImageId(selected.id);
+                        setServiceMainImageUrl(selected.image);
+                        setServiceMainImageAltText(selected.alt_text || '');
+                        setMainImageFromGallery(true);
+                        toast.success('Service main image selected from gallery!');
                       }
                     }}
-                    className="cursor-pointer"
+                    maxSelection={1}
+                    minSelection={1}
+                    title="Select Service Main Image"
                   />
+
                   <p className="text-sm text-gray-500 mt-1">
                     Upload the main service image
                   </p>
@@ -2330,7 +2703,9 @@ export default function AddServicePage() {
                         alt="Service Main"
                         className="h-40 w-auto rounded border object-cover"
                       />
-                      <p className="text-xs text-green-600 mt-1">✓ Uploaded (ID: {serviceMainImageId})</p>
+                      <p className="text-xs text-green-600 mt-1">
+                        ✓ {mainImageFromGallery ? 'Selected from gallery' : 'Uploaded'} (ID: {serviceMainImageId})
+                      </p>
                     </div>
                   )}
                 </div>

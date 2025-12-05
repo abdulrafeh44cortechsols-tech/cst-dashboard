@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { EditIndustryForm } from "@/components/industries/EditIndustryForm";
 
+import { useEffect } from "react";
+
 export default function EditIndustryPage() {
   const params = useParams();
   const router = useRouter();
@@ -17,10 +19,20 @@ export default function EditIndustryPage() {
     queryKey: ["industry", "slug", slugParam],
     queryFn: async () => {
       if (!slugParam) throw new Error("Missing industry slug");
+      if (/^\d+$/.test(slugParam)) {
+        return industriesDataService.getIndustry(slugParam);
+      }
       return industriesDataService.getIndustryBySlug(slugParam);
     },
     enabled: !!slugParam,
   });
+
+  // Update URL if loaded by ID
+  useEffect(() => {
+    if (industry && slugParam && /^\d+$/.test(slugParam) && industry.slug) {
+      window.history.replaceState(null, "", `/dashboard/industries/${industry.slug}/edit`);
+    }
+  }, [industry, slugParam]);
 
   return (
     <div className="flex flex-col gap-4">

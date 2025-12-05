@@ -32,20 +32,20 @@ export function AddEditorDialog({ onAdd }: AddEditorDialogProps) {
   const [captchaVerified, setCaptchaVerified] = useState(false)
   const [captchaValue, setCaptchaValue] = useState<string | null>(null)
 
-  function onCaptchaChange(value: string | null) {
-    console.log("Captcha value:", value);
-    setCaptchaValue(value);
-    setCaptchaVerified(!!value); // Set to true if value exists, false otherwise
-  }
+    // function onCaptchaChange(value: string | null) {
+    //   console.log("Captcha value:", value);
+    //   setCaptchaValue(value);
+    //   setCaptchaVerified(!!value); // Set to true if value exists, false otherwise
+    // }
 
   const handleSubmit = async () => {
     if (!formData.username || !formData.email) return
 
-    // Check if reCAPTCHA is verified
-    if (!captchaVerified || !captchaValue) {
-      toast.error("Please complete the reCAPTCHA verification.");
-      return;
-    }
+    // // Check if reCAPTCHA is verified
+    // if (!captchaVerified || !captchaValue) {
+    //   toast.error("Please complete the reCAPTCHA verification.");
+    //   return;
+    // }
 
     try {
       setSubmitting(true)
@@ -115,12 +115,12 @@ export function AddEditorDialog({ onAdd }: AddEditorDialogProps) {
             />
           </div>
 
-          <div className="flex justify-start">
+          {/* <div className="flex justify-start">
             <ReCAPTCHA
               sitekey={process.env.NEXT_PUBLIC_CAPTCHA_SITE_URL || ""}
               onChange={onCaptchaChange}
             />
-          </div>
+          </div> */}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={handleClose} disabled={submitting}>

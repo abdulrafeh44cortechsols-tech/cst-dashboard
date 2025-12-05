@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Delete, Edit, Pencil, PlusCircle, Trash2 } from "lucide-react";
+import { Edit, PlusCircle, Trash2, FolderOpen, Star, Layers } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -22,7 +22,8 @@ import Image from "next/image";
 export default function IndustriesPage() {
   const router = useRouter();
   const { getIndustriesList } = useIndustries();
-  const { data: industries, isLoading, isError } = getIndustriesList;
+  const { data: industriesData, isLoading, isError } = getIndustriesList;
+  const industries = industriesData?.results || [];
   const [deletingIndustry, setDeletingIndustry] = useState<Industry | null>(
     null
   );
@@ -48,15 +49,15 @@ export default function IndustriesPage() {
         <>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {industries && industries.length > 0 ? (
-              industries.map((industry:any) => (
+              industries.map((industry: Industry) => (
                 <Card
                   key={industry.id}
-                  className="overflow-hidden flex pt-0 flex-col min-h-[400px]"
+                  className="overflow-hidden flex pt-0 flex-col min-h-[420px]"
                 >
-                  <div className="relative overflow-hidden aspect-[400/360]">
+                  <div className="relative overflow-hidden aspect-[400/280]">
                     <Image
-                      src={industry.images[0] || "/placeholder.svg"}
-                      alt={industry.name}
+                      src={industry.hero_image?.image || "/placeholder.svg"}
+                      alt={industry.hero_image?.alt_text || industry.title}
                       fill
                       className="w-full h-48 object-cover transition-transform duration-200 hover:scale-105"
                       onError={(e) => {
@@ -64,38 +65,61 @@ export default function IndustriesPage() {
                       }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-200" />
+                    
+                    {/* Category badge overlay */}
+                    {industry.industry_category && (
+                      <div className="absolute top-2 left-2">
+                        <Badge variant="secondary" className="bg-white/90 text-gray-700">
+                          {industry.industry_category}
+                        </Badge>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex flex-col flex-1">
                     <CardHeader className="flex-row items-start justify-between space-y-0 pb-2">
-                      <div className="flex flex-col gap-1 flex-1">
-                        <CardTitle className="text-lg font-medium leading-none">
-                          {industry.name}
-                        </CardTitle>
+                      <div className="flex flex-col gap-1.5 flex-1">
+                        <div className="flex items-center gap-2">
+                          <CardTitle className="text-lg font-medium leading-none">
+                            {industry.title}
+                          </CardTitle>
+                        </div>
                         <Badge
-                          variant={industry.is_active ? "default" : "outline"}
+                          variant={industry.is_published ? "default" : "outline"}
                           className="w-fit"
                         >
-                          {industry.is_active ? "Published" : "Draft"}
+                          {industry.is_published ? "Published" : "Draft"}
                         </Badge>
                       </div>
                     </CardHeader>
 
                     <CardContent className="flex-1 pt-0">
-                      <CardDescription className="text-sm text-muted-foreground line-clamp-3">
+                      <CardDescription className="text-sm text-muted-foreground line-clamp-2">
                         {industry.description}
                       </CardDescription>
 
+                      {/* Stats */}
+                      <div className="flex flex-wrap gap-3 mt-3 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <FolderOpen className="w-3.5 h-3.5" />
+                          <span>{industry.projects_count} Projects</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Star className="w-3.5 h-3.5" />
+                          <span>{industry.reviews_count} Reviews</span>
+                        </div>
+                      </div>
+
                       {/* Tags */}
                       {industry.tags && industry.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {industry.tags.slice(0, 3).map((tag: any) => (
+                        <div className="flex flex-wrap gap-1 mt-3">
+                          {industry.tags.slice(0, 3).map((tag: string, index: number) => (
                             <Badge
-                              key={tag.id}
+                              key={index}
                               variant="secondary"
                               className="text-xs"
                             >
-                              {tag.name}
+                              {tag}
                             </Badge>
                           ))}
                           {industry.tags.length > 3 && (
@@ -142,14 +166,6 @@ export default function IndustriesPage() {
             )}
           </div>
 
-          {/* Edit modal commented out - now using dedicated edit page */}
-          {/* {editingIndustry && (
-            <EditIndustryModal
-              industry={editingIndustry}
-              isOpen={isModalOpen}
-              onClose={() => setIsModalOpen(false)}
-            />
-          )} */}
           {deletingIndustry && (
             <DeleteIndustryModal
               industry={deletingIndustry}

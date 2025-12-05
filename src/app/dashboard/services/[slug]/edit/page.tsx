@@ -8,6 +8,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { EditServiceForm } from "@/components/services/EditServiceForm";
 import Link from "next/link";
 
+import { useEffect } from "react";
+
 export default function EditServicePage() {
   const params = useParams();
   const router = useRouter();
@@ -17,6 +19,9 @@ export default function EditServicePage() {
     queryKey: ["service", "slug", slugParam],
     queryFn: async () => {
       if (!slugParam) throw new Error("Missing service slug");
+      if (/^\d+$/.test(slugParam)) {
+        return servicesDataService.getService(slugParam);
+      }
       return servicesDataService.getServiceBySlugV2(slugParam);
     },
     enabled: !!slugParam,
@@ -25,6 +30,13 @@ export default function EditServicePage() {
     refetchOnWindowFocus: true, // Refetch when user comes back
     refetchOnMount: true, // Always refetch when component mounts
   });
+
+  // Update URL if loaded by ID
+  useEffect(() => {
+    if (service && slugParam && /^\d+$/.test(slugParam) && service.slug) {
+      window.history.replaceState(null, "", `/dashboard/services/${service.slug}/edit`);
+    }
+  }, [service, slugParam]);
 
 
   return (

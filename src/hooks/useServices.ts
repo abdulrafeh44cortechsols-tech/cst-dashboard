@@ -13,12 +13,12 @@ export const useServices = (page: number = 1, pageSize: number = 10, enableFetch
     queryFn: async () => {
       // Use new API endpoint
       const response = await servicesDataService.getServicesV2(page, pageSize);
-      
+
       // Return the API response directly - it matches the Service interface now
       return response.results.map((item: any) => ({
         id: item.id.toString(), // Convert number to string
-        name: item.name, // Keep name from API
-        title: item.name, // Also set title for backward compatibility
+        title: item.title || item.name, // Prioritize title
+        name: item.name || item.title, // Keep name for backward compatibility
         slug: item.slug,
         description: item.description,
         meta_title: item.meta_title,

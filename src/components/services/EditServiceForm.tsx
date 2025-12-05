@@ -9,25 +9,28 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { 
-  AlertDialog, 
-  AlertDialogAction, 
-  AlertDialogCancel, 
-  AlertDialogContent, 
-  AlertDialogDescription, 
-  AlertDialogFooter, 
-  AlertDialogHeader, 
-  AlertDialogTitle, 
-  AlertDialogTrigger 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Save, Trash2, RefreshCw, AlertCircle, Loader2 } from "lucide-react";
+import { Save, Trash2, RefreshCw, AlertCircle, Loader2, Upload, ImageIcon, CheckCircle2, XCircle } from "lucide-react";
+import { MediaGalleryModal } from "@/components/media/MediaGalleryModal";
+import type { MediaItem } from "@/services/media";
 import type { Service, ServiceSectionsData } from "@/types/types";
 import { useServices } from "@/hooks/useServices";
 import { useMedia } from "@/hooks/useMedia";
 import { getDefaultSectionsData } from "@/data/exampleServiceData";
 import { getImageUrl } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { servicesDataService } from "@/services/services";
 
 interface EditServiceFormProps {
   service: Service | null;
@@ -52,7 +55,13 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
   const [published, setPublished] = useState(false);
   const [projectsDelivered, setProjectsDelivered] = useState<number>(0);
   const [clientsSatisfaction, setClientsSatisfaction] = useState<number>(0);
-  
+
+  // Slug validation state
+  const [originalSlug, setOriginalSlug] = useState<string>("");
+  const [slugCheckMessage, setSlugCheckMessage] = useState<string>("");
+  const [isCheckingSlug, setIsCheckingSlug] = useState(false);
+  const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
+
   // Media state for uploaded images
   const [serviceMainImageId, setServiceMainImageId] = useState<number | null>(null);
   const [serviceMainImageUrl, setServiceMainImageUrl] = useState<string>("");
@@ -60,7 +69,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
   const [iconUrl, setIconUrl] = useState<string>("");
   const [heroImageId, setHeroImageId] = useState<number | null>(null);
   const [uploadedMediaUrls, setUploadedMediaUrls] = useState<Record<string, string>>({});
-  
+
   // Alt text for icon and service main image
   const [iconAltText, setIconAltText] = useState<string>("");
   const [serviceMainImageAltText, setServiceMainImageAltText] = useState<string>("");
@@ -126,13 +135,23 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
   // Client feedback image alt texts state
   const [clientFeedbackImageAltTexts, setClientFeedbackImageAltTexts] = useState<Record<number, string[]>>({});
 
+  // Media gallery modal states
+  const [showIconGallery, setShowIconGallery] = useState(false);
+  const [showMainImageGallery, setShowMainImageGallery] = useState(false);
+  const [iconFromGallery, setIconFromGallery] = useState(false);
+  const [mainImageFromGallery, setMainImageFromGallery] = useState(false);
+  // Sub-section gallery modal states
+  const [showSubSectionGallery, setShowSubSectionGallery] = useState<{ sectionKey: string; index: number } | null>(null);
+  const [showClientFeedbackGallery, setShowClientFeedbackGallery] = useState<number | null>(null);
+  const [showTeamMemberGallery, setShowTeamMemberGallery] = useState<number | null>(null);
+
   useEffect(() => {
     if (service) {
       const svc = service as any;
-      
+
       // Set service ID
       if (svc.id) setServiceId(svc.id);
-      
+
       // Basic fields - API uses "name" not "title"
       setTitle(svc.name || svc.title || "");
       setSlug(svc.slug || "");
@@ -142,7 +161,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
       setPublished(svc.is_published || false);
       setProjectsDelivered(svc.projects_delivered || 0);
       setClientsSatisfaction(svc.clients_satisfaction || 0);
-      
+
       // Image IDs - API returns objects with {id, image, alt_text}
       if (svc.icon) {
         if (typeof svc.icon === 'object' && svc.icon.id) {
@@ -153,7 +172,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
           setIconId(svc.icon);
         }
       }
-      
+
       if (svc.hero_image) {
         if (typeof svc.hero_image === 'object' && svc.hero_image.id) {
           setHeroImageId(svc.hero_image.id);
@@ -166,7 +185,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
           setServiceMainImageId(svc.hero_image);
         }
       }
-      
+
       if (svc.service_main_image) {
         if (typeof svc.service_main_image === 'object' && svc.service_main_image.id) {
           setServiceMainImageId(svc.service_main_image.id);
@@ -176,7 +195,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
           setServiceMainImageId(svc.service_main_image);
         }
       }
-      
+
       // Map sections data from new API structure
       const newSectionsData: ServiceSectionsData = {
         hero_section: {
@@ -271,12 +290,12 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
           }))
         }
       };
-      
+
       setSectionsData(newSectionsData);
-      
+
       // Populate alt text states for subsection icons
       const subSectionAltTexts: Record<string, Record<number, string[]>> = {};
-      
+
       // About section icons
       if (svc.about_subsections?.length > 0) {
         subSectionAltTexts['about_section'] = {};
@@ -286,7 +305,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
           }
         });
       }
-      
+
       // Why choose section icons
       if (svc.why_choose_subsections?.length > 0) {
         subSectionAltTexts['why_choose_us_section'] = {};
@@ -296,7 +315,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
           }
         });
       }
-      
+
       // What we offer section icons
       if (svc.what_we_offer_subsections?.length > 0) {
         subSectionAltTexts['what_we_offer_section'] = {};
@@ -306,7 +325,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
           }
         });
       }
-      
+
       // Business section icons
       if (svc.business_subsections?.length > 0) {
         subSectionAltTexts['perfect_business_section'] = {};
@@ -316,11 +335,11 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
           }
         });
       }
-      
+
       // Note: Tools section doesn't have icons anymore
-      
+
       setSubSectionIconAltTexts(subSectionAltTexts);
-      
+
       // Populate team member image alt texts
       const teamAltTexts: Record<number, string[]> = {};
       const teamSubsections = svc.design_team_subsections || svc.meet_design_team_subsections || [];
@@ -330,7 +349,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
         }
       });
       setTeamMemberImageAltTexts(teamAltTexts);
-      
+
       // Populate client feedback image alt texts
       const clientAltTexts: Record<number, string[]> = {};
       (svc.testimonials || []).forEach((sub: any, index: number) => {
@@ -339,8 +358,51 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
         }
       });
       setClientFeedbackImageAltTexts(clientAltTexts);
+
+      // Store original slug for validation
+      setOriginalSlug(svc.slug || "");
     }
   }, [service]);
+
+  // Utility function to generate slug
+  const generateSlug = (text: string) => {
+    return text
+      .toLowerCase()
+      .replace(/[^a-z0-9 -]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim();
+  };
+
+  // Debounced slug validation (only check if slug changed from original)
+  useEffect(() => {
+    // Don't check if slug is the same as original or too short
+    if (!slug || slug.length < 3 || slug === originalSlug) {
+      setSlugCheckMessage("");
+      setSlugAvailable(null);
+      return;
+    }
+
+    setIsCheckingSlug(true);
+    setSlugCheckMessage("");
+    setSlugAvailable(null);
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        const response = await servicesDataService.checkSlugAvailability(slug, 'service');
+        setSlugCheckMessage(response.message);
+        setSlugAvailable(response.message === "You can use this slug.");
+      } catch (error: any) {
+        console.error("Error checking slug:", error);
+        setSlugCheckMessage("This slug already exists.");
+        setSlugAvailable(null);
+      } finally {
+        setIsCheckingSlug(false);
+      }
+    }, 5000); // 5 seconds delay
+
+    return () => clearTimeout(timeoutId);
+  }, [slug, originalSlug]);
 
   const updateSection = (sectionKey: keyof ServiceSectionsData, field: string, value: any) => {
     setSectionsData(prev => ({
@@ -524,21 +586,21 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
     if (files && files[0]) {
       const file = files[0];
       const altText = subSectionIconAltTexts[sectionKey]?.[subSectionIndex]?.[0] || "";
-      
+
       if (!altText.trim()) {
         toast.error("Please enter alt text first");
         return;
       }
-      
+
       try {
         const result = await uploadMedia.mutateAsync({
           image: file,
           alt_text: altText
         });
-        
+
         // Update subsection with image URL from API
         updateSubSection(sectionKey as keyof ServiceSectionsData, subSectionIndex, "icon", result.image);
-        
+
         // Capture alt_text from response
         if (result.alt_text) {
           updateSubSection(sectionKey as keyof ServiceSectionsData, subSectionIndex, "iconAltText", result.alt_text);
@@ -550,7 +612,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
             },
           }));
         }
-        
+
         toast.success("Icon uploaded successfully!");
       } catch (error) {
         console.error("Error uploading icon:", error);
@@ -563,21 +625,21 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
     if (files && files[0]) {
       const file = files[0];
       const altText = teamMemberImageAltTexts[memberIndex]?.[0] || "";
-      
+
       if (!altText.trim()) {
         toast.error("Please enter alt text first");
         return;
       }
-      
+
       try {
         const result = await uploadMedia.mutateAsync({
           image: file,
           alt_text: altText
         });
-        
+
         // Update team member with image URL from API
         updateSubSection('team_section', memberIndex, "image", result.image);
-        
+
         // Capture alt_text from response
         if (result.alt_text) {
           updateSubSection('team_section', memberIndex, "imageAltText", result.alt_text);
@@ -586,7 +648,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
             [memberIndex]: [result.alt_text]
           }));
         }
-        
+
         toast.success("Team member photo uploaded!");
       } catch (error) {
         console.error("Error uploading photo:", error);
@@ -599,21 +661,21 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
     if (files && files[0]) {
       const file = files[0];
       const altText = clientFeedbackImageAltTexts[clientIndex]?.[0] || "";
-      
+
       if (!altText.trim()) {
         toast.error("Please enter alt text first");
         return;
       }
-      
+
       try {
         const result = await uploadMedia.mutateAsync({
           image: file,
           alt_text: altText
         });
-        
+
         // Update client feedback with image URL from API
         updateSubSection('client_feedback_section', clientIndex, "image", result.image);
-        
+
         // Capture alt_text from response
         if (result.alt_text) {
           updateSubSection('client_feedback_section', clientIndex, "imageAltText", result.alt_text);
@@ -622,7 +684,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
             [clientIndex]: [result.alt_text]
           }));
         }
-        
+
         toast.success("Client photo uploaded!");
       } catch (error) {
         console.error("Error uploading photo:", error);
@@ -720,7 +782,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
       const bulletPoints = sectionsData.tools_used_section?.sub_sections
         ?.map(sub => sub.title)
         ?.filter(title => title?.trim()) || [];
-      
+
       const servicePayload = {
         name: title,
         description: description,
@@ -734,7 +796,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
         hero_image: serviceMainImageId || heroImageId, // Use service main image as hero_image
         hero_image_alt_text: serviceMainImageAltText || "", // Alt text for hero image
         bullet_points: bulletPoints,
-        
+
         // Section data
         about_title: sectionsData.about_section?.title || "",
         about_description: sectionsData.about_section?.description || "",
@@ -744,7 +806,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
           alt_text: sub.iconAltText || sub.alt_text || "",
           description: sub.description
         })) || [],
-        
+
         why_choose_title: sectionsData.why_choose_us_section?.title || "",
         why_choose_description: sectionsData.why_choose_us_section?.description || "",
         why_choose_subsections: sectionsData.why_choose_us_section?.sub_sections?.map(sub => ({
@@ -753,7 +815,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
           alt_text: sub.iconAltText || sub.alt_text || "",
           description: sub.description
         })) || [],
-        
+
         what_we_offer_title: sectionsData.what_we_offer_section?.title || "",
         what_we_offer_description: sectionsData.what_we_offer_section?.description || "",
         what_we_offer_subsections: sectionsData.what_we_offer_section?.sub_sections?.map(sub => ({
@@ -762,7 +824,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
           alt_text: sub.iconAltText || sub.alt_text || "",
           points: sub.points ? sub.points.filter(point => point.trim() !== '') : []
         })) || [],
-        
+
         business_title: sectionsData.perfect_business_section?.title || "",
         business_description: sectionsData.perfect_business_section?.description || "",
         business_subsections: sectionsData.perfect_business_section?.sub_sections?.map(sub => ({
@@ -771,11 +833,11 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
           alt_text: sub.iconAltText || sub.alt_text || "",
           description: sub.description
         })) || [],
-        
+
         design_process_title: sectionsData.design_section?.title || "",
         design_process_description: sectionsData.design_section?.description || "",
         design_process_subsections: sectionsData.design_section?.sub_sections || [],
-        
+
         design_team_title: sectionsData.team_section?.title || "",
         design_team_description: sectionsData.team_section?.description || "",
         design_team_subsections: sectionsData.team_section?.sub_sections?.map(sub => ({
@@ -786,7 +848,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
           experience: sub.experience,
           designation: sub.designation
         })) || [],
-        
+
         meet_design_team_title: sectionsData.team_section?.title || "",
         meet_design_team_description: sectionsData.team_section?.description || "",
         meet_design_team_subsections: sectionsData.team_section?.sub_sections?.map(sub => ({
@@ -797,14 +859,14 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
           experience: sub.experience,
           designation: sub.designation
         })) || [],
-        
+
         tools_title: sectionsData.tools_used_section?.title || "",
         tools_description: sectionsData.tools_used_section?.description || "",
         tools_subsections: sectionsData.tools_used_section?.sub_sections?.map(sub => ({
           title: sub.title,
           points: sub.points ? sub.points.filter(point => point.trim() !== '') : []
         })) || [],
-        
+
         testimonials: sectionsData.client_feedback_section?.sub_sections?.map(sub => ({
           name: sub.name,
           image: sub.image,
@@ -813,7 +875,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
           comment: sub.comment,
           designation: sub.designation
         })) || [],
-        
+
         is_published: published,
       };
 
@@ -826,17 +888,17 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
       // Call update API
       const { servicesDataService } = await import("@/services/services");
       await servicesDataService.updateServiceV2(serviceId, servicePayload);
-      
+
       toast.success("Service updated successfully!");
       onSaved?.();
     } catch (error: any) {
       console.error("Service update error:", error);
-      
+
       // Check for field-specific validation errors from backend
       const errorDetails = error.response?.data?.error_details;
       if (errorDetails) {
         console.log("Field validation errors:", errorDetails);
-        
+
         // Show first error
         const firstErrorKey = Object.keys(errorDetails)[0];
         const firstErrorValue = errorDetails[firstErrorKey];
@@ -927,19 +989,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
           </div>
 
           {/* Team Member Image Upload */}
-          {/* Team Member Image Upload */}
           <div className="space-y-2">
-            <Label>Team Member Photo</Label>
-            {subSection.image && (
-              <div className="mt-2">
-                <Label className="text-sm font-medium">Current Photo</Label>
-                <img
-                  src={getImageUrl(subSection.image)}
-                  alt={`${subSection.name}'s photo`}
-                  className="h-32 w-32 rounded-full border object-cover mt-2 bg-muted/50 p-2"
-                />
-              </div>
-            )}
             <Label>Team Member Photo Alt Text</Label>
             <Input
               value={teamMemberImageAltTexts[index]?.[0] || ""}
@@ -958,15 +1008,71 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
             <p className="text-sm text-muted-foreground mt-1">
               {255 - (teamMemberImageAltTexts[index]?.[0]?.length || 0)} characters remaining
             </p>
-            <Input
-              type="file"
-              accept="image/*"
-              onChange={(e) => handleTeamMemberImageChange(index, e.target.files)}
-              className="cursor-pointer"
+
+            <Label>Team Member Photo</Label>
+
+            {/* Image Upload Options */}
+            <div className="flex flex-wrap gap-2">
+              <label className="cursor-pointer">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleTeamMemberImageChange(index, e.target.files)}
+                  className="hidden"
+                />
+                <Button type="button" variant="outline" size="sm" asChild>
+                  <span className="flex items-center gap-2">
+                    <Upload className="h-4 w-4" />
+                    Upload from Computer
+                  </span>
+                </Button>
+              </label>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowTeamMemberGallery(index)}
+                className="flex items-center gap-2"
+              >
+                <ImageIcon className="h-4 w-4" />
+                Select from Gallery
+              </Button>
+            </div>
+
+            {/* Media Gallery Modal */}
+            <MediaGalleryModal
+              open={showTeamMemberGallery === index}
+              onOpenChange={(open) => setShowTeamMemberGallery(open ? index : null)}
+              onSelect={(media: MediaItem[]) => {
+                if (media.length > 0) {
+                  const selected = media[0];
+                  updateSubSection(sectionKey, index, "image", selected.image);
+                  if (selected.alt_text) {
+                    setTeamMemberImageAltTexts((prev) => ({
+                      ...prev,
+                      [index]: [selected.alt_text || ''],
+                    }));
+                  }
+                  toast.success('Team member photo selected from gallery!');
+                }
+              }}
+              maxSelection={1}
+              minSelection={1}
+              title="Select Team Member Photo"
             />
-            <p className="text-sm text-gray-500 mt-1">
-              Upload a photo for this team member
-            </p>
+
+            {subSection.image && (
+              <div className="mt-2">
+                <Label className="text-sm font-medium">Current Photo</Label>
+                <img
+                  src={getImageUrl(subSection.image)}
+                  alt={`${subSection.name}'s photo`}
+                  className="h-32 w-32 rounded-full border object-cover mt-2 bg-muted/50 p-2"
+                />
+                <p className="text-xs text-green-600 mt-1">✓ Selected</p>
+              </div>
+            )}
             {(teamMemberImages[index]?.length || 0) > 0 && (
               <div className="mt-2">
                 <Label className="text-sm font-medium">New Photo to Upload</Label>
@@ -1079,10 +1185,64 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
               }}
               placeholder="Enter alt text for client photo"
               maxLength={255}
-              />
+            />
             <p className="text-sm text-muted-foreground mt-1">
               {255 - (clientFeedbackImageAltTexts[index]?.[0]?.length || 0)} characters remaining
             </p>
+
+            <Label>Client Photo</Label>
+
+            {/* Image Upload Options */}
+            <div className="flex flex-wrap gap-2">
+              <label className="cursor-pointer">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleClientFeedbackImageChange(index, e.target.files)}
+                  className="hidden"
+                />
+                <Button type="button" variant="outline" size="sm" asChild>
+                  <span className="flex items-center gap-2">
+                    <Upload className="h-4 w-4" />
+                    Upload from Computer
+                  </span>
+                </Button>
+              </label>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowClientFeedbackGallery(index)}
+                className="flex items-center gap-2"
+              >
+                <ImageIcon className="h-4 w-4" />
+                Select from Gallery
+              </Button>
+            </div>
+
+            {/* Media Gallery Modal */}
+            <MediaGalleryModal
+              open={showClientFeedbackGallery === index}
+              onOpenChange={(open) => setShowClientFeedbackGallery(open ? index : null)}
+              onSelect={(media: MediaItem[]) => {
+                if (media.length > 0) {
+                  const selected = media[0];
+                  updateSubSection(sectionKey, index, "image", selected.image);
+                  if (selected.alt_text) {
+                    setClientFeedbackImageAltTexts((prev) => ({
+                      ...prev,
+                      [index]: [selected.alt_text || ''],
+                    }));
+                  }
+                  toast.success('Client photo selected from gallery!');
+                }
+              }}
+              maxSelection={1}
+              minSelection={1}
+              title="Select Client Photo"
+            />
+
             {subSection.image && (
               <div className="mt-2">
                 <Label className="text-sm font-medium">Current Client Photo</Label>
@@ -1091,17 +1251,9 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
                   alt="Current Client Photo"
                   className="h-32 w-32 rounded-full border object-cover mt-2 bg-muted/50 p-2"
                 />
+                <p className="text-xs text-green-600 mt-1">✓ Selected</p>
               </div>
             )}
-            <Input
-              type="file"
-              accept="image/*"
-              onChange={(e) => handleClientFeedbackImageChange(index, e.target.files)}
-              className="cursor-pointer"
-            />
-            <p className="text-sm text-gray-500 mt-1">
-              Upload a photo for this client
-            </p>
           </div>
 
           <Button
@@ -1146,11 +1298,11 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
               </Button>
             </div>
             <div className="space-y-2">
-              {(subSection.points || []).map((point: string, pointIndex: number, arr : any) => {
+              {(subSection.points || []).map((point: string, pointIndex: number, arr: any) => {
                 // Show the point if it has content OR if it's the last point in the array
                 const isLastPoint = pointIndex === arr.length - 1;
                 const hasContent = point.trim() !== "";
-                
+
                 if (hasContent || isLastPoint) {
                   return (
                     <div key={pointIndex} className="flex gap-2 items-center">
@@ -1203,25 +1355,72 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
               </p>
 
               <Label>Sub-section Icon</Label>
+
+              {/* Image Upload Options */}
+              <div className="flex flex-wrap gap-2">
+                <label className="cursor-pointer">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleSubSectionIconChange(sectionKey, index, e.target.files)}
+                    className="hidden"
+                  />
+                  <Button type="button" variant="outline" size="sm" asChild>
+                    <span className="flex items-center gap-2">
+                      <Upload className="h-4 w-4" />
+                      Upload from Computer
+                    </span>
+                  </Button>
+                </label>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowSubSectionGallery({ sectionKey, index })}
+                  className="flex items-center gap-2"
+                >
+                  <ImageIcon className="h-4 w-4" />
+                  Select from Gallery
+                </Button>
+              </div>
+
+              {/* Media Gallery Modal */}
+              <MediaGalleryModal
+                open={showSubSectionGallery?.sectionKey === sectionKey && showSubSectionGallery?.index === index}
+                onOpenChange={(open) => setShowSubSectionGallery(open ? { sectionKey, index } : null)}
+                onSelect={(media: MediaItem[]) => {
+                  if (media.length > 0) {
+                    const selected = media[0];
+                    updateSubSection(sectionKey, index, "icon", selected.image);
+                    if (selected.alt_text) {
+                      setSubSectionIconAltTexts((prev) => ({
+                        ...prev,
+                        [sectionKey]: {
+                          ...prev[sectionKey],
+                          [index]: [selected.alt_text || ''],
+                        },
+                      }));
+                    }
+                    toast.success('Sub-section icon selected from gallery!');
+                  }
+                }}
+                maxSelection={1}
+                minSelection={1}
+                title="Select Sub-section Icon"
+              />
+
               {subSection.icon && (
                 <div className="mt-2">
-                  <Label className="text-sm font-medium">Current Icon from API</Label>
+                  <Label className="text-sm font-medium">Current Icon</Label>
                   <img
                     src={subSection.icon}
                     alt="Current Sub-section Icon"
                     className="h-24 w-24 rounded border object-cover mt-2 bg-muted/50 p-2"
                   />
+                  <p className="text-xs text-green-600 mt-1">✓ Selected</p>
                 </div>
               )}
-              <Input
-                type="file"
-                accept="image/*"
-                onChange={(e) => handleSubSectionIconChange(sectionKey, index, e.target.files)}
-                className="cursor-pointer"
-              />
-              <p className="text-sm text-gray-500 mt-1">
-                Upload an icon for this sub-section (optional)
-              </p>
               {(subSectionIcons[sectionKey]?.[index]?.length || 0) > 0 && (
                 <div className="mt-2">
                   <Label className="text-sm font-medium">New Icon to Upload</Label>
@@ -1303,25 +1502,72 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
             </p>
 
             <Label>Sub-section Icon</Label>
+
+            {/* Image Upload Options */}
+            <div className="flex flex-wrap gap-2">
+              <label className="cursor-pointer">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleSubSectionIconChange(sectionKey, index, e.target.files)}
+                  className="hidden"
+                />
+                <Button type="button" variant="outline" size="sm" asChild>
+                  <span className="flex items-center gap-2">
+                    <Upload className="h-4 w-4" />
+                    Upload from Computer
+                  </span>
+                </Button>
+              </label>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowSubSectionGallery({ sectionKey, index })}
+                className="flex items-center gap-2"
+              >
+                <ImageIcon className="h-4 w-4" />
+                Select from Gallery
+              </Button>
+            </div>
+
+            {/* Media Gallery Modal */}
+            <MediaGalleryModal
+              open={showSubSectionGallery?.sectionKey === sectionKey && showSubSectionGallery?.index === index}
+              onOpenChange={(open) => setShowSubSectionGallery(open ? { sectionKey, index } : null)}
+              onSelect={(media: MediaItem[]) => {
+                if (media.length > 0) {
+                  const selected = media[0];
+                  updateSubSection(sectionKey, index, "icon", selected.image);
+                  if (selected.alt_text) {
+                    setSubSectionIconAltTexts((prev) => ({
+                      ...prev,
+                      [sectionKey]: {
+                        ...prev[sectionKey],
+                        [index]: [selected.alt_text || ''],
+                      },
+                    }));
+                  }
+                  toast.success('Sub-section icon selected from gallery!');
+                }
+              }}
+              maxSelection={1}
+              minSelection={1}
+              title="Select Sub-section Icon"
+            />
+
             {subSection.icon && (
               <div className="mt-2">
-                <Label className="text-sm font-medium">Current Icon from API</Label>
+                <Label className="text-sm font-medium">Current Icon</Label>
                 <img
                   src={subSection.icon}
                   alt="Current Sub-section Icon"
                   className="h-24 w-24 rounded border object-cover mt-2 bg-muted/50 p-2"
                 />
+                <p className="text-xs text-green-600 mt-1">✓ Selected</p>
               </div>
             )}
-            <Input
-              type="file"
-              accept="image/*"
-              onChange={(e) => handleSubSectionIconChange(sectionKey, index, e.target.files)}
-              className="cursor-pointer"
-            />
-            <p className="text-sm text-gray-500 mt-1">
-              Upload an icon for this sub-section
-            </p>
             {(subSectionIcons[sectionKey]?.[index]?.length || 0) > 0 && (
               <div className="mt-2">
                 <Label className="text-sm font-medium">New Icon to Upload</Label>
@@ -1352,7 +1598,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
     if (sectionKey === 'hero_section') {
       return null;
     }
-    
+
     // Skip title and description for client feedback section
     if (sectionKey === 'client_feedback_section') {
       return (
@@ -1382,7 +1628,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
         </Card>
       );
     }
-    
+
     const fileUploadKey = `${sectionKey}_image_files`;
     return (
       <Card key={sectionKey} className="mb-4">
@@ -1545,21 +1791,41 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
             </div>
             <div className="grid gap-2">
               <Label htmlFor="service-slug">Slug</Label>
-              <Input
-                id="service-slug"
-                value={slug}
-                onChange={(e) => {
-                  const value = e.target.value.toLowerCase();
-                  if (value.length <= 100 && /^[a-z0-9-]*$/.test(value)) {
-                    setSlug(value);
-                  }
-                }}
-                placeholder="url-friendly-slug"
-                maxLength={100}
-              />
+              <div className="relative">
+                <Input
+                  id="service-slug"
+                  value={slug}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value.length <= 100) {
+                      setSlug(generateSlug(value));
+                      setSlugCheckMessage("");
+                      setSlugAvailable(null);
+                    }
+                  }}
+                  placeholder="url-friendly-slug"
+                  maxLength={100}
+                />
+                {isCheckingSlug && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                )}
+              </div>
               <p className="text-sm text-muted-foreground mt-1">
                 Use lowercase letters, numbers, and hyphens only
               </p>
+              {slugCheckMessage && (
+                <div className={`flex items-center gap-1 mt-2 text-sm ${slugAvailable ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                  {slugAvailable ? (
+                    <CheckCircle2 className="h-4 w-4" />
+                  ) : (
+                    <XCircle className="h-4 w-4" />
+                  )}
+                  <span>{slugCheckMessage}</span>
+                </div>
+              )}
             </div>
 
             <div className="grid gap-2">
@@ -1680,10 +1946,86 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
                 </p>
 
                 <Label>Service Post Icon</Label>
+
+                {/* Image Upload Options */}
+                <div className="flex flex-wrap gap-2">
+                  <label className="cursor-pointer">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          if (!iconAltText.trim()) {
+                            toast.error("Please enter alt text first");
+                            e.target.value = "";
+                            return;
+                          }
+
+                          try {
+                            const result = await uploadMedia.mutateAsync({
+                              image: file,
+                              alt_text: iconAltText
+                            });
+                            setIconId(result.id);
+                            setIconUrl(result.image);
+                            setIconFromGallery(false);
+                            if (result.alt_text) {
+                              setIconAltText(result.alt_text);
+                            }
+                            toast.success("Icon uploaded! ID: " + result.id);
+                          } catch (error) {
+                            console.error("Error uploading icon:", error);
+                            toast.error("Failed to upload icon");
+                            e.target.value = "";
+                          }
+                        }
+                      }}
+                      className="hidden"
+                    />
+                    <Button type="button" variant="outline" size="sm" asChild>
+                      <span className="flex items-center gap-2">
+                        <Upload className="h-4 w-4" />
+                        Upload from Computer
+                      </span>
+                    </Button>
+                  </label>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowIconGallery(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <ImageIcon className="h-4 w-4" />
+                    Select from Gallery
+                  </Button>
+                </div>
+
+                {/* Media Gallery Modal */}
+                <MediaGalleryModal
+                  open={showIconGallery}
+                  onOpenChange={setShowIconGallery}
+                  onSelect={(media: MediaItem[]) => {
+                    if (media.length > 0) {
+                      const selected = media[0];
+                      setIconId(selected.id);
+                      setIconUrl(selected.image);
+                      setIconAltText(selected.alt_text || '');
+                      setIconFromGallery(true);
+                      toast.success('Service icon selected from gallery!');
+                    }
+                  }}
+                  maxSelection={1}
+                  minSelection={1}
+                  title="Select Service Icon"
+                />
+
                 {iconId && (
                   <div className="mt-2">
                     <div className="text-sm text-muted-foreground mb-2">
-                      Current Icon ID: {iconId}
+                      Current Icon ID: {iconId} {iconFromGallery && '(from gallery)'}
                     </div>
                     {iconUrl && (
                       <div>
@@ -1697,39 +2039,6 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
                     )}
                   </div>
                 )}
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      if (!iconAltText.trim()) {
-                        toast.error("Please enter alt text first");
-                        e.target.value = "";
-                        return;
-                      }
-                      
-                      try {
-                        const result = await uploadMedia.mutateAsync({
-                          image: file,
-                          alt_text: iconAltText
-                        });
-                        setIconId(result.id);
-                        setIconUrl(result.image);
-                        // Capture alt_text from response
-                        if (result.alt_text) {
-                          setIconAltText(result.alt_text);
-                        }
-                        toast.success("Icon uploaded! ID: " + result.id);
-                      } catch (error) {
-                        console.error("Error uploading icon:", error);
-                        toast.error("Failed to upload icon");
-                        e.target.value = "";
-                      }
-                    }
-                  }}
-                  className="cursor-pointer"
-                />
                 <p className="text-sm text-gray-500 mt-1">
                   Upload new service icon to replace existing (will store ID)
                 </p>
@@ -1753,10 +2062,86 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
                 </p>
 
                 <Label>Service Main Image</Label>
+
+                {/* Image Upload Options */}
+                <div className="flex flex-wrap gap-2">
+                  <label className="cursor-pointer">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          if (!serviceMainImageAltText.trim()) {
+                            toast.error("Please enter alt text first");
+                            e.target.value = "";
+                            return;
+                          }
+
+                          try {
+                            const result = await uploadMedia.mutateAsync({
+                              image: file,
+                              alt_text: serviceMainImageAltText
+                            });
+                            setServiceMainImageId(result.id);
+                            setServiceMainImageUrl(result.image);
+                            setMainImageFromGallery(false);
+                            if (result.alt_text) {
+                              setServiceMainImageAltText(result.alt_text);
+                            }
+                            toast.success("Main image uploaded! ID: " + result.id);
+                          } catch (error) {
+                            console.error("Error uploading main image:", error);
+                            toast.error("Failed to upload main image");
+                            e.target.value = "";
+                          }
+                        }
+                      }}
+                      className="hidden"
+                    />
+                    <Button type="button" variant="outline" size="sm" asChild>
+                      <span className="flex items-center gap-2">
+                        <Upload className="h-4 w-4" />
+                        Upload from Computer
+                      </span>
+                    </Button>
+                  </label>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowMainImageGallery(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <ImageIcon className="h-4 w-4" />
+                    Select from Gallery
+                  </Button>
+                </div>
+
+                {/* Media Gallery Modal */}
+                <MediaGalleryModal
+                  open={showMainImageGallery}
+                  onOpenChange={setShowMainImageGallery}
+                  onSelect={(media: MediaItem[]) => {
+                    if (media.length > 0) {
+                      const selected = media[0];
+                      setServiceMainImageId(selected.id);
+                      setServiceMainImageUrl(selected.image);
+                      setServiceMainImageAltText(selected.alt_text || '');
+                      setMainImageFromGallery(true);
+                      toast.success('Service main image selected from gallery!');
+                    }
+                  }}
+                  maxSelection={1}
+                  minSelection={1}
+                  title="Select Service Main Image"
+                />
+
                 {serviceMainImageId && (
                   <div className="mt-2">
                     <div className="text-sm text-muted-foreground mb-2">
-                      Current Image ID: {serviceMainImageId}
+                      Current Image ID: {serviceMainImageId} {mainImageFromGallery && '(from gallery)'}
                     </div>
                     {serviceMainImageUrl && (
                       <div>
@@ -1770,39 +2155,6 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
                     )}
                   </div>
                 )}
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      if (!serviceMainImageAltText.trim()) {
-                        toast.error("Please enter alt text first");
-                        e.target.value = "";
-                        return;
-                      }
-                      
-                      try {
-                        const result = await uploadMedia.mutateAsync({
-                          image: file,
-                          alt_text: serviceMainImageAltText
-                        });
-                        setServiceMainImageId(result.id);
-                        setServiceMainImageUrl(result.image);
-                        // Capture alt_text from response
-                        if (result.alt_text) {
-                          setServiceMainImageAltText(result.alt_text);
-                        }
-                        toast.success("Main image uploaded! ID: " + result.id);
-                      } catch (error) {
-                        console.error("Error uploading main image:", error);
-                        toast.error("Failed to upload main image");
-                        e.target.value = "";
-                      }
-                    }
-                  }}
-                  className="cursor-pointer"
-                />
                 <p className="text-sm text-gray-500 mt-1">
                   Upload new main image to replace existing (will store ID)
                 </p>

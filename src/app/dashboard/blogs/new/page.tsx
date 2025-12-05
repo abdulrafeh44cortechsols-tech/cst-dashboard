@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useBlogs } from "@/hooks/useBlogs";
 import { useTags } from "@/hooks/useTags";
+import { blogService } from "@/services/blogs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Save, Trash2, RefreshCw, AlertCircle } from "lucide-react";
+import { Save, Trash2, RefreshCw, AlertCircle, Upload, ImageIcon, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { MediaGalleryModal } from "@/components/media/MediaGalleryModal";
+import type { MediaItem } from "@/services/media";
 import { Tag } from "@/types/types";
 import QuillEditor from "@/components/blog/QuillEditor";
 
@@ -39,9 +42,14 @@ export default function AddBlogPage() {
   const [metaDescription, setMetaDescription] = useState("");
   const [published, setPublished] = useState(false);
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
-  
+
   // Error handling state
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  // Slug validation state
+  const [slugCheckMessage, setSlugCheckMessage] = useState<string>("");
+  const [isCheckingSlug, setIsCheckingSlug] = useState(false);
+  const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
 
   // File uploads - only featured image
   const [featuredImageFile, setFeaturedImageFile] = useState<File | null>(null);
@@ -49,6 +57,8 @@ export default function AddBlogPage() {
   const [featuredImageAltText, setFeaturedImageAltText] = useState<string>("");
   const [featuredImageId, setFeaturedImageId] = useState<number | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [showMediaGallery, setShowMediaGallery] = useState(false);
+  const [selectedFromGallery, setSelectedFromGallery] = useState(false);
 
   // Draft management state
   const [draftExists, setDraftExists] = useState(false);
@@ -194,6 +204,35 @@ export default function AddBlogPage() {
       .trim();
   };
 
+  // Debounced slug validation
+  useEffect(() => {
+    if (!slug || slug.length < 3) {
+      setSlugCheckMessage("");
+      setSlugAvailable(null);
+      return;
+    }
+
+    setIsCheckingSlug(true);
+    setSlugCheckMessage("");
+    setSlugAvailable(null);
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        const response = await blogService.checkSlugAvailability(slug, 'blog');
+        setSlugCheckMessage(response.message);
+        setSlugAvailable(response.message === "You can use this slug.");
+      } catch (error: any) {
+        console.error("Error checking slug:", error);
+        setSlugCheckMessage("This slug already exists.");
+        setSlugAvailable(null);
+      } finally {
+        setIsCheckingSlug(false);
+      }
+    }, 5000); // 5 seconds delay
+
+    return () => clearTimeout(timeoutId);
+  }, [slug]);
+
   // Handle title change and auto-generate slug
   const handleTitleChange = (value: string) => {
     setTitle(value);
@@ -205,7 +244,7 @@ export default function AddBlogPage() {
   const handleFeaturedImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      
+
       // Validate file type
       if (!file.type.startsWith('image/')) {
         toast.error('Please select a valid image file');
@@ -222,7 +261,7 @@ export default function AddBlogPage() {
       setFeaturedImagePreview(URL.createObjectURL(file));
       setFeaturedImageAltText("");
       setFeaturedImageId(null); // Reset image ID until uploaded
-      
+
       // Prompt user to add alt text
       toast.info('Please add alt text for the image before uploading', {
         duration: 4000,
@@ -247,7 +286,7 @@ export default function AddBlogPage() {
         image: featuredImageFile,
         alt_text: featuredImageAltText,
       });
-      
+
       setFeaturedImageId(uploadedMedia.id);
       toast.success("Image uploaded successfully!");
     } catch (error: any) {
@@ -389,7 +428,7 @@ export default function AddBlogPage() {
       console.error("Error creating blog post:", error.response?.data);
       toast.error(
         "Failed to create blog post: " +
-          (error.response?.data?.detail || error.message || "Unknown error")
+        (error.response?.data?.detail || error.message || "Unknown error")
       );
     }
   };
@@ -551,24 +590,44 @@ export default function AddBlogPage() {
                 <Label htmlFor="slug" className="mb-2 block">
                   URL Slug *
                 </Label>
-                <Input
-                  id="slug"
-                  value={slug}
-                  onChange={(e) => {
-                    setSlug(generateSlug(e.target.value));
-                    if (errors.slug) clearError('slug');
-                  }}
-                  onBlur={() => {
-                    const error = validateSlug(slug);
-                    if (error) setError('slug', error);
-                  }}
-                  placeholder="url-friendly-slug"
-                  required
-                  className={errors.slug ? 'border-red-500' : ''}
-                />
+                <div className="relative">
+                  <Input
+                    id="slug"
+                    value={slug}
+                    onChange={(e) => {
+                      setSlug(generateSlug(e.target.value));
+                      if (errors.slug) clearError('slug');
+                      setSlugCheckMessage("");
+                      setSlugAvailable(null);
+                    }}
+                    onBlur={() => {
+                      const error = validateSlug(slug);
+                      if (error) setError('slug', error);
+                    }}
+                    placeholder="url-friendly-slug"
+                    required
+                    className={errors.slug ? 'border-red-500' : ''}
+                  />
+                  {isCheckingSlug && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
                 <p className="text-sm text-muted-foreground mt-2">
                   This will be used in the URL. Only letters, numbers, and hyphens allowed.
                 </p>
+                {slugCheckMessage && (
+                  <div className={`flex items-center gap-1 mt-2 text-sm ${slugAvailable ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                    {slugAvailable ? (
+                      <CheckCircle2 className="h-4 w-4" />
+                    ) : (
+                      <XCircle className="h-4 w-4" />
+                    )}
+                    <span>{slugCheckMessage}</span>
+                  </div>
+                )}
                 <ErrorMessage message={errors.slug} />
               </div>
 
@@ -655,17 +714,49 @@ export default function AddBlogPage() {
                 <Label htmlFor="featuredImage" className="mb-2 block">
                   Featured Image *
                 </Label>
-                <Input
-                  id="featuredImage"
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    handleFeaturedImageChange(e);
-                    if (errors.featuredImage) clearError('featuredImage');
-                  }}
-                  disabled={uploadingImage}
-                  className={errors.featuredImage ? 'border-red-500' : ''}
-                />
+
+                {/* Image Upload Options */}
+                <div className="flex flex-wrap gap-2 mb-3">
+                  <label className="cursor-pointer">
+                    <Input
+                      id="featuredImage"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        handleFeaturedImageChange(e);
+                        setSelectedFromGallery(false);
+                        if (errors.featuredImage) clearError('featuredImage');
+                      }}
+                      disabled={uploadingImage}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={uploadingImage}
+                      asChild
+                    >
+                      <span className="flex items-center gap-2">
+                        <Upload className="h-4 w-4" />
+                        Upload from Computer
+                      </span>
+                    </Button>
+                  </label>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowMediaGallery(true)}
+                    disabled={uploadingImage}
+                    className="flex items-center gap-2"
+                  >
+                    <ImageIcon className="h-4 w-4" />
+                    Select from Gallery
+                  </Button>
+                </div>
+
                 {uploadingImage && (
                   <p className="text-sm text-blue-600 mt-2 flex items-center gap-2">
                     <RefreshCw className="h-3 w-3 animate-spin" />
@@ -673,64 +764,107 @@ export default function AddBlogPage() {
                   </p>
                 )}
                 <ErrorMessage message={errors.featuredImage} />
+
                 {featuredImagePreview && (
                   <div className="mt-3 space-y-2">
-                    <img
-                      src={featuredImagePreview}
-                      alt="Featured Image Preview"
-                      className="h-40 w-auto rounded border object-cover"
-                    />
-                    <div className="space-y-3">
-                      <div>
-                        <Label htmlFor="featuredImageAlt">Image Alt Text *</Label>
-                        <Input
-                          id="featuredImageAlt"
-                          value={featuredImageAltText}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            if (value.length <= 255) {
-                              setFeaturedImageAltText(value);
-                            }
-                          }}
-                          placeholder="Alt text for featured image"
-                          maxLength={255}
-                          className="w-full"
-                          disabled={uploadingImage || !!featuredImageId}
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {255 - featuredImageAltText.length} characters remaining
-                        </p>
-                      </div>
-                      
-                      {/* Upload Button */}
-                      {!featuredImageId ? (
-                        <Button
-                          type="button"
-                          onClick={uploadFeaturedImage}
-                          disabled={!featuredImageAltText.trim() || uploadingImage}
-                          size="sm"
-                          className="w-full"
-                        >
-                          {uploadingImage ? (
-                            <>
-                              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                              Uploading...
-                            </>
-                          ) : (
-                            "Upload Image"
-                          )}
-                        </Button>
-                      ) : (
-                        <div className="flex items-center gap-2 text-sm text-green-600">
-                          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                          Image uploaded successfully!
+                    <div className="relative inline-block">
+                      <img
+                        src={featuredImagePreview}
+                        alt="Featured Image Preview"
+                        className="h-40 w-auto rounded border object-cover"
+                      />
+                      {selectedFromGallery && (
+                        <div className="absolute bottom-0 left-0 right-0 bg-green-600 text-white text-xs text-center py-1 rounded-b">
+                          Selected from Gallery
                         </div>
                       )}
                     </div>
+
+                    {/* Show alt text input only for file uploads (not gallery selections) */}
+                    {!selectedFromGallery && (
+                      <div className="space-y-3">
+                        <div>
+                          <Label htmlFor="featuredImageAlt">Image Alt Text *</Label>
+                          <Input
+                            id="featuredImageAlt"
+                            value={featuredImageAltText}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value.length <= 255) {
+                                setFeaturedImageAltText(value);
+                              }
+                            }}
+                            placeholder="Alt text for featured image"
+                            maxLength={255}
+                            className="w-full"
+                            disabled={uploadingImage || !!featuredImageId}
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {255 - featuredImageAltText.length} characters remaining
+                          </p>
+                        </div>
+
+                        {/* Upload Button */}
+                        {!featuredImageId ? (
+                          <Button
+                            type="button"
+                            onClick={uploadFeaturedImage}
+                            disabled={!featuredImageAltText.trim() || uploadingImage}
+                            size="sm"
+                            className="w-full"
+                          >
+                            {uploadingImage ? (
+                              <>
+                                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                Uploading...
+                              </>
+                            ) : (
+                              "Upload Image"
+                            )}
+                          </Button>
+                        ) : (
+                          <div className="flex items-center gap-2 text-sm text-green-600">
+                            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            Image uploaded successfully!
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Show success message for gallery selections */}
+                    {selectedFromGallery && featuredImageId && (
+                      <div className="flex items-center gap-2 text-sm text-green-600">
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Image selected from gallery (Alt: {featuredImageAltText || 'No alt text'})
+                      </div>
+                    )}
                   </div>
                 )}
+
+                {/* Media Gallery Modal */}
+                <MediaGalleryModal
+                  open={showMediaGallery}
+                  onOpenChange={setShowMediaGallery}
+                  onSelect={(media: MediaItem[]) => {
+                    if (media.length > 0) {
+                      const selected = media[0];
+                      setFeaturedImagePreview(selected.image);
+                      setFeaturedImageId(selected.id);
+                      setFeaturedImageAltText(selected.alt_text || '');
+                      setFeaturedImageFile(null);
+                      setSelectedFromGallery(true);
+                      if (errors.featuredImage) clearError('featuredImage');
+                      toast.success('Image selected from gallery!');
+                    }
+                  }}
+                  maxSelection={1}
+                  minSelection={1}
+                  title="Select Featured Image"
+                />
               </div>
 
               {/* Publish Switch */}
@@ -763,11 +897,10 @@ export default function AddBlogPage() {
                   {tagsData.map((tag: Tag) => (
                     <div
                       key={tag.id}
-                      className={`px-3 py-1 rounded-full text-sm cursor-pointer transition-colors ${
-                        selectedTagIds.includes(tag.id)
-                          ? "bg-blue-500 text-white"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
+                      className={`px-3 py-1 rounded-full text-sm cursor-pointer transition-colors ${selectedTagIds.includes(tag.id)
+                        ? "bg-blue-500 text-white"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        }`}
                       onClick={() => {
                         handleTagChange(tag.id, !selectedTagIds.includes(tag.id));
                         if (errors.tags) clearError('tags');

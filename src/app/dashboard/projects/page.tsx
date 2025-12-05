@@ -17,24 +17,17 @@ import { useProjects } from "@/hooks/useProjects";
 import { DeleteProjectModal } from "@/components/projects/DeleteProjectModal";
 import { useState } from "react";
 import { Project } from "@/types/types";
-import Image from "next/image";
 
 export default function ProjectsPage() {
   const router = useRouter();
-  const { getProjectsList } = useProjects();
-  const { data: projects, isLoading, isError } = getProjectsList;
+  const { getProjectsList } = useProjects(1, 8);
+  const { data, isLoading, isError } = getProjectsList;
+  const projects = data?.projects || [];
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
-  console.log("projects", projects);
-
-  function parseImageUrl(fullUrl: string | undefined) {
-    if (!fullUrl || typeof fullUrl !== "string") return "/placeholder.svg";
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
-    const parsedUrl = fullUrl.replace(/^http:\/\/localhost:7000/, baseUrl);
-    console.log("parsedUrl:", parsedUrl);
-    return parsedUrl;
-  }
+  console.log("projects data:", data);
+  console.log("projects array:", projects);
 
   return (
     <div className="flex flex-col gap-4">
@@ -59,14 +52,13 @@ export default function ProjectsPage() {
               projects.map((project) => (
                 <Card
                   key={project.id}
-                  className="overflow-hidden flex pt-0 flex-col min-h-[400px]"
+                  className="w-full max-w-sm flex flex-col h-full"
                 >
-                  <div className="relative overflow-hidden aspect-[400/360]">
-                    <Image
-                      src={parseImageUrl(project.image) || "/placeholder.svg"}
-                      alt={project.name}
-                      fill
-                      className="w-full h-48 object-cover transition-transform duration-200 hover:scale-105"
+                  <div className="relative overflow-hidden group aspect-[400/360] flex-shrink-0">
+                    <img
+                      src={project.hero_image?.image || "/placeholder.svg"}
+                      alt={project.hero_image?.alt_text || project.title || "Project"}
+                      className="w-full h-full object-cover transition-transform duration-200 hover:scale-105"
                       onError={(e) => {
                         e.currentTarget.src = "/placeholder.svg";
                       }}
@@ -74,46 +66,53 @@ export default function ProjectsPage() {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-200" />
                   </div>
 
-                  <div className="flex flex-col flex-1">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <div className="flex flex-col items-start gap-2 w-full">
-                        <CardTitle className="text-lg font-semibold leading-tight line-clamp-2">
-                          {project.name}
-                        </CardTitle>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg font-semibold leading-tight line-clamp-2">
+                      {project.title}
+                    </CardTitle>
+                    <CardDescription className="line-clamp-3 min-h-[60px]">
+                      {project.excerpt}
+                    </CardDescription>
+                  </CardHeader>
+                  <div className="px-[15px]">
 
-                        <Badge
-                          variant={project.published ? "default" : "secondary"}
-                          className="text-xs"
-                        >
-                          {project.published ? "Published" : "Draft"}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <CardDescription className="line-clamp-3">
-                        {project.description}
-                      </CardDescription>
+                    <Badge variant={project.is_published ? "default" : "outline"} className="mb-2 ml-2">
+                      {project.is_published ? "Published" : "Draft"}
+                    </Badge>
 
-                      {project.tags && project.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-3">
-                          {project.tags.slice(0, 3).map((tag) => (
-                            <Badge
-                              key={tag.id}
-                              variant="outline"
-                              className="text-xs"
-                            >
-                              {tag.name}
-                            </Badge>
-                          ))}
-                          {project.tags.length > 3 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{project.tags.length - 3} more
-                            </Badge>
-                          )}
-                        </div>
-                      )}
-                    </CardContent>
                   </div>
+                  <div className="mt-auto pt-4 px-6">
+                    {project.tags && project.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-4">
+                        {project.tags.slice(0, 3).map((tag: string, index: number) => (
+                          <Badge
+                            key={index}
+                            variant="outline"
+                            className="text-xs"
+                          >
+                            {tag}
+                          </Badge>
+                        ))}
+                        {project.tags.length > 3 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{project.tags.length - 3} more
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="mb-4 space-y-1">
+                      <p className="text-sm text-muted-foreground">
+                        Created: {new Date(project.created_at).toLocaleDateString()}
+                      </p>
+                      {project.created_by && (
+                        <p className="text-sm text-muted-foreground">
+                          Author: <span className="font-medium">{project.created_by}</span>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
                   <CardFooter className="pt-0 flex justify-end gap-2 mt-auto">
                     <Button
                       variant="outline"

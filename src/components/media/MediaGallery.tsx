@@ -109,7 +109,7 @@ export function MediaGallery() {
                     </Badge>
                   </div>
                 </div>
-                <CardContent className="p-3">
+                {/* <CardContent className="p-3">
                   <div className="space-y-2">
                     <div className="text-sm font-medium text-slate-900 truncate">
                       ID: {mediaItem.id}
@@ -123,7 +123,7 @@ export function MediaGallery() {
                       {new Date(mediaItem.created_at).toLocaleDateString()}
                     </div>
                   </div>
-                </CardContent>
+                </CardContent> */}
               </Card>
             ))}
           </div>

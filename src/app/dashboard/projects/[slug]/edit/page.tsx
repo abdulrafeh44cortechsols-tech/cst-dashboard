@@ -8,6 +8,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { EditProjectForm } from "@/components/projects/EditProjectForm";
 import Link from "next/link";
 
+import { useEffect } from "react";
+
 export default function EditProjectPage() {
   const params = useParams();
   const router = useRouter();
@@ -17,10 +19,21 @@ export default function EditProjectPage() {
     queryKey: ["project", "slug", slugParam],
     queryFn: async () => {
       if (!slugParam) throw new Error("Missing project slug");
+      if (/^\d+$/.test(slugParam)) {
+        return projectsDataService.getProject(slugParam);
+      }
       return projectsDataService.getProjectBySlug(slugParam);
     },
     enabled: !!slugParam,
+    refetchOnWindowFocus: false, // Don't refetch when switching tabs
   });
+
+  // Update URL if loaded by ID
+  useEffect(() => {
+    if (project && slugParam && /^\d+$/.test(slugParam) && project.slug) {
+      window.history.replaceState(null, "", `/dashboard/projects/${project.slug}/edit`);
+    }
+  }, [project, slugParam]);
 
   return (
     <div className="flex flex-col gap-4">

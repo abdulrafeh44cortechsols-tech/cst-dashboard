@@ -4,78 +4,60 @@ import { useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Users, 
-  FileText, 
-  BookOpen, 
-  Briefcase, 
-  ImageIcon, 
-  Plus, 
-  Calendar, 
-  Eye, 
-  Clock, 
+import {
+  Users,
+  FileText,
+  BookOpen,
+  Briefcase,
+  ImageIcon,
+  Plus,
+  Calendar,
+  Eye,
+  Clock,
   TrendingUp,
   Activity,
   Settings,
-  ArrowRight
+  ArrowRight,
+  Loader2
 } from "lucide-react";
-import { useBlogStore, useServiceStore, useEditorStore, usePageStore, useMediaStore, useProjectStore, useIndustryStore } from "@/stores";
-import { useEditors } from "@/hooks/useEditors";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { useDashboard } from "@/hooks/useDashboard";
 
 export default function DashboardOverviewPage() {
   const router = useRouter();
-  const { blogs } = useBlogStore();
-  const { services } = useServiceStore();
-  const { editors } = useEditorStore();
-  const { pages } = usePageStore();
-  const { media } = useMediaStore();
-  const { projects } = useProjectStore();
-  const { industries } = useIndustryStore();
   const { user } = useAuth();
-  
-  // Don't fetch data here - let individual pages handle their own data fetching
-  // The Zustand stores are populated when users visit individual pages
-  // This prevents unnecessary API calls and improves performance
-  const editorsHook = useEditors(user?.userType === "admin");
+  const { dashboardStats } = useDashboard();
 
-  // Get recent items (last 5)
-  const recentBlogs = blogs.slice(0, 5);
-  const recentServices = services.slice(0, 5);
-  const recentPages = pages.slice(0, 5);
-  const recentProjects = projects.slice(0, 5);
+  // Get data from API
+  const stats = dashboardStats.data;
+  const isLoading = dashboardStats.isLoading;
 
-  // Calculate stats
-  const publishedBlogs = blogs.filter(blog => blog.published).length;
-  const publishedServices = services.filter(service => service.is_published).length;
-  const publishedPages = pages.filter(page => page.is_published).length;
-  const publishedProjects = projects.filter(project => project.published).length;
-  const publishedIndustries = industries.filter(industry => industry.is_active).length;
+  // Get recent items (already limited to 5 from API)
+  const recentBlogs = stats?.blogs.recent || [];
+  const recentServices = stats?.services.recent || [];
+  const recentProjects = stats?.projects.recent || [];
+  const recentIndustries = stats?.industries.recent || [];
 
-  // Get media stats
-  const totalMediaFiles = media?.data ?
-    Object.entries(media.data).reduce((total, [mediaType, mediaItems]) => {
-      // mediaItems is an object like { "3": [...], "5": [...] }
-      return total + Object.values(mediaItems).reduce((typeTotal, imageArray) => {
-        // imageArray is an array of URLs
-        return typeTotal + (Array.isArray(imageArray) ? imageArray.length : 0);
-      }, 0);
-    }, 0) : 0;
-
-  // Use editors from hook if store is empty (fallback)
-  const editorsData = editors.length > 0 ? editors : (editorsHook.getEditorsList.data || []);
-  const activeEditors = editorsData.filter(editor => editor.is_active).length;
+  // Get stats from API
+  const totalBlogs = stats?.blogs.total || 0;
+  const publishedBlogs = stats?.blogs.published || 0;
+  const totalServices = stats?.services.total || 0;
+  const publishedServices = stats?.services.published || 0;
+  const totalProjects = stats?.projects.total || 0;
+  const publishedProjects = stats?.projects.published || 0;
+  const totalIndustries = stats?.industries.total || 0;
+  const publishedIndustries = stats?.industries.published || 0;
+  const totalEditors = stats?.total_editors || 0;
+  const activeEditors = stats?.active_editors || 0;
+  const totalMediaFiles = stats?.system_status.total_media || 0;
+  const publishedContent = stats?.system_status.published_content || 0;
 
   const getStatusColor = (status: boolean) => {
     return status ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800';
   };
 
   const getStatusText = (status: boolean) => {
-    return status ? 'Published' : 'Draft';
-  };
-
-  const getServiceStatusText = (status: boolean) => {
     return status ? 'Published' : 'Draft';
   };
 
@@ -87,6 +69,14 @@ export default function DashboardOverviewPage() {
     });
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6">
       {/* Top Stats Cards */}
@@ -97,7 +87,7 @@ export default function DashboardOverviewPage() {
             <BookOpen className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{blogs.length}</div>
+            <div className="text-2xl font-bold">{totalBlogs}</div>
             <p className="text-xs text-muted-foreground">
               {publishedBlogs} published
             </p>
@@ -111,7 +101,7 @@ export default function DashboardOverviewPage() {
             <Briefcase className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{services.length}</div>
+            <div className="text-2xl font-bold">{totalServices}</div>
             <p className="text-xs text-muted-foreground">
               {publishedServices} active
             </p>
@@ -125,7 +115,7 @@ export default function DashboardOverviewPage() {
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{projects.length}</div>
+            <div className="text-2xl font-bold">{totalProjects}</div>
             <p className="text-xs text-muted-foreground">
               {publishedProjects} published
             </p>
@@ -139,7 +129,7 @@ export default function DashboardOverviewPage() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{industries.length}</div>
+            <div className="text-2xl font-bold">{totalIndustries}</div>
             <p className="text-xs text-muted-foreground">
               {publishedIndustries} published
             </p>
@@ -152,7 +142,7 @@ export default function DashboardOverviewPage() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{editorsData.length}</div>
+              <div className="text-2xl font-bold">{totalEditors}</div>
               <p className="text-xs text-muted-foreground">
                 {activeEditors} active
               </p>
@@ -169,8 +159,8 @@ export default function DashboardOverviewPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg text-nowrap">Recent Blogs</CardTitle>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={() => router.push('/dashboard/blogs')}
               >
@@ -186,8 +176,8 @@ export default function DashboardOverviewPage() {
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-sm truncate">{blog.title}</h4>
                         <div className="flex items-center gap-2 sm:gap-4 mt-1 text-xs text-muted-foreground flex-wrap">
-                          <span className={`px-2 py-1 rounded-full whitespace-nowrap ${getStatusColor(blog.published)}`}>
-                            {getStatusText(blog.published)}
+                          <span className={`px-2 py-1 rounded-full whitespace-nowrap ${getStatusColor(blog.is_published)}`}>
+                            {getStatusText(blog.is_published)}
                           </span>
                           <span className="flex items-center gap-1 whitespace-nowrap">
                             <Calendar className="h-3 w-3" />
@@ -195,11 +185,11 @@ export default function DashboardOverviewPage() {
                           </span>
                         </div>
                       </div>
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="sm"
                         className="flex-shrink-0"
-                        onClick={() => router.push(`/dashboard/blogs/${blog.slug}/edit`)}
+                        onClick={() => router.push(`/dashboard/blogs/${blog.id}/edit`)}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -209,9 +199,9 @@ export default function DashboardOverviewPage() {
                   <div className="text-center py-8 text-muted-foreground">
                     <BookOpen className="h-8 w-8 mx-auto mb-2" />
                     <p>No blogs yet</p>
-                    <Button 
-                      variant="blue" 
-                      size="sm" 
+                    <Button
+                      variant="blue"
+                      size="sm"
                       className="mt-2"
                       onClick={() => router.push('/dashboard/blogs/new')}
                     >
@@ -228,8 +218,8 @@ export default function DashboardOverviewPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg text-nowrap">Recent Services</CardTitle>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={() => router.push('/dashboard/services')}
               >
@@ -243,10 +233,10 @@ export default function DashboardOverviewPage() {
                   recentServices.map((service) => (
                     <div key={service.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors gap-2">
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-sm truncate">{service.name || service.title}</h4>
+                        <h4 className="font-medium text-sm truncate">{service.title}</h4>
                         <div className="flex items-center gap-2 sm:gap-4 mt-1 text-xs text-muted-foreground flex-wrap">
                           <span className={`px-2 py-1 rounded-full whitespace-nowrap ${getStatusColor(service.is_published)}`}>
-                            {getServiceStatusText(service.is_published)}
+                            {getStatusText(service.is_published)}
                           </span>
                           <span className="flex items-center gap-1 whitespace-nowrap">
                             <Calendar className="h-3 w-3" />
@@ -254,11 +244,11 @@ export default function DashboardOverviewPage() {
                           </span>
                         </div>
                       </div>
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="sm"
                         className="flex-shrink-0"
-                        onClick={() => router.push(`/dashboard/services/${service.slug}/edit`)}
+                        onClick={() => router.push(`/dashboard/services/${service.id}/edit`)}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -268,9 +258,9 @@ export default function DashboardOverviewPage() {
                   <div className="text-center py-8 text-muted-foreground">
                     <Briefcase className="h-8 w-8 mx-auto mb-2" />
                     <p>No services yet</p>
-                    <Button 
-                      variant="blue" 
-                      size="sm" 
+                    <Button
+                      variant="blue"
+                      size="sm"
                       className="mt-2"
                       onClick={() => router.push('/dashboard/services/new')}
                     >
@@ -287,8 +277,8 @@ export default function DashboardOverviewPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg text-nowrap">Recent Projects</CardTitle>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={() => router.push('/dashboard/projects')}
               >
@@ -302,10 +292,10 @@ export default function DashboardOverviewPage() {
                   recentProjects.map((project) => (
                     <div key={project.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors gap-2">
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-sm truncate">{project.name}</h4>
+                        <h4 className="font-medium text-sm truncate">{project.title}</h4>
                         <div className="flex items-center gap-2 sm:gap-4 mt-1 text-xs text-muted-foreground flex-wrap">
-                          <span className={`px-2 py-1 rounded-full whitespace-nowrap ${getStatusColor(project.published)}`}>
-                            {getStatusText(project.published)}
+                          <span className={`px-2 py-1 rounded-full whitespace-nowrap ${getStatusColor(project.is_published)}`}>
+                            {getStatusText(project.is_published)}
                           </span>
                           <span className="flex items-center gap-1 whitespace-nowrap">
                             <Calendar className="h-3 w-3" />
@@ -313,11 +303,11 @@ export default function DashboardOverviewPage() {
                           </span>
                         </div>
                       </div>
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="sm"
                         className="flex-shrink-0"
-                        onClick={() => router.push(`/dashboard/projects/${project.slug}/edit`)}
+                        onClick={() => router.push(`/dashboard/projects/${project.id}/edit`)}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -327,14 +317,73 @@ export default function DashboardOverviewPage() {
                   <div className="text-center py-8 text-muted-foreground">
                     <Activity className="h-8 w-8 mx-auto mb-2" />
                     <p>No projects yet</p>
-                    <Button 
-                      variant="blue" 
-                      size="sm" 
+                    <Button
+                      variant="blue"
+                      size="sm"
                       className="mt-2"
                       onClick={() => router.push('/dashboard/projects/new')}
                     >
                       <Plus className=" h-4 w-4" />
                       Create Project
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Recent Industries */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-lg">Recent Industries</CardTitle>
+              <Button
+                variant="ghost"
+                className="text-sm text-muted-foreground hover:text-primary"
+                onClick={() => router.push('/dashboard/industries')}
+              >
+                View All
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {recentIndustries.length > 0 ? (
+                  recentIndustries.map((industry) => (
+                    <div key={industry.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors gap-2">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-sm truncate">{industry.title}</h4>
+                        <div className="flex items-center gap-2 sm:gap-4 mt-1 text-xs text-muted-foreground flex-wrap">
+                          <span className={`px-2 py-1 rounded-full whitespace-nowrap ${getStatusColor(industry.is_published)}`}>
+                            {getStatusText(industry.is_published)}
+                          </span>
+                          <span className="flex items-center gap-1 whitespace-nowrap">
+                            <Calendar className="h-3 w-3" />
+                            {formatDate(industry.created_at)}
+                          </span>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex-shrink-0"
+                        onClick={() => router.push(`/dashboard/industries/${industry.id}/edit`)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <TrendingUp className="h-8 w-8 mx-auto mb-2" />
+                    <p>No industries yet</p>
+                    <Button
+                      variant="blue"
+                      size="sm"
+                      className="mt-2"
+                      onClick={() => router.push('/dashboard/industries/new')}
+                    >
+                      <Plus className=" h-4 w-4" />
+                      Create Industry
                     </Button>
                   </div>
                 )}
@@ -352,32 +401,32 @@ export default function DashboardOverviewPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               {/* Available to both admin and editor */}
-              <Button 
-                className="w-full justify-start" 
+              <Button
+                className="w-full justify-start"
                 variant="blue"
                 onClick={() => router.push('/dashboard/blogs/new')}
               >
                 <Plus className=" h-4 w-4" />
                 New Blog
               </Button>
-              <Button 
-                className="w-full justify-start" 
+              <Button
+                className="w-full justify-start"
                 variant="blue"
                 onClick={() => router.push('/dashboard/services/new')}
               >
                 <Plus className=" h-4 w-4" />
                 New Service
               </Button>
-              <Button 
-                className="w-full justify-start" 
+              <Button
+                className="w-full justify-start"
                 variant="blue"
                 onClick={() => router.push('/dashboard/projects/new')}
               >
                 <Plus className=" h-4 w-4" />
                 New Project
               </Button>
-              <Button 
-                className="w-full justify-start" 
+              <Button
+                className="w-full justify-start"
                 variant="blue"
                 onClick={() => router.push('/dashboard/industries/new')}
               >
@@ -404,54 +453,15 @@ export default function DashboardOverviewPage() {
                 <span className="text-sm text-muted-foreground">Active Editors</span>
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{editors.filter(editor => editor.is_active).length}</span>
+                  <span className="font-medium">{activeEditors}</span>
                 </div>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Published Content</span>
                 <div className="flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{publishedBlogs + publishedServices + publishedPages + publishedProjects + publishedIndustries}</span>
+                  <span className="font-medium">{publishedContent}</span>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Recent Pages */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Recent Pages</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {recentPages.length > 0 ? (
-                  recentPages.map((page) => (
-                    <div key={page.id} className="flex items-center justify-between p-2 border rounded hover:bg-gray-50 transition-colors gap-2">
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-sm truncate">{page.title}</h4>
-                        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground flex-wrap">
-                          <span className={`px-2 py-1 rounded-full whitespace-nowrap ${getStatusColor(page.is_published)}`}>
-                            {getStatusText(page.is_published)}
-                          </span>
-                          <span className="truncate">{page.template}</span>
-                        </div>
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        className="flex-shrink-0"
-                        onClick={() => router.push(`/dashboard/pages`)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-6 text-muted-foreground">
-                    <FileText className="h-6 w-6 mx-auto mb-2" />
-                    <p className="text-sm">No pages yet</p>
-                  </div>
-                )}
               </div>
             </CardContent>
           </Card>
@@ -460,3 +470,8 @@ export default function DashboardOverviewPage() {
     </div>
   );
 }
+//         </div >
+//       </div >
+//     </div >
+//   );
+// }

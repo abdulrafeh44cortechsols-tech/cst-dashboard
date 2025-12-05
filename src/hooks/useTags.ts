@@ -30,6 +30,7 @@ export const useTags = () => {
     },
     staleTime: 1000 * 60 * 5, // cache for 5 minutes
     retry: 1,
+    refetchOnWindowFocus: false, // Don't refetch when switching tabs
   });
 
   const createTag = useMutation({

@@ -3,7 +3,6 @@
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -28,19 +27,15 @@ import {
   Search, 
   Edit, 
   Trash2, 
-  Hash,
-  Calendar,
-  TrendingUp,
-  Filter
+  Hash
 } from "lucide-react";
 import { AdminOnlyRoute } from "@/components/RouteGuard";
-import { toast } from "sonner";
 import type { Tag } from "@/types/types";
 
 export default function TagsPage() {
   const { getTags, createTag, deleteTag } = useTags();
   const { data: tagsResponse, isLoading, isError } = getTags;
-  const tags = tagsResponse?.data || [];
+  const tags = tagsResponse?.results;
 
   // Modal states
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -50,17 +45,18 @@ export default function TagsPage() {
 
   // Filter and search states
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState<"name" | "usage">("name");
+  const [sortBy, setSortBy] = useState<"name" | "date">("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   // Filtered and sorted tags
   const filteredAndSortedTags = useMemo(() => {
-    let filtered = tags.filter(tag => 
-      tag.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tag.slug.toLowerCase().includes(searchTerm.toLowerCase())
+    if (!tags) return [];
+    
+    let filtered = tags.filter((tag: any) => 
+      tag.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    filtered.sort((a, b) => {
+    filtered.sort((a: any, b: any) => {
       let aValue: string | number;
       let bValue: string | number;
 
@@ -69,9 +65,9 @@ export default function TagsPage() {
           aValue = a.name.toLowerCase();
           bValue = b.name.toLowerCase();
           break;
-        case "usage":
-          aValue = a.blog_count;
-          bValue = b.blog_count;
+        case "date":
+          aValue = new Date(a.created_at).getTime();
+          bValue = new Date(b.created_at).getTime();
           break;
         default:
           aValue = a.name.toLowerCase();
@@ -89,10 +85,7 @@ export default function TagsPage() {
   }, [tags, searchTerm, sortBy, sortOrder]);
 
   // Statistics
-  const totalTags = tags.length;
-  const usedTags = tags.filter(tag => tag.blog_count > 0).length;
-  const unusedTags = totalTags - usedTags;
-  const totalUsage = tags.reduce((sum, tag) => sum + tag.blog_count, 0);
+  const totalTags = tags?.length || 0;
 
   // CRUD handlers
   const handleAddTag = async (tagData: { name: string }) => {
@@ -104,7 +97,7 @@ export default function TagsPage() {
     }
   };
 
-  const handleEditTag = async (id: number, tagData: { name: string; slug: string }) => {
+  const handleEditTag = async (id: number, tagData: { name: string }) => {
     // TODO: Implement with actual API call
     console.log("Editing tag:", id, tagData);
     throw new Error("API not implemented yet");
@@ -119,7 +112,7 @@ export default function TagsPage() {
     }
   };
 
-  const handleSort = (column: "name" | "usage") => {
+  const handleSort = (column: "name" | "date") => {
     if (sortBy === column) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
     } else {
@@ -128,7 +121,7 @@ export default function TagsPage() {
     }
   };
 
-  const getSortIcon = (column: "name" | "usage") => {
+  const getSortIcon = (column: "name" | "date") => {
     if (sortBy !== column) return null;
     return sortOrder === "asc" ? "↑" : "↓";
   };
@@ -191,45 +184,6 @@ export default function TagsPage() {
             <div className="text-2xl font-bold">{totalTags}</div>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Used Tags</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{usedTags}</div>
-            <p className="text-xs text-muted-foreground">
-              {totalTags > 0 ? Math.round((usedTags / totalTags) * 100) : 0}% of all tags
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Unused Tags</CardTitle>
-            <Filter className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{unusedTags}</div>
-            <p className="text-xs text-muted-foreground">
-              Available for use
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Usage</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalUsage}</div>
-            <p className="text-xs text-muted-foreground">
-              Across all content
-            </p>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Search and Filters */}
@@ -245,7 +199,7 @@ export default function TagsPage() {
             <div className="relative flex-1">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search tags by name or slug..."
+                placeholder="Search tags by name..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-8"
@@ -267,12 +221,11 @@ export default function TagsPage() {
                   >
                     Name {getSortIcon("name")}
                   </TableHead>
-                  <TableHead>Slug</TableHead>
                   <TableHead 
                     className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => handleSort("usage")}
+                    onClick={() => handleSort("date")}
                   >
-                    Blogs Usage {getSortIcon("usage")}
+                    Created {getSortIcon("date")}
                   </TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -280,37 +233,22 @@ export default function TagsPage() {
               <TableBody>
                 {filteredAndSortedTags.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center">
+                    <TableCell colSpan={3} className="h-24 text-center">
                       {searchTerm ? "No tags match your search." : "No tags found."}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredAndSortedTags.map((tag) => (
+                  filteredAndSortedTags.map((tag: any) => (
                     <TableRow key={tag.id}>
                       <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <span>{tag.name}</span>
-                          {tag.blog_count === 0 && (
-                            <Badge variant="secondary" className="text-xs">
-                              Unused
-                            </Badge>
-                          )}
-                        </div>
+                        <span>{tag.name}</span>
                       </TableCell>
-                      <TableCell className="text-muted-foreground font-mono text-sm">
-                        {tag.slug}
-                      </TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant={tag.blog_count > 0 ? "default" : "secondary"}
-                          className="text-xs"
-                        >
-                          {tag.blog_count} post{tag.blog_count !== 1 ? 's' : ''}
-                        </Badge>
+                      <TableCell className="text-muted-foreground text-sm">
+                        {new Date(tag.created_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <Button
+                          {/* <Button
                             variant="outline"
                             size="sm"
                             onClick={() => {
@@ -319,7 +257,7 @@ export default function TagsPage() {
                             }}
                           >
                             <Edit className="h-3.5 w-3.5" />
-                          </Button>
+                          </Button> */}
                           <Button
                             variant="outline"
                             size="sm"

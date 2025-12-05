@@ -26,14 +26,14 @@ export const blogService = {
     const blogsResponse = await api.get("/api/v1/sols-blogs/", {
       params: { page: 1, limit: 1000 } // Get a large number to find the blog
     });
-    
+
     const blogs = blogsResponse.data.results || [];
     const blogWithSlug = blogs.find((blog: any) => blog.slug === slug);
-    
+
     if (!blogWithSlug) {
       throw new Error(`Blog with slug "${slug}" not found`);
     }
-    
+
     // Now fetch the full blog data using the ID with existing endpoint
     return await blogService.getBlog(blogWithSlug.id);
   },
@@ -44,7 +44,7 @@ export const blogService = {
         'Content-Type': 'application/json',
       },
     })
-    console.log("create blog:",response.data)
+    console.log("create blog:", response.data)
     return response.data
   },
 
@@ -60,5 +60,13 @@ export const blogService = {
 
   deleteBlog: async (id: string): Promise<void> => {
     await api.delete(`/api/v1/sols-blogs/${id}/`)
+  },
+
+  // Check if slug is available
+  checkSlugAvailability: async (slug: string, type: string = 'blog'): Promise<{ message: string }> => {
+    const response = await api.get('/api/v1/sols-slug-check/', {
+      params: { slug, type }
+    })
+    return response.data
   },
 }
