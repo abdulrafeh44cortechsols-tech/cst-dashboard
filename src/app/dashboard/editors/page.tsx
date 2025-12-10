@@ -19,11 +19,15 @@ export default function EditorManagement() {
   const { user } = useAuth();
   const { getEditorsList, addEditor, editEditor, removeEditor } = useEditors(user?.userType === "admin");
 
-  const handleAddEditor = (editorData: CreateEditorData) =>
-    addEditor.mutate(editorData, {
-      onSuccess: () => toast.success("Editor added successfully!"),
-      onError: () => toast.error("Failed to add editor. Please try again."),
-    });
+  const handleAddEditor = async (editorData: CreateEditorData) => {
+    try {
+      await addEditor.mutateAsync(editorData);
+      toast.success("Editor added successfully!");
+    } catch (error) {
+      // Re-throw the error so the modal can handle it
+      throw error;
+    }
+  };
 
   const handleEditEditor = (editorData: CreateEditorData) => {
     if (!editingEditor) return;

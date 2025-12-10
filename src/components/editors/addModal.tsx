@@ -29,8 +29,7 @@ export function AddEditorDialog({ onAdd }: AddEditorDialogProps) {
   const [formData, setFormData] = useState({ username: "", email: "",password:""})
 
   // reCAPTCHA verification state
-  const [captchaVerified, setCaptchaVerified] = useState(false)
-  const [captchaValue, setCaptchaValue] = useState<string | null>(null)
+
 
     // function onCaptchaChange(value: string | null) {
     //   console.log("Captcha value:", value);
@@ -51,11 +50,35 @@ export function AddEditorDialog({ onAdd }: AddEditorDialogProps) {
       setSubmitting(true)
       await onAdd(formData)
       setFormData({ username: "", email: "",password:"" })
-      setCaptchaVerified(false)
-      setCaptchaValue(null)
       setIsOpen(false)
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to add editor:", error)
+      console.log("Error response:", error?.response?.data); // Debug log
+      
+      // Handle API error response
+      if (error?.response?.data?.errors) {
+        const errors = error.response.data.errors;
+        
+        // Display email error if exists
+        if (errors.email && Array.isArray(errors.email) && errors.email.length > 0) {
+          toast.error(errors.email[0]);
+        } else if (errors.username && Array.isArray(errors.username) && errors.username.length > 0) {
+          toast.error(errors.username[0]);
+        } else if (errors.password && Array.isArray(errors.password) && errors.password.length > 0) {
+          toast.error(errors.password[0]);
+        } else {
+          // Display generic error message
+          toast.error(error?.response?.data?.message || "Failed to add editor");
+        }
+      } else if (error?.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else if (error?.message) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to add editor. Please try again.");
+      }
+      
+      // Don't close modal on error - user can manually close it
     } finally {
       setSubmitting(false)
     }
@@ -63,8 +86,6 @@ export function AddEditorDialog({ onAdd }: AddEditorDialogProps) {
 
   const handleClose = () => {
     setFormData({ username: "", email: "",password:"" })
-    setCaptchaVerified(false)
-    setCaptchaValue(null)
     setIsOpen(false)
   }
 
@@ -126,7 +147,7 @@ export function AddEditorDialog({ onAdd }: AddEditorDialogProps) {
           <Button variant="outline" onClick={handleClose} disabled={submitting}>
             Cancel
           </Button>
-          <Button variant={"blue"} onClick={handleSubmit} disabled={submitting || !formData.username || !formData.email || !captchaVerified}>
+          <Button variant={"blue"} onClick={handleSubmit} disabled={submitting || !formData.username || !formData.email}>
             {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
             Add Editor
           </Button>

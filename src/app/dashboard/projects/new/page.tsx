@@ -293,6 +293,7 @@ export default function AddProjectPage() {
   const [showTechGallery, setShowTechGallery] = useState<number | null>(null);
   const [mainImageFromGallery, setMainImageFromGallery] = useState(false);
   const [mainImageId, setMainImageId] = useState<number | null>(null);
+  const [mainImageUrl, setMainImageUrl] = useState<string | null>(null);
 
 
   // Sections data
@@ -1021,15 +1022,15 @@ export default function AddProjectPage() {
     }
 
     // Validate main image
-    if (!imageFile) {
+    if (!imageFile && !mainImageId) {
       toast.error("Please upload a main project image.");
       return;
     }
 
     try {
-      // First upload the main image (hero image)
-      let heroImageId = null;
-      if (imageFile) {
+      // First upload the main image (hero image) or use gallery selection
+      let heroImageId = mainImageId; // Use gallery-selected image if available
+      if (imageFile && !mainImageFromGallery) {
         const { mediaService } = await import("@/services/media");
         const uploadedHeroImage = await mediaService.uploadMedia({
           image: imageFile,
@@ -1412,13 +1413,25 @@ export default function AddProjectPage() {
                     </Button>
                   </div>
 
-                  {/* Gallery selection success */}
-                  {mainImageFromGallery && mainImageId && (
-                    <div className="flex items-center gap-2 text-sm text-green-600">
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      Selected from gallery (Alt: {imageAltText || 'No alt text'})
+                  {/* Gallery selection preview */}
+                  {mainImageFromGallery && mainImageId && mainImageUrl && (
+                    <div className="mt-2 p-2 border rounded bg-green-50 border-green-200">
+                      <div className="flex items-center gap-2">
+                        <img
+                          src={mainImageUrl}
+                          alt={imageAltText || 'Gallery selected image'}
+                          className="w-16 h-16 object-cover border rounded"
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 text-sm text-green-600">
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            Selected from gallery
+                          </div>
+                          <p className="text-xs text-gray-600 mt-1">Alt: {imageAltText || 'No alt text'}</p>
+                        </div>
+                      </div>
                     </div>
                   )}
 
@@ -1449,6 +1462,7 @@ export default function AddProjectPage() {
                         const selected = media[0];
                         setMainImageId(selected.id);
                         setImageAltText(selected.alt_text || '');
+                        setMainImageUrl(selected.image);
                         setImageFile(null);
                         setMainImageFromGallery(true);
                         toast.success('Hero image selected from gallery!');

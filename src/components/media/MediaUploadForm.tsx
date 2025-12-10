@@ -9,13 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Upload, X, ImageIcon, Video, FileText, Loader2 } from "lucide-react";
+import { Upload, X, ImageIcon, FileText, Loader2 } from "lucide-react";
 import { useMedia } from "@/hooks/useMedia";
 
 interface MediaFile {
   file: File;
   preview: string;
-  type: "image" | "video";
+  type: "image";
   altText: string;
   id: string;
 }
@@ -23,7 +23,7 @@ interface MediaFile {
 interface StoredMediaFile {
   id: string;
   name: string;
-  type: "image" | "video";
+  type: "image";
   size: number;
   altText: string;
   preview: string;
@@ -40,26 +40,9 @@ export function MediaUploadForm() {
 
   const createPreview = useCallback((file: File): Promise<string> => {
     return new Promise((resolve) => {
-      if (file.type.startsWith("image/")) {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target?.result as string);
-        reader.readAsDataURL(file);
-      } else if (file.type.startsWith("video/")) {
-        const video = document.createElement("video");
-        video.preload = "metadata";
-        video.onloadedmetadata = () => {
-          video.currentTime = 1;
-        };
-        video.onseeked = () => {
-          const canvas = document.createElement("canvas");
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          const ctx = canvas.getContext("2d");
-          ctx?.drawImage(video, 0, 0);
-          resolve(canvas.toDataURL());
-        };
-        video.src = URL.createObjectURL(file);
-      }
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target?.result as string);
+      reader.readAsDataURL(file);
     });
   }, []);
 
@@ -69,12 +52,11 @@ export function MediaUploadForm() {
     console.log("inside handle files")
 
       const validFiles = Array.from(files).filter(
-        (file) =>
-          file.type.startsWith("image/") || file.type.startsWith("video/")
+        (file) => file.type.startsWith("image/")
       );
 
       if (validFiles.length !== files.length) {
-        toast.warning("Only image and video files are allowed.");
+        toast.warning("Only image files are allowed.");
       }
 
       const newMediaFiles: MediaFile[] = [];
@@ -84,7 +66,7 @@ export function MediaUploadForm() {
         const mediaFile: MediaFile = {
           file,
           preview,
-          type: file.type.startsWith("image/") ? "image" : "video",
+          type: "image",
           altText: "",
           id: Math.random().toString(36).substr(2, 9),
         };
@@ -209,7 +191,7 @@ export function MediaUploadForm() {
               ref={fileInputRef}
               type="file"
               multiple
-              accept="image/*,video/*"
+              accept="image/*"
               onChange={handleFileInput}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             />
@@ -219,10 +201,10 @@ export function MediaUploadForm() {
               </div>
               <div>
                 <p className="text-lg font-medium text-slate-900">
-                  Drop your media files here
+                  Drop your images here
                 </p>
                 <p className="text-sm text-slate-500 mt-1">
-                  or click to browse • Images and videos supported
+                  or click to browse • Images only
                 </p>
               </div>
               <Button type="button" variant="outline" size="sm">
@@ -254,11 +236,7 @@ export function MediaUploadForm() {
                               variant="secondary"
                               className="text-xs px-1 py-0"
                             >
-                              {mediaFile.type === "image" ? (
-                                <ImageIcon className="w-3 h-3" />
-                              ) : (
-                                <Video className="w-3 h-3" />
-                              )}
+                              <ImageIcon className="w-3 h-3" />
                             </Badge>
                           </div>
                         </div>
@@ -341,7 +319,7 @@ export function MediaUploadForm() {
                   Uploading...
                 </>
               ) : (
-                `Upload Media (${mediaFiles.length})`
+                `Upload Images (${mediaFiles.length})`
               )}
             </Button>
           </div>

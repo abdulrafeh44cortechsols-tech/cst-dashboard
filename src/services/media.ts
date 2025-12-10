@@ -68,4 +68,9 @@ export const mediaService = {
     });
     return response.data;
   },
+
+  // Delete media file
+  deleteMedia: async (id: number): Promise<void> => {
+    await api.delete(`/api/v1/sols-media/${id}/`);
+  },
 }

@@ -36,9 +36,17 @@ export const useMedia = (page: number = 1, pageSize: number = 10, enableFetch: b
     },
   });
 
+  const deleteMedia = useMutation({
+    mutationFn: (id: number) => mediaService.deleteMedia(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["media"] });
+    },
+  });
+
   return {
     getMediaList,
     uploadMedia,
     uploadMultipleMedia,
+    deleteMedia,
   };
 };

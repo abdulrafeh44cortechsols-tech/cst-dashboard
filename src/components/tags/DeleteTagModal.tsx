@@ -89,9 +89,6 @@ export function DeleteTagModal({ tag, isOpen, onClose, onDelete }: DeleteTagModa
                 <span className="font-medium">Name:</span> {tag.name}
               </div>
               <div>
-                <span className="font-medium">Slug:</span> {tag.slug}
-              </div>
-              <div>
                 <span className="font-medium">Usage:</span> {tag.blog_count} blog post{tag.blog_count !== 1 ? 's' : ''}
               </div>
             </div>

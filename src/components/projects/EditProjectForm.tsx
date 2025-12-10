@@ -1253,35 +1253,59 @@ export function EditProjectForm({ project, onCancel, onSaved }: EditProjectFormP
                       {/* Icon Upload */}
                       <div className="space-y-2">
                         <Label>Icon Image *</Label>
-                        <Input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              // Validate file
-                              if (!file.type.startsWith('image/')) {
-                                toast.error('Please select a valid image file');
-                                return;
-                              }
-                              if (file.size > 5 * 1024 * 1024) {
-                                toast.error('Image size should be less than 5MB');
-                                return;
-                              }
+                        <div className="flex flex-wrap gap-2">
+                          <label className="cursor-pointer">
+                            <Input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  // Validate file
+                                  if (!file.type.startsWith('image/')) {
+                                    toast.error('Please select a valid image file');
+                                    return;
+                                  }
+                                  if (file.size > 5 * 1024 * 1024) {
+                                    toast.error('Image size should be less than 5MB');
+                                    return;
+                                  }
 
-                              // Update state with file and preview
-                              const updated = [...projectGoalContent];
-                              updated[index] = {
-                                ...updated[index],
-                                icon: URL.createObjectURL(file),
-                                iconFile: file, // Store file for upload
-                                uploaded: false, // Reset uploaded state
-                                uploading: false // Reset uploading state
-                              };
-                              setProjectGoalContent(updated);
-                            }
-                          }}
-                        />
+                                  // Update state with file and preview
+                                  const updated = [...projectGoalContent];
+                                  updated[index] = {
+                                    ...updated[index],
+                                    icon: URL.createObjectURL(file),
+                                    iconFile: file, // Store file for upload
+                                    uploaded: false, // Reset uploaded state
+                                    uploading: false // Reset uploading state
+                                  };
+                                  setProjectGoalContent(updated);
+                                }
+                              }}
+                              disabled={item.uploading}
+                              className="hidden"
+                            />
+                            <Button type="button" variant="outline" size="sm" disabled={item.uploading} asChild>
+                              <span className="flex items-center gap-2">
+                                <Upload className="h-4 w-4" />
+                                Upload from Computer
+                              </span>
+                            </Button>
+                          </label>
+
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowGoalGallery(index)}
+                            disabled={item.uploading}
+                            className="flex items-center gap-2"
+                          >
+                            <ImageIcon className="h-4 w-4" />
+                            Select from Gallery
+                          </Button>
+                        </div>
                       </div>
 
                       {/* Alt Text */}
@@ -1321,7 +1345,10 @@ export function EditProjectForm({ project, onCancel, onSaved }: EditProjectFormP
                                 {item.iconFile && !item.uploaded && (
                                   <p className="text-xs text-blue-600">Ready to upload: {item.iconFile.name}</p>
                                 )}
-                                {item.uploaded && (
+                                {item.uploaded && !item.iconFile && (
+                                  <p className="text-xs text-green-600">✓ Selected from Gallery</p>
+                                )}
+                                {item.uploaded && item.iconFile && (
                                   <p className="text-xs text-green-600">✓ Uploaded successfully!</p>
                                 )}
                               </div>
@@ -1353,6 +1380,36 @@ export function EditProjectForm({ project, onCancel, onSaved }: EditProjectFormP
                   </div>
                 ))}
               </div>
+
+              {/* Media Gallery Modal for Goal Icons */}
+              {showGoalGallery !== null && (
+                <MediaGalleryModal
+                  open={showGoalGallery !== null}
+                  onOpenChange={(open) => {
+                    if (!open) setShowGoalGallery(null);
+                  }}
+                  onSelect={(media: MediaItem[]) => {
+                    if (media.length > 0 && showGoalGallery !== null) {
+                      const selected = media[0];
+                      const updated = [...projectGoalContent];
+                      updated[showGoalGallery] = {
+                        ...updated[showGoalGallery],
+                        icon: selected.image,
+                        alt_text: selected.alt_text || '',
+                        iconFile: undefined, // Clear file since we're using gallery
+                        uploaded: true, // Mark as uploaded
+                        uploading: false
+                      };
+                      setProjectGoalContent(updated);
+                      setShowGoalGallery(null);
+                      toast.success('Goal icon selected from gallery!');
+                    }
+                  }}
+                  maxSelection={1}
+                  minSelection={1}
+                  title="Select Goal Icon"
+                />
+              )}
             </CardContent>
           </Card>
 

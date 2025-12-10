@@ -39,8 +39,21 @@ export function AddTagModal({ isOpen, onClose, onAdd }: AddTagModalProps) {
       setName("");
       onClose();
       toast.success("Tag created successfully!");
-    } catch (error) {
-      toast.error("Failed to create tag. Please try again.");
+    } catch (error: any) {
+      // Handle specific API error messages
+      if (error?.response?.data?.name) {
+        // Display the specific error from the API (e.g., "sols tag with this name already exists.")
+        const errorMessage = Array.isArray(error.response.data.name) 
+          ? error.response.data.name[0] 
+          : error.response.data.name;
+        toast.error(errorMessage);
+      } else if (error?.response?.data?.detail) {
+        toast.error(error.response.data.detail);
+      } else if (error?.message) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to create tag. Please try again.");
+      }
     } finally {
       setIsSubmitting(false);
     }

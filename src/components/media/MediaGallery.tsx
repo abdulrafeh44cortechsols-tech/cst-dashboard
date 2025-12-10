@@ -4,6 +4,16 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
 import { ImageIcon, Video, Trash2, Calendar, FileText, ChevronLeft, ChevronRight } from "lucide-react"
 import { useMedia } from "@/hooks/useMedia"
@@ -13,9 +23,30 @@ import { getImageUrl } from "@/lib/utils"
 export function MediaGallery() {
   const [currentPage, setCurrentPage] = useState(1)
   const pageSize = 10
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [mediaToDelete, setMediaToDelete] = useState<number | null>(null)
   
-  const { getMediaList } = useMedia(currentPage, pageSize)
+  const { getMediaList, deleteMedia } = useMedia(currentPage, pageSize)
   const { media } = useMediaStore()
+
+  const handleDeleteClick = (mediaId: number) => {
+    setMediaToDelete(mediaId)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!mediaToDelete) return
+    
+    try {
+      await deleteMedia.mutateAsync(mediaToDelete)
+      toast.success("Media deleted successfully")
+      setDeleteDialogOpen(false)
+      setMediaToDelete(null)
+    } catch (error) {
+      toast.error("Failed to delete media")
+      console.error("Delete error:", error)
+    }
+  }
 
   if (getMediaList.isLoading) {
     return (
@@ -92,7 +123,7 @@ export function MediaGallery() {
         <CardContent className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {media.results.map((mediaItem) => (
-              <Card key={mediaItem.id} className="overflow-hidden">
+              <Card key={mediaItem.id} className="overflow-hidden group relative">
                 <div className="aspect-video relative bg-slate-100">
                   <img
                     src={getImageUrl(mediaItem.image)}
@@ -107,6 +138,17 @@ export function MediaGallery() {
                       <ImageIcon className="w-3 h-3 mr-1" />
                       Image
                     </Badge>
+                  </div>
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleDeleteClick(mediaItem.id)}
+                      disabled={deleteMedia.isPending}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
                 {/* <CardContent className="p-3">
@@ -187,6 +229,30 @@ export function MediaGallery() {
           </CardContent>
         </Card>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the media file.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setMediaToDelete(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={deleteMedia.isPending}
+            >
+              {deleteMedia.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

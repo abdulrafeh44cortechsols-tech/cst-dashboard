@@ -53,8 +53,8 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
   const [metaTitle, setMetaTitle] = useState("");
   const [metaDescription, setMetaDescription] = useState("");
   const [published, setPublished] = useState(false);
-  const [projectsDelivered, setProjectsDelivered] = useState<number>(0);
-  const [clientsSatisfaction, setClientsSatisfaction] = useState<number>(0);
+  const [projectsDelivered, setProjectsDelivered] = useState<string>("");
+  const [clientsSatisfaction, setClientsSatisfaction] = useState<string>("");
 
   // Slug validation state
   const [originalSlug, setOriginalSlug] = useState<string>("");
@@ -159,8 +159,8 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
       setMetaTitle(svc.meta_title || "");
       setMetaDescription(svc.meta_description || "");
       setPublished(svc.is_published || false);
-      setProjectsDelivered(svc.projects_delivered || 0);
-      setClientsSatisfaction(svc.clients_satisfaction || 0);
+      setProjectsDelivered(svc.projects_delivered ? String(svc.projects_delivered) : "");
+      setClientsSatisfaction(svc.clients_satisfaction ? String(svc.clients_satisfaction) : "");
 
       // Image IDs - API returns objects with {id, image, alt_text}
       if (svc.icon) {
@@ -789,8 +789,8 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
         slug: slug,
         meta_title: metaTitle,
         meta_description: metaDescription,
-        projects_delivered: projectsDelivered,
-        clients_satisfaction: clientsSatisfaction,
+        projects_delivered: projectsDelivered ? parseInt(projectsDelivered) : 0,
+        clients_satisfaction: clientsSatisfaction ? parseInt(clientsSatisfaction) : 0,
         icon: iconId, // Image ID
         icon_alt_text: iconAltText || "", // Alt text for service post icon
         hero_image: serviceMainImageId || heroImageId, // Use service main image as hero_image
@@ -1835,17 +1835,17 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
                 value={description}
                 onChange={(e) => {
                   const value = e.target.value;
-                  if (value.length <= 2000) {
+                  if (value.length <= 400) {
                     setDescription(value);
                   }
                 }}
                 placeholder="Enter service description"
                 rows={4}
-                maxLength={2000}
+                maxLength={400}
                 required
               />
               <p className="text-sm text-muted-foreground mt-1">
-                {(description?.length || 0)}/2000 characters (minimum 100 required)
+                {(description?.length || 0)}/400 characters (minimum 100 required)
               </p>
             </div>
 
@@ -1899,7 +1899,7 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
                   id="projects-delivered"
                   type="number"
                   value={projectsDelivered}
-                  onChange={(e) => setProjectsDelivered(parseInt(e.target.value) || 0)}
+                  onChange={(e) => setProjectsDelivered(e.target.value)}
                   placeholder="e.g., 200"
                   min="0"
                 />
@@ -1914,7 +1914,13 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
                   id="clients-satisfaction"
                   type="number"
                   value={clientsSatisfaction}
-                  onChange={(e) => setClientsSatisfaction(parseInt(e.target.value) || 0)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value !== '' && (parseInt(value) < 0 || parseInt(value) > 100)) {
+                      return;
+                    }
+                    setClientsSatisfaction(value);
+                  }}
                   placeholder="e.g., 98"
                   min="0"
                   max="100"

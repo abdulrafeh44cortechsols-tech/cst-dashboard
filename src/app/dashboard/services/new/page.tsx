@@ -15,7 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
-  AlertDialogAction,
+  AlertDialogAction,  
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -45,8 +45,8 @@ export default function AddServicePage() {
   const [metaTitle, setMetaTitle] = useState("");
   const [metaDescription, setMetaDescription] = useState("");
   const [published, setPublished] = useState(false);
-  const [projectsDelivered, setProjectsDelivered] = useState<number>(0);
-  const [clientsSatisfaction, setClientsSatisfaction] = useState<number>(0);
+  const [projectsDelivered, setProjectsDelivered] = useState<string>("");
+  const [clientsSatisfaction, setClientsSatisfaction] = useState<string>("");
 
   // Slug validation state
   const [slugCheckMessage, setSlugCheckMessage] = useState<string>("");
@@ -225,8 +225,8 @@ export default function AddServicePage() {
           newErrors.description = 'Service description is required';
         } else if (value.length < 100) {
           newErrors.description = `Service description must be at least 100 characters (${value.length}/100)`;
-        } else if (value.length > 2000) {
-          newErrors.description = 'Service description must be 2000 characters or less';
+        } else if (value.length > 400) {
+          newErrors.description = 'Service description must be 400 characters or less';
         } else {
           delete newErrors.description;
         }
@@ -684,8 +684,8 @@ export default function AddServicePage() {
       return;
     }
 
-    if (description.length > 2000) {
-      toast.error("Service description must be 2000 characters or less.");
+    if (description.length > 400) {
+      toast.error("Service description must be 400 characters or less.");
       scrollToElement('service-description');
       return;
     }
@@ -844,8 +844,8 @@ export default function AddServicePage() {
         slug: slug,
         meta_title: metaTitle,
         meta_description: metaDescription,
-        projects_delivered: projectsDelivered,
-        clients_satisfaction: clientsSatisfaction,
+        projects_delivered: projectsDelivered ? parseInt(projectsDelivered) : 0,
+        clients_satisfaction: clientsSatisfaction ? parseInt(clientsSatisfaction) : 0,
         icon: iconId, // Image ID from media upload
         icon_alt_text: iconAltText || "", // Alt text for service post icon
         hero_image: serviceMainImageId || heroImageId, // Use service main image as hero_image
@@ -2362,19 +2362,19 @@ export default function AddServicePage() {
                   value={description}
                   onChange={(e) => {
                     const value = e.target.value;
-                    if (value.length <= 2000) {
+                    if (value.length <= 400) {
                       setDescription(value);
                       validateField('description', value);
                     }
                   }}
                   placeholder="Write your service description..."
                   rows={4}
-                  maxLength={2000}
+                  maxLength={400}
                   required
                   className={errors.description ? 'border-red-500' : ''}
                 />
                 <p className={`text-sm mt-1 ${errors.description ? 'text-red-500' : 'text-muted-foreground'}`}>
-                  {errors.description || `${description.length}/2000 characters (minimum 100 required)`}
+                  {errors.description || `${description.length}/400 characters (minimum 100 required)`}
                 </p>
               </div>
 
@@ -2433,7 +2433,7 @@ export default function AddServicePage() {
                     type="number"
                     min="0"
                     value={projectsDelivered}
-                    onChange={(e) => setProjectsDelivered(parseInt(e.target.value) || 0)}
+                    onChange={(e) => setProjectsDelivered(e.target.value)}
                     placeholder="127"
                   />
                   <p className="text-sm text-muted-foreground">
@@ -2449,8 +2449,11 @@ export default function AddServicePage() {
                     max="100"
                     value={clientsSatisfaction}
                     onChange={(e) => {
-                      const val = parseInt(e.target.value) || 0;
-                      setClientsSatisfaction(Math.min(100, Math.max(0, val)));
+                      const value = e.target.value;
+                      if (value !== '' && (parseInt(value) < 0 || parseInt(value) > 100)) {
+                        return;
+                      }
+                      setClientsSatisfaction(value);
                     }}
                     placeholder="98"
                   />
