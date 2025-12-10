@@ -1130,18 +1130,13 @@ export function EditServiceForm({ service, onCancel, onSaved }: EditServiceFormP
             <Label>Comment</Label>
             <Textarea
               value={subSection.comment}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (value.length <= 100) {
-                  updateSubSection(sectionKey, index, 'comment', value);
-                }
-              }}
+              onChange={(e) => updateSubSection(sectionKey, index, 'comment', e.target.value)}
               placeholder="Client feedback"
               rows={3}
-              maxLength={1000}
+              maxLength={100}
             />
             <p className="text-sm text-muted-foreground mt-1">
-              {1000 - (subSection.comment?.length || 0)} characters remaining
+              {100 - (subSection.comment?.length || 0)} characters remaining
             </p>
           </div>
           <div className="space-y-2">
