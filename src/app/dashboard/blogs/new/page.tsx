@@ -348,6 +348,9 @@ export default function AddBlogPage() {
 
   const validateContent = (value: string): string | null => {
     if (!value.trim() || value === '<p><br></p>') return "Blog content is required";
+    // Strip HTML tags to get plain text length
+    const plainText = value.replace(/<[^>]*>/g, '').trim();
+    if (plainText.length < 100) return "Content must be at least 100 characters long";
     return null;
   };
 
