@@ -44,7 +44,7 @@ export function DeleteServiceModal({
         <DialogHeader>
           <DialogTitle>Delete Service</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete <strong>{service?.title}</strong>?
+            Are you sure you want to delete <strong>{service?.title}</strong> service?
             This action cannot be undone.
           </DialogDescription>
         </DialogHeader>

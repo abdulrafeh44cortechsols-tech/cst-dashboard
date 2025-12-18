@@ -17,7 +17,7 @@ import { RefreshCw, Loader2, Upload, ImageIcon, CheckCircle2, XCircle } from "lu
 import { MediaGalleryModal } from "@/components/media/MediaGalleryModal";
 import type { MediaItem } from "@/services/media";
 import { Tag } from "@/types/types";
-import QuillEditor from "@/components/blog/QuillEditor";
+import QuillEditor from "@/components/blog/CustomEditor";
 import Link from "next/link";
 
 export default function EditBlogPage() {

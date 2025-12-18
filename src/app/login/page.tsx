@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Shield, Clock, AlertTriangle } from "lucide-react";
+import { User, Shield, Clock, AlertTriangle, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthContext } from "@/components/auth-provider";
 import { setAuthUser } from "@/lib/auth";
@@ -23,6 +23,9 @@ import {
 } from "@/services/auth";
 
 export default function Component() {
+  // Password visibility state for admin and editor
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
+  const [showEditorPassword, setShowEditorPassword] = useState(false);
   const router = useRouter();
   const { login } = useAuthContext();
   const [loading, setLoading] = useState(false);
@@ -466,7 +469,10 @@ export default function Component() {
               </TabsTrigger>
               <TabsTrigger
                 value="editor"
-                className="flex items-center cursor-pointer gap-2 data-[state=active]:bg-teal-500 data-[state=active]:text-white"
+                className="flex items-center cursor-not-allowed gap-2 opacity-50"
+                disabled
+                aria-disabled="true"
+                tabIndex={-1}
               >
                 <User className="h-4 w-4" />
                 Editor
@@ -505,13 +511,25 @@ export default function Component() {
                 {/* Password */}
                 <div className="grid gap-2">
                   <Label htmlFor="admin-password">Password</Label>
-                  <Input
-                    id="admin-password"
-                    type="password"
-                    placeholder="Enter your password"
-                    {...register("password")}
-                    disabled={lockoutData.locked}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="admin-password"
+                      type={showAdminPassword ? "text" : "password"}
+                      placeholder="Enter your password"
+                      {...register("password")}
+                      disabled={lockoutData.locked}
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      className="absolute inset-y-0 right-2 flex items-center text-gray-400 hover:text-gray-700"
+                      onClick={() => setShowAdminPassword((v) => !v)}
+                      aria-label={showAdminPassword ? "Hide password" : "Show password"}
+                    >
+                      {showAdminPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
                   {errors.password && (
                     <p className="text-red-500 text-sm">
                       {errors.password.message}
@@ -537,68 +555,12 @@ export default function Component() {
 
             <TabsContent value="editor" className="mt-6">
               <div className="grid gap-2 text-center mb-4">
-                <h2 className="text-xl font-semibold">Editor Access</h2>
+                <h2 className="text-xl font-semibold text-gray-400">Editor Access (Disabled)</h2>
                 <p className="text-sm text-muted-foreground">
-                  Content creation and editing capabilities with OTP
-                  verification
+                  Editor login is currently disabled.
                 </p>
               </div>
-
-              <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
-                <input
-                  type="hidden"
-                  {...register("loginType")}
-                  value="editor"
-                />
-
-                {/* Email */}
-                <div className="grid gap-2">
-                  <Label htmlFor="editor-email">Email</Label>
-                  <Input
-                    id="editor-email"
-                    type="email"
-                    placeholder="editor@example.com"
-                    {...register("email")}
-                    disabled={lockoutData.locked}
-                  />
-                  {errors.email && (
-                    <p className="text-red-500 text-sm">
-                      {errors.email.message}
-                    </p>
-                  )}
-                </div>
-
-                {/* Password */}
-                <div className="grid gap-2">
-                  <Label htmlFor="editor-password">Password</Label>
-                  <Input
-                    id="editor-password"
-                    type="password"
-                    placeholder="Enter your password"
-                    {...register("password")}
-                    disabled={lockoutData.locked}
-                  />
-                  {errors.password && (
-                    <p className="text-red-500 text-sm">
-                      {errors.password.message}
-                    </p>
-                  )}
-                </div>
-
-                {/* Submit */}
-                <Button
-                  disabled={loading || lockoutData.locked}
-                  variant="blue"
-                  type="submit"
-                  className="w-full"
-                >
-                  {loading
-                    ? "Logging in..."
-                    : lockoutData.locked
-                    ? "Account Locked"
-                    : "Login"}
-                </Button>
-              </form>
+              {/* Editor login form is disabled */}
             </TabsContent>
           </Tabs>
         </div>

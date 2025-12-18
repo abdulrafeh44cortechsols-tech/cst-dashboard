@@ -80,7 +80,7 @@ export default function DashboardOverviewPage() {
   return (
     <div className="flex flex-col gap-6">
       {/* Top Stats Cards */}
-      <div className={`grid gap-4 md:gap-8 ${user?.userType === "admin" ? "md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5" : "md:grid-cols-2 lg:grid-cols-4"}`}>
+      <div className={`grid gap-4 md:gap-8 ${user?.userType === "admin" ? "sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4" : "sm:grid-cols-2 lg:grid-cols-4"}`}>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-nowrap">Total Blogs</CardTitle>
@@ -135,7 +135,7 @@ export default function DashboardOverviewPage() {
             </p>
           </CardContent>
         </Card>
-        {user?.userType === "admin" && (
+        {/* {user?.userType === "admin" && (
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-nowrap">Total Editors</CardTitle>
@@ -148,7 +148,7 @@ export default function DashboardOverviewPage() {
               </p>
             </CardContent>
           </Card>
-        )}
+        )} */}
       </div>
 
       {/* Main Dashboard Content */}

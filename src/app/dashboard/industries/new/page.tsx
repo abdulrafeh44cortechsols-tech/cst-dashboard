@@ -97,10 +97,7 @@ export default function AddIndustryPage() {
   const [isCheckingSlug, setIsCheckingSlug] = useState(false);
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
 
-  // Stats fields
-  const [projectsCount, setProjectsCount] = useState(0);
-  const [reviewsCount, setReviewsCount] = useState(0);
-  const [industriesCount, setIndustriesCount] = useState(0);
+  // ...removed stats fields: projectsCount, reviewsCount, industriesCount
 
   // Hero image state
   const [heroImageFile, setHeroImageFile] = useState<File | null>(null);
@@ -150,7 +147,7 @@ export default function AddIndustryPage() {
   const validateTitle = (value: string): string | null => {
     if (!value.trim()) return "Industry title is required";
     if (value.length < 3) return "Title must be at least 3 characters long";
-    if (value.length > 100) return "Title must be 100 characters or less";
+    if (value.length > 50) return "Title must be 50 characters or less";
     return null;
   };
 
@@ -253,7 +250,7 @@ export default function AddIndustryPage() {
     localStorage.setItem("industryDraft", JSON.stringify(draftData));
     setIsDraftSaved(true);
     setLastSaved(new Date());
-  }, [title, description, slug, metaTitle, metaDescription, isPublished, selectedTags, projectsStatsSection, challengeSection, expertiseSection, whatSetsUsApartSection, weBuildSection]);
+  }, [title, description, slug, metaTitle, metaDescription, isPublished, selectedTags,  projectsStatsSection, challengeSection, expertiseSection, whatSetsUsApartSection, weBuildSection]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -614,10 +611,7 @@ export default function AddIndustryPage() {
         meta_description: metaDescription,
         is_published: isPublished,
 
-        // Stats
-        projects_count: projectsCount,
-        reviews_count: reviewsCount,
-        industries_count: industriesCount,
+        // ...removed stats fields from API payload
 
         // Tags (array of IDs)
         tags: selectedTags,
@@ -719,7 +713,7 @@ export default function AddIndustryPage() {
                       value={title}
                       onChange={(e) => {
                         const value = e.target.value;
-                        if (value.length <= 100) {
+                        if (value.length <= 50) {
                           handleTitleChange(value);
                           const error = validateTitle(value);
                           if (error) {
@@ -740,12 +734,12 @@ export default function AddIndustryPage() {
                         }
                       }}
                       placeholder="Enter industry title"
-                      maxLength={100}
+                      maxLength={50}
                       required
                       className={`${errors.title ? 'border-red-500 focus:border-red-500' : ''}`}
                     />
                     <p className={`text-sm ${errors.title ? 'text-red-600' : 'text-muted-foreground'}`}>
-                      {errors.title || `${100 - title.length} characters remaining`}
+                      {errors.title || `${50 - title.length} characters remaining`}
                     </p>
                   </div>
 

@@ -90,10 +90,7 @@ export function EditIndustryForm({ industry, onCancel, onSaved }: EditIndustryFo
   const [isCheckingSlug, setIsCheckingSlug] = useState(false);
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
 
-  // Stats fields
-  const [projectsCount, setProjectsCount] = useState(0);
-  const [reviewsCount, setReviewsCount] = useState(0);
-  const [industriesCount, setIndustriesCount] = useState(0);
+  // ...removed stats fields: projectsCount, reviewsCount, industriesCount
 
   // Hero image state (now an object with id, image, alt_text)
   const [existingHeroImage, setExistingHeroImage] = useState<{ id: number; image: string; alt_text: string } | null>(null);
@@ -144,7 +141,7 @@ export function EditIndustryForm({ industry, onCancel, onSaved }: EditIndustryFo
   const validateTitle = (value: string): string | null => {
     if (!value.trim()) return "Industry title is required";
     if (value.length < 3) return "Title must be at least 3 characters long";
-    if (value.length > 100) return "Title must be 100 characters or less";
+    if (value.length > 50) return "Title must be 50 characters or less";
     return null;
   };
 
@@ -250,10 +247,7 @@ export function EditIndustryForm({ industry, onCancel, onSaved }: EditIndustryFo
         setSelectedTags([]);
       }
 
-      // Stats
-      setProjectsCount(industry.projects_count || 0);
-      setReviewsCount(industry.reviews_count || 0);
-      setIndustriesCount(industry.industries_count || 0);
+      // ...removed stats fields from draft load
 
       // Hero image (now an object)
       if (industry.hero_image) {
@@ -603,10 +597,7 @@ export function EditIndustryForm({ industry, onCancel, onSaved }: EditIndustryFo
         meta_description: metaDescription,
         is_published: isPublished,
 
-        // Stats
-        projects_count: projectsCount,
-        reviews_count: reviewsCount,
-        industries_count: industriesCount,
+        // ...removed stats fields from API payload
 
         // Tags (array of strings)
         tags: selectedTags,
@@ -662,7 +653,7 @@ export function EditIndustryForm({ industry, onCancel, onSaved }: EditIndustryFo
                 value={title}
                 onChange={(e) => {
                   const value = e.target.value;
-                  if (value.length <= 100) {
+                  if (value.length <= 50) {
                     handleTitleChange(value);
                     const error = validateTitle(value);
                     if (error) {
@@ -683,13 +674,13 @@ export function EditIndustryForm({ industry, onCancel, onSaved }: EditIndustryFo
                   }
                 }}
                 placeholder="Enter industry title"
-                maxLength={100}
+                maxLength={50}
                 required
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.title ? 'border-red-500 focus:border-red-500' : 'border-gray-300'
                   }`}
               />
               <p className={`text-sm ${errors.title ? 'text-red-600' : 'text-gray-500'}`}>
-                {errors.title || `${100 - title.length} characters remaining`}
+                {errors.title || `${50 - title.length} characters remaining`}
               </p>
             </div>
 
@@ -860,6 +851,8 @@ export function EditIndustryForm({ industry, onCancel, onSaved }: EditIndustryFo
               </p>
             </div>
           </div>
+
+          {/* ...removed stats fields UI */}
 
           {/* Industry Category */}
           {/* <div className="space-y-2">

@@ -44,7 +44,7 @@ export function DeleteProjectModal({
         <DialogHeader>
           <DialogTitle>Delete Project</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete <strong>{project?.name}</strong>?
+            Are you sure you want to delete <strong>{project?.name}</strong> project?
             This action cannot be undone.
           </DialogDescription>
         </DialogHeader>

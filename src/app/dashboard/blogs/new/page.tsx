@@ -26,7 +26,7 @@ import { Save, Trash2, RefreshCw, AlertCircle, Upload, ImageIcon, CheckCircle2, 
 import { MediaGalleryModal } from "@/components/media/MediaGalleryModal";
 import type { MediaItem } from "@/services/media";
 import { Tag } from "@/types/types";
-import QuillEditor from "@/components/blog/QuillEditor";
+import CustomEditor from "@/components/blog/CustomEditor";
 
 export default function AddBlogPage() {
   const router = useRouter();
@@ -701,7 +701,7 @@ export default function AddBlogPage() {
                   Content *
                 </Label>
                 <div className={`${errors.content ? 'border border-red-500 rounded-md' : ''}`}>
-                  <QuillEditor
+                  <CustomEditor
                     value={content}
                     onChange={(value) => {
                       setContent(value);

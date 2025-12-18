@@ -34,7 +34,7 @@ export default function BlogsPage() {
   const router = useRouter();
 
   const currentPage = Number(searchParams.get("page")) || 1;
-  const postsPerPage = 8;
+  const postsPerPage = 12;
   const { getBlogsList } = useBlogs(currentPage, postsPerPage);
 
   const { data, isLoading } = getBlogsList;

@@ -87,15 +87,15 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="general" className="space-y-4">
-        <TabsList className="grid grid-cols-3 lg:grid-cols-5 h-auto gap-4">
+        <TabsList className="grid grid-cols-3 lg:grid-cols-4 h-auto gap-4">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <Settings2 className="h-4 w-4" />
             General
           </TabsTrigger>
-          <TabsTrigger value="seo" className="flex items-center gap-2">
+          {/* <TabsTrigger value="seo" className="flex items-center gap-2">
             <Globe className="h-4 w-4" />
             SEO
-          </TabsTrigger>
+          </TabsTrigger> */}
           <TabsTrigger value="email" className="flex items-center gap-2">
             <Mail className="h-4 w-4" />
             Email
@@ -192,7 +192,7 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="seo">
+        {/* <TabsContent value="seo">
           <Card>
             <CardHeader>
               <CardTitle>SEO Settings</CardTitle>
@@ -250,7 +250,7 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent> */}
 
         <TabsContent value="email">
           <Card>

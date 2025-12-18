@@ -42,12 +42,7 @@ export function LeftSidebar() {
   const [activeOption, setActiveOption] = useState("Dashboard");
 
   // Define routes accessible to editors
-  const editorAllowedRoutes = [
-    "Dashboard",
-    "Blogs", 
-    "Services", 
-    "Projects"
-  ];
+  const editorAllowedRoutes = ["Dashboard", "Blogs", "Services", "Projects"];
 
   const navigationItems = [
     {
@@ -98,6 +93,7 @@ export function LeftSidebar() {
             title: "Editors",
             href: "/dashboard/editors",
             icon: Users,
+            disabled: true,
           },
           {
             title: "Templates",
@@ -167,10 +163,12 @@ export function LeftSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {navigationItems.map((item) => {
-                const isActive = activeOption === item.title || 
+                const isActive =
+                  activeOption === item.title ||
                   (item.href === "/dashboard" && pathname === "/dashboard") ||
-                  (item.href !== "/dashboard" && pathname.startsWith(item.href));
-                
+                  (item.href !== "/dashboard" &&
+                    pathname.startsWith(item.href));
+
                 return (
                   <SidebarMenuItem key={item.title}>
                     {item.disabled ? (
@@ -182,14 +180,18 @@ export function LeftSidebar() {
                         <span>{item.title}</span>
                       </SidebarMenuButton>
                     ) : (
-                      <SidebarMenuButton 
-                        asChild 
-                        onClick={() => setActiveOption(item.title)} 
+                      <SidebarMenuButton
+                        asChild
+                        onClick={() => setActiveOption(item.title)}
                         className="active:bg-teal-500 active:text-white hover:bg-teal-500 hover:text-white"
                       >
-                        <Link 
-                          href={item.href} 
-                          className={isActive ? "bg-teal-500 text-primary-foreground" : ""}
+                        <Link
+                          href={item.href}
+                          className={
+                            isActive
+                              ? "bg-teal-500 text-primary-foreground"
+                              : ""
+                          }
                         >
                           <item.icon className="h-4 w-4" />
                           <span>{item.title}</span>
@@ -210,6 +212,20 @@ export function LeftSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    disabled
+                    onClick={(e) => e.preventDefault()}
+                    className="opacity-50"
+                  >
+                    <div>
+                      <PlusCircle className="h-4 w-4" />
+                      <span>SEO Management</span>
+                    </div>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
+                {/* <SidebarMenuItem>
                   <SidebarMenuButton 
                     asChild 
                     onClick={() => setActiveOption("SEO Management")}
@@ -223,7 +239,7 @@ export function LeftSidebar() {
                       <span>SEO Management</span>
                     </Link>
                   </SidebarMenuButton>
-                </SidebarMenuItem>
+                </SidebarMenuItem> */}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

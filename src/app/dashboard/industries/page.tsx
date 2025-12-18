@@ -98,17 +98,7 @@ export default function IndustriesPage() {
                         {industry.description}
                       </CardDescription>
 
-                      {/* Stats */}
-                      <div className="flex flex-wrap gap-3 mt-3 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <FolderOpen className="w-3.5 h-3.5" />
-                          <span>{industry.projects_count} Projects</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Star className="w-3.5 h-3.5" />
-                          <span>{industry.reviews_count} Reviews</span>
-                        </div>
-                      </div>
+                      {/* ...removed stats fields display */}
 
                       {/* Tags */}
                       {industry.tags && industry.tags.length > 0 && (

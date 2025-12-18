@@ -38,9 +38,9 @@ export function DeleteBlogModal({ blog, isOpen, onClose }: DeleteBlogModalProps)
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
-          <DialogTitle>Delete Service</DialogTitle>
+          <DialogTitle>Delete Blog</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete <strong>{blog?.title}</strong>? This action cannot be undone.
+            Are you sure you want to delete <strong>{blog?.title}</strong> blog? This action cannot be undone.
           </DialogDescription>
         </DialogHeader>
 
