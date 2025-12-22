@@ -37,6 +37,11 @@ interface ProjectStatItem {
   count: number;
 }
 
+interface ProjectCountItem {
+  name: string;
+  count: string;
+}
+
 interface ChallengeSection {
   title: string;
   items: string[]; // Array of point strings
@@ -112,6 +117,7 @@ export default function AddIndustryPage() {
   const [uploadingCategoryIcon, setUploadingCategoryIcon] = useState(false);
 
   // Section data states (new structure matching EditIndustryForm)
+  const [projectsCountSection, setProjectsCountSection] = useState<ProjectCountItem[]>([{ name: "", count: "" }]);
   const [projectsStatsSection, setProjectsStatsSection] = useState<ProjectStatItem[]>([]);
   const [challengeSection, setChallengeSection] = useState<ChallengeSection>({ title: "", items: [] });
   const [expertiseSection, setExpertiseSection] = useState<ExpertiseSection>({ title: "", description: "", sub_sections: [] });
@@ -240,6 +246,7 @@ export default function AddIndustryPage() {
       metaDescription,
       isPublished,
       selectedTags,
+      projectsCountSection,
       projectsStatsSection,
       challengeSection,
       expertiseSection,
@@ -250,7 +257,7 @@ export default function AddIndustryPage() {
     localStorage.setItem("industryDraft", JSON.stringify(draftData));
     setIsDraftSaved(true);
     setLastSaved(new Date());
-  }, [title, description, slug, metaTitle, metaDescription, isPublished, selectedTags,  projectsStatsSection, challengeSection, expertiseSection, whatSetsUsApartSection, weBuildSection]);
+  }, [title, description, slug, metaTitle, metaDescription, isPublished, selectedTags, projectsCountSection, projectsStatsSection, challengeSection, expertiseSection, whatSetsUsApartSection, weBuildSection]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -260,7 +267,7 @@ export default function AddIndustryPage() {
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [title, description, slug, metaTitle, metaDescription, isPublished, selectedTags, projectsStatsSection, challengeSection, expertiseSection, whatSetsUsApartSection, weBuildSection, saveDraft]);
+  }, [title, description, slug, metaTitle, metaDescription, isPublished, selectedTags, projectsCountSection, projectsStatsSection, challengeSection, expertiseSection, whatSetsUsApartSection, weBuildSection, saveDraft]);
 
   // Load draft on component mount
   useEffect(() => {
@@ -275,6 +282,7 @@ export default function AddIndustryPage() {
         setMetaDescription(draftData.metaDescription || "");
         setIsPublished(draftData.isPublished ?? true);
         setSelectedTags(draftData.selectedTags || []);
+        setProjectsCountSection(draftData.projectsCountSection || [{ name: "", count: "" }]);
         setProjectsStatsSection(draftData.projectsStatsSection || []);
         setChallengeSection(draftData.challengeSection || { title: "", items: [] });
         setExpertiseSection(draftData.expertiseSection || { title: "", description: "", sub_sections: [] });
@@ -287,6 +295,61 @@ export default function AddIndustryPage() {
       }
     }
   }, []);
+
+  // Helper functions for Projects Count Section
+  const addProjectCount = () => {
+    setProjectsCountSection(prev => (prev.length >= 3 ? prev : [...prev, { name: "", count: "" }]));
+  };
+
+  const removeProjectCount = (index: number) => {
+    setProjectsCountSection(prev => {
+      const next = prev.filter((_, i) => i !== index);
+      return next.length === 0 ? [{ name: "", count: "" }] : next;
+    });
+  };
+
+  const updateProjectCount = (index: number, field: keyof ProjectCountItem, value: string) => {
+    setProjectsCountSection(prev =>
+      prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
+    );
+  };
+
+  const validateProjectsCountSection = (items: ProjectCountItem[]): string | null => {
+    const filled = items
+      .map(i => ({
+        name: (i.name || "").trim(),
+        countStr: (i.count || "").trim(),
+        count: Number((i.count || "").trim()),
+      }))
+      .filter(i => i.name.length > 0 || i.countStr.length > 0);
+
+    if (filled.length < 1) return "Add at least 1 project count item";
+    if (filled.length > 3) return "You can add maximum 3 project count items";
+
+    for (const it of filled) {
+      if (!it.name) return "Project name is required";
+      if (it.name.length > 15) return "Project name must be 15 characters or less";
+      if (it.countStr.length > 15) return "Count must be 15 digits or less";
+      if (!Number.isFinite(it.count) || it.count <= 0) return "Count must be a number greater than 0";
+    }
+
+    const names = filled.map(i => i.name.toLowerCase());
+    if (new Set(names).size !== names.length) return "Project names must be unique";
+    return null;
+  };
+
+  const toProjectsCountPayload = (items: ProjectCountItem[]): Array<Record<string, number>> | undefined => {
+    const cleaned = items
+      .map(i => ({
+        name: (i.name || "").trim(),
+        countStr: (i.count || "").trim(),
+        count: Number((i.count || "").trim()),
+      }))
+      .filter(i => i.name.length > 0 || i.countStr.length > 0);
+
+    if (cleaned.length === 0) return undefined;
+    return cleaned.slice(0, 3).map(i => ({ [i.name]: i.count }));
+  };
 
   const clearDraft = () => {
     localStorage.removeItem("industryDraft");
@@ -581,6 +644,7 @@ export default function AddIndustryPage() {
     const descriptionError = validateDescription(description);
     const metaTitleError = validateMetaTitle(metaTitle);
     const metaDescriptionError = validateMetaDescription(metaDescription);
+    const projectsCountError = validateProjectsCountSection(projectsCountSection);
 
     // Set errors if any validation fails
     if (titleError) setErrors(prev => ({ ...prev, title: titleError }));
@@ -588,9 +652,10 @@ export default function AddIndustryPage() {
     if (descriptionError) setErrors(prev => ({ ...prev, description: descriptionError }));
     if (metaTitleError) setErrors(prev => ({ ...prev, metaTitle: metaTitleError }));
     if (metaDescriptionError) setErrors(prev => ({ ...prev, metaDescription: metaDescriptionError }));
+    if (projectsCountError) setErrors(prev => ({ ...prev, general: projectsCountError }));
 
     // Check if there are any errors
-    if (titleError || slugError || descriptionError || metaTitleError || metaDescriptionError) {
+    if (titleError || slugError || descriptionError || metaTitleError || metaDescriptionError || projectsCountError) {
       toast.error("Please fix the validation errors before saving.");
       return;
     }
@@ -621,6 +686,7 @@ export default function AddIndustryPage() {
         category_icon: categoryIconId || null,
 
         // Section data
+        projects_count_section: toProjectsCountPayload(projectsCountSection),
         projects_stats_section: projectsStatsSection.length > 0 ? projectsStatsSection : undefined,
         challenge_section: (challengeSection.title || challengeSection.items.length > 0) ? challengeSection : undefined,
         expertise_section: (expertiseSection.title || expertiseSection.description || expertiseSection.sub_sections.length > 0) ? expertiseSection : undefined,
@@ -793,6 +859,83 @@ export default function AddIndustryPage() {
                       </div>
                     )}
                   </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label>Projects Count Section *</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Add 1 to 3 items. Each item needs a project name and a count.
+                      </p>
+                    </div>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addProjectCount}
+                      disabled={projectsCountSection.length >= 3}
+                      className="flex items-center gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add Item
+                    </Button>
+                  </div>
+
+                  {projectsCountSection.map((item, index) => (
+                    <div key={index} className="grid grid-cols-12 gap-3 p-3 border rounded-lg">
+                      <div className="col-span-7 space-y-2">
+                        <Label>Project Name</Label>
+                        <Input
+                          value={item.name}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (value.length <= 15) updateProjectCount(index, "name", value);
+                          }}
+                          placeholder="e.g., one"
+                          maxLength={15}
+                        />
+                      </div>
+
+                      <div className="col-span-4 space-y-2">
+                        <Label>Count</Label>
+                        <Input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={item.count}
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            const digitsOnly = raw.replace(/[^0-9]/g, "").slice(0, 15);
+                            updateProjectCount(index, "count", digitsOnly);
+                          }}
+                          maxLength={15}
+                        />
+                      </div>
+
+                      <div className="col-span-1 flex items-end justify-end">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeProjectCount(index)}
+                          disabled={projectsCountSection.length <= 1}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+
+                  {errors.general && (
+                    <div className="flex items-center gap-2 text-sm text-red-600">
+                      <AlertCircle className="h-4 w-4" />
+                      <span>{errors.general}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">

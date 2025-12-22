@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useIndustries } from "@/hooks/useIndustries";
 import { useTags } from "@/hooks/useTags";
 import type { Industry, Tag, CreateIndustryData } from "@/types/types";
@@ -22,6 +24,11 @@ interface EditIndustryFormProps {
 interface ProjectStatItem {
   name: string;
   count: number;
+}
+
+interface ProjectCountItem {
+  name: string;
+  count: string;
 }
 
 // Challenge section: title + items (each item is just a point string)
@@ -107,6 +114,7 @@ export function EditIndustryForm({ industry, onCancel, onSaved }: EditIndustryFo
   const [uploadingCategoryIcon, setUploadingCategoryIcon] = useState(false);
 
   // Section data states (new structure)
+  const [projectsCountSection, setProjectsCountSection] = useState<ProjectCountItem[]>([{ name: "", count: "" }]);
   const [projectsStatsSection, setProjectsStatsSection] = useState<ProjectStatItem[]>([]);
   const [challengeSection, setChallengeSection] = useState<ChallengeSection>({ title: "", items: [] });
   const [expertiseSection, setExpertiseSection] = useState<ExpertiseSection>({ title: "", description: "", sub_sections: [] });
@@ -172,6 +180,43 @@ export function EditIndustryForm({ industry, onCancel, onSaved }: EditIndustryFo
     if (value.length < 50) return "Meta description must be at least 50 characters long";
     if (value.length > 160) return "Meta description must be 160 characters or less";
     return null;
+  };
+
+  const validateProjectsCountSection = (items: ProjectCountItem[]): string | null => {
+    const filled = items
+      .map(i => ({
+        name: (i.name || "").trim(),
+        countStr: (i.count || "").trim(),
+        count: Number((i.count || "").trim()),
+      }))
+      .filter(i => i.name.length > 0 || i.countStr.length > 0);
+
+    if (filled.length < 1) return "Add at least 1 project count item";
+    if (filled.length > 3) return "You can add maximum 3 project count items";
+
+    for (const it of filled) {
+      if (!it.name) return "Project name is required";
+      if (it.name.length > 15) return "Project name must be 15 characters or less";
+      if (it.countStr.length > 15) return "Count must be 15 digits or less";
+      if (!Number.isFinite(it.count) || it.count <= 0) return "Count must be a number greater than 0";
+    }
+
+    const names = filled.map(i => i.name.toLowerCase());
+    if (new Set(names).size !== names.length) return "Project names must be unique";
+    return null;
+  };
+
+  const toProjectsCountPayload = (items: ProjectCountItem[]): Array<Record<string, number>> | undefined => {
+    const cleaned = items
+      .map(i => ({
+        name: (i.name || "").trim(),
+        countStr: (i.count || "").trim(),
+        count: Number((i.count || "").trim()),
+      }))
+      .filter(i => i.name.length > 0 || i.countStr.length > 0);
+
+    if (cleaned.length === 0) return undefined;
+    return cleaned.slice(0, 3).map(i => ({ [i.name]: i.count }));
   };
 
   // Utility function to generate slug from title
@@ -264,6 +309,16 @@ export function EditIndustryForm({ industry, onCancel, onSaved }: EditIndustryFo
       }
 
       // Section data (new structure)
+      const initialProjectsCount = (industry.projects_count_section || [])
+        .map(obj => {
+          const entries = Object.entries(obj || {});
+          if (entries.length === 0) return null;
+          const [name, count] = entries[0];
+          return { name: String(name), count: String(Number(count)) };
+        })
+        .filter((x): x is ProjectCountItem => !!x);
+
+      setProjectsCountSection(initialProjectsCount.length > 0 ? initialProjectsCount.slice(0, 3) : [{ name: "", count: "" }]);
       setProjectsStatsSection(industry.projects_stats_section || []);
       setChallengeSection(industry.challenge_section || { title: "", items: [] });
       setExpertiseSection(industry.expertise_section || { title: "", description: "", sub_sections: [] });
@@ -274,6 +329,24 @@ export function EditIndustryForm({ industry, onCancel, onSaved }: EditIndustryFo
       setOriginalSlug(industry.slug || "");
     }
   }, [industry, tags]);
+
+  // Helper functions for Projects Count Section
+  const addProjectCount = () => {
+    setProjectsCountSection(prev => (prev.length >= 3 ? prev : [...prev, { name: "", count: "" }]));
+  };
+
+  const removeProjectCount = (index: number) => {
+    setProjectsCountSection(prev => {
+      const next = prev.filter((_, i) => i !== index);
+      return next.length === 0 ? [{ name: "", count: "" }] : next;
+    });
+  };
+
+  const updateProjectCount = (index: number, field: keyof ProjectCountItem, value: string) => {
+    setProjectsCountSection(prev =>
+      prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
+    );
+  };
 
   // Helper functions for Projects Stats Section
   const addProjectStat = () => {
@@ -567,6 +640,7 @@ export function EditIndustryForm({ industry, onCancel, onSaved }: EditIndustryFo
     const descriptionError = validateDescription(description);
     const metaTitleError = validateMetaTitle(metaTitle);
     const metaDescriptionError = validateMetaDescription(metaDescription);
+    const projectsCountError = validateProjectsCountSection(projectsCountSection);
 
     // Set errors if any validation fails
     if (titleError) setErrors(prev => ({ ...prev, title: titleError }));
@@ -574,9 +648,10 @@ export function EditIndustryForm({ industry, onCancel, onSaved }: EditIndustryFo
     if (descriptionError) setErrors(prev => ({ ...prev, description: descriptionError }));
     if (metaTitleError) setErrors(prev => ({ ...prev, metaTitle: metaTitleError }));
     if (metaDescriptionError) setErrors(prev => ({ ...prev, metaDescription: metaDescriptionError }));
+    if (projectsCountError) setErrors(prev => ({ ...prev, general: projectsCountError }));
 
     // Check if there are any errors
-    if (titleError || slugError || descriptionError || metaTitleError || metaDescriptionError) {
+    if (titleError || slugError || descriptionError || metaTitleError || metaDescriptionError || projectsCountError) {
       toast.error("Please fix the validation errors before saving.");
       return;
     }
@@ -607,6 +682,7 @@ export function EditIndustryForm({ industry, onCancel, onSaved }: EditIndustryFo
         category_icon: categoryIconId || (existingCategoryIcon?.id || null),
 
         // Section data
+        projects_count_section: toProjectsCountPayload(projectsCountSection),
         projects_stats_section: projectsStatsSection.length > 0 ? projectsStatsSection : undefined,
         challenge_section: (challengeSection.title || challengeSection.items.length > 0) ? challengeSection : undefined,
         expertise_section: (expertiseSection.title || expertiseSection.description || expertiseSection.sub_sections.length > 0) ? expertiseSection : undefined,
@@ -685,11 +761,10 @@ export function EditIndustryForm({ industry, onCancel, onSaved }: EditIndustryFo
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="slug" className="text-sm font-medium">Slug *</label>
+              <Label htmlFor="slug">Slug *</Label>
               <div className="relative">
-                <input
+                <Input
                   id="slug"
-                  type="text"
                   value={slug}
                   onChange={(e) => {
                     const value = e.target.value;
@@ -697,7 +772,6 @@ export function EditIndustryForm({ industry, onCancel, onSaved }: EditIndustryFo
                       setSlug(generateSlug(value));
                       setSlugCheckMessage("");
                       setSlugAvailable(null);
-                      // Clear error when user starts typing
                       if (errors.slug) {
                         setErrors(prev => {
                           const newErrors = { ...prev };
@@ -708,7 +782,6 @@ export function EditIndustryForm({ industry, onCancel, onSaved }: EditIndustryFo
                     }
                   }}
                   onBlur={() => {
-                    // Validate on blur
                     const error = validateSlug(slug);
                     if (error) {
                       setErrors(prev => ({ ...prev, slug: error }));
@@ -717,15 +790,17 @@ export function EditIndustryForm({ industry, onCancel, onSaved }: EditIndustryFo
                   placeholder="industry-slug"
                   maxLength={40}
                   required
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.slug ? 'border-red-500 focus:border-red-500' : 'border-gray-300'
-                    }`}
+                  className={`${errors.slug ? 'border-red-500 focus:border-red-500' : ''}`}
                 />
                 {isCheckingSlug && (
                   <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                    <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                   </div>
                 )}
               </div>
+              <p className="text-sm text-muted-foreground">
+                Auto-generated from industry title • URL-friendly identifier
+              </p>
               {slugCheckMessage && (
                 <div className={`flex items-center gap-1 mt-2 text-sm ${slugAvailable ? 'text-green-600' : 'text-red-600'
                   }`}>
@@ -738,6 +813,76 @@ export function EditIndustryForm({ industry, onCancel, onSaved }: EditIndustryFo
                 </div>
               )}
             </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="text-sm font-medium">Projects Count Section *</label>
+                <p className="text-xs text-gray-500">Add 1 to 3 items. Each item needs a project name and a count.</p>
+              </div>
+
+              <button
+                type="button"
+                onClick={addProjectCount}
+                disabled={projectsCountSection.length >= 3}
+                className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm disabled:opacity-50"
+              >
+                Add Item
+              </button>
+            </div>
+
+            {projectsCountSection.map((item, index) => (
+              <div key={index} className="grid grid-cols-12 gap-3 p-3 border rounded-lg">
+                <div className="col-span-7 space-y-2">
+                  <label className="text-sm font-medium">Project Name</label>
+                  <input
+                    type="text"
+                    value={item.name}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value.length <= 15) updateProjectCount(index, "name", value);
+                    }}
+                    placeholder="e.g., one"
+                    maxLength={15}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="col-span-4 space-y-2">
+                  <label className="text-sm font-medium">Count</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={item.count}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      const digitsOnly = raw.replace(/[^0-9]/g, "").slice(0, 15);
+                      updateProjectCount(index, "count", digitsOnly);
+                    }}
+                    maxLength={15}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="col-span-1 flex items-end justify-end">
+                  <button
+                    type="button"
+                    onClick={() => removeProjectCount(index)}
+                    disabled={projectsCountSection.length <= 1}
+                    className="px-2 py-2 bg-gray-100 hover:bg-gray-200 rounded disabled:opacity-50"
+                    aria-label="Remove"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {errors.general && (
+              <p className="text-sm text-red-600">{errors.general}</p>
+            )}
           </div>
 
           <div className="space-y-2">

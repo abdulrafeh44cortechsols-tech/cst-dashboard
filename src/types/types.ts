@@ -369,6 +369,7 @@ export interface Industry {
   created_by?: number;
 
   // Section data
+  projects_count_section?: Array<Record<string, number>>;
   projects_stats_section?: Array<{
     name: string;
     count: number;
@@ -426,6 +427,7 @@ export interface CreateIndustryData {
   category_icon?: number | null;
 
   // Section data
+  projects_count_section?: Array<Record<string, number>>;
   projects_stats_section?: Array<{ name: string; count: number }>;
   challenge_section?: {
     title: string;
