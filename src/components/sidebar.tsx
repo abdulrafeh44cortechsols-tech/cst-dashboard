@@ -101,11 +101,11 @@ export function LeftSidebar() {
             icon: LayoutTemplate,
             disabled: true,
           },
-          {
-            title: "Settings",
-            href: "/dashboard/settings",
-            icon: Settings,
-          },
+          // {
+          //   title: "Settings",
+          //   href: "/dashboard/settings",
+          //   icon: Settings,
+          // },
         ]
       : []),
   ];
@@ -122,7 +122,7 @@ export function LeftSidebar() {
     if (path.startsWith("/dashboard/media")) return "Media";
     if (path.startsWith("/dashboard/editors")) return "Editors";
     if (path.startsWith("/dashboard/template")) return "Templates";
-    if (path.startsWith("/dashboard/settings")) return "Settings";
+    // if (path.startsWith("/dashboard/settings")) return "Settings";
     if (path.startsWith("/dashboard/seo")) return "SEO Management";
     return "Dashboard"; // Default fallback
   };
