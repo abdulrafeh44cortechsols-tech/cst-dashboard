@@ -153,7 +153,7 @@ export default function AddIndustryPage() {
   const validateTitle = (value: string): string | null => {
     if (!value.trim()) return "Industry title is required";
     if (value.length < 3) return "Title must be at least 3 characters long";
-    if (value.length > 50) return "Title must be 50 characters or less";
+    if (value.length > 100) return "Title must be 100 characters or less";
     return null;
   };
 
@@ -779,7 +779,7 @@ export default function AddIndustryPage() {
                       value={title}
                       onChange={(e) => {
                         const value = e.target.value;
-                        if (value.length <= 50) {
+                        if (value.length <= 100) {
                           handleTitleChange(value);
                           const error = validateTitle(value);
                           if (error) {
@@ -800,12 +800,12 @@ export default function AddIndustryPage() {
                         }
                       }}
                       placeholder="Enter industry title"
-                      maxLength={50}
+                      maxLength={100}
                       required
                       className={`${errors.title ? 'border-red-500 focus:border-red-500' : ''}`}
                     />
                     <p className={`text-sm ${errors.title ? 'text-red-600' : 'text-muted-foreground'}`}>
-                      {errors.title || `${50 - title.length} characters remaining`}
+                      {errors.title || `${100 - title.length} characters remaining`}
                     </p>
                   </div>
 
