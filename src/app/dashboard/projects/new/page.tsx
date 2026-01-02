@@ -1043,8 +1043,8 @@ export default function AddProjectPage() {
 			return;
 		}
 
-		if (description.length < 100) {
-			toast.error("Project description must be at least 100 characters long.");
+		if (description.length < 50) {
+			toast.error("Project description must be at least 50 characters long.");
 			return;
 		}
 
@@ -1388,10 +1388,10 @@ export default function AddProjectPage() {
 												setDescription(value);
 												if (
 													value.trim().length > 0 &&
-													value.trim().length < 100
+													value.trim().length < 50
 												) {
 													setDescriptionError(
-														"Project excerpt must be at least 100 characters long."
+														"Project excerpt must be at least 50 characters long."
 													);
 												} else {
 													setDescriptionError(null);
@@ -1414,7 +1414,7 @@ export default function AddProjectPage() {
 										</p>
 									)}
 									<p className="text-xs text-muted-foreground">
-										{500 - description.length} characters remaining (minimum 100
+										{500 - description.length} characters remaining (minimum 50
 										required)
 									</p>
 								</div>

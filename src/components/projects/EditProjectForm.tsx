@@ -658,7 +658,7 @@ export function EditProjectForm({
 			return;
 		}
 
-		if (excerpt.length < 100) {
+		if (excerpt.length < 50) {
 			toast.error("Project description must be at least 100 characters long.");
 			return;
 		}
@@ -834,10 +834,10 @@ export function EditProjectForm({
 											setExcerpt(value);
 											if (
 												value.trim().length > 0 &&
-												value.trim().length < 100
+												value.trim().length < 50
 											) {
 												setDescriptionError(
-													"Project excerpt must be at least 100 characters long."
+													"Project excerpt must be at least 50 characters long."
 												);
 											} else {
 												setDescriptionError(null);
@@ -860,7 +860,7 @@ export function EditProjectForm({
 									</p>
 								)}
 								<p className="text-sm text-muted-foreground mt-1">
-									{excerpt.length}/2000 characters (minimum 100 required)
+									{excerpt.length}/2000 characters (minimum 50 required)
 								</p>
 							</div>
 
